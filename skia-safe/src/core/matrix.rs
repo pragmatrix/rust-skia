@@ -1,5 +1,6 @@
 use crate::prelude::*;
 use crate::{scalar, Point, Point3, RSXform, Rect, Scalar, Size, Vector};
+use once_cell::sync::OnceCell;
 use skia_bindings::{C_SkMatrix_SubscriptMut, SkMatrix, SkMatrix_ScaleToFit};
 use std::mem;
 use std::ops::{Index, IndexMut};
@@ -689,11 +690,13 @@ impl Matrix {
     }
 
     pub fn i() -> &'static Matrix {
-        &IDENTITY
+        static IDENTITY: OnceCell<Matrix> = OnceCell::new();
+        IDENTITY.get_or_init(|| Matrix::new_identity())
     }
 
     pub fn invalid_matrix() -> &'static Matrix {
-        &INVALID
+        static INVALID: OnceCell<Matrix> = OnceCell::new();
+        INVALID.get_or_init(|| Matrix::from_native(unsafe { *SkMatrix::InvalidMatrix() }))
     }
 
     pub fn concat(a: &Matrix, b: &Matrix) -> Matrix {
@@ -733,11 +736,6 @@ impl Matrix {
 impl IndexGet for Matrix {}
 impl IndexSet for Matrix {}
 
-lazy_static! {
-    static ref IDENTITY: Matrix = Matrix::new_identity();
-    static ref INVALID: Matrix = Matrix::from_native(unsafe { *SkMatrix::InvalidMatrix() });
-}
-
 #[test]
 fn test_get_set_trait_compilation() {
     let mut m = Matrix::new_identity();
@@ -763,4 +761,11 @@ fn setting_a_matrix_component_recomputes_typemask() {
         TypeMask::TRANSLATE | TypeMask::SCALE | TypeMask::AFFINE | TypeMask::PERSPECTIVE,
         m.get_type()
     );
+}
+
+#[test]
+fn static_identity_matrix() {
+    let i = Matrix::i();
+    let identity = Matrix::new_identity();
+    assert_eq!(*i, identity)
 }

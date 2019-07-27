@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use once_cell::sync::OnceCell;
 use skia_bindings::{
     C_SkFontStyle_Construct, C_SkFontStyle_Equals, SkFontStyle, SkFontStyle_Slant,
     SkFontStyle_Weight, SkFontStyle_Width,
@@ -196,34 +197,23 @@ impl FontStyle {
     }
 
     pub fn normal() -> FontStyle {
-        *font_style_static::NORMAL
+        static NORMAL: OnceCell<FontStyle> = OnceCell::new();
+        *NORMAL.get_or_init(|| FontStyle::new(Weight::NORMAL, Width::NORMAL, Slant::Upright))
     }
 
     pub fn bold() -> FontStyle {
-        *font_style_static::BOLD
+        static BOLD: OnceCell<FontStyle> = OnceCell::new();
+        *BOLD.get_or_init(|| FontStyle::new(Weight::BOLD, Width::NORMAL, Slant::Upright))
     }
 
     pub fn italic() -> FontStyle {
-        *font_style_static::ITALIC
+        static ITALIC: OnceCell<FontStyle> = OnceCell::new();
+        *ITALIC.get_or_init(|| FontStyle::new(Weight::NORMAL, Width::NORMAL, Slant::Italic))
     }
 
     pub fn bold_italic() -> FontStyle {
-        *font_style_static::BOLD_ITALIC
-    }
-}
-
-mod font_style_static {
-    use super::{FontStyle, Slant, Weight, Width};
-
-    lazy_static! {
-        pub static ref NORMAL: FontStyle =
-            FontStyle::new(Weight::NORMAL, Width::NORMAL, Slant::Upright);
-        pub static ref BOLD: FontStyle =
-            FontStyle::new(Weight::BOLD, Width::NORMAL, Slant::Upright);
-        pub static ref ITALIC: FontStyle =
-            FontStyle::new(Weight::NORMAL, Width::NORMAL, Slant::Italic);
-        pub static ref BOLD_ITALIC: FontStyle =
-            FontStyle::new(Weight::BOLD, Width::NORMAL, Slant::Italic);
+        static BOLD_ITALIC: OnceCell<FontStyle> = OnceCell::new();
+        *BOLD_ITALIC.get_or_init(|| FontStyle::new(Weight::BOLD, Width::NORMAL, Slant::Italic))
     }
 }
 

@@ -13,8 +13,6 @@ pub mod utils;
 
 #[macro_use]
 extern crate bitflags;
-#[macro_use]
-extern crate lazy_static;
 
 // Prelude re-exports
 pub use crate::prelude::Borrows;
