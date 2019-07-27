@@ -17,7 +17,7 @@ fn test_isize_layout() {
 }
 
 impl ISize {
-    pub fn new(w: i32, h: i32) -> ISize {
+    pub const fn new(w: i32, h: i32) -> ISize {
         ISize {
             width: w,
             height: h,
@@ -66,18 +66,18 @@ fn test_size_layout() {
 }
 
 impl Size {
-    pub fn new(w: scalar, h: scalar) -> Size {
+    pub const fn new(w: scalar, h: scalar) -> Size {
         Size {
             width: w,
             height: h,
         }
     }
 
-    pub fn from_isize(src: ISize) -> Size {
+    pub const fn from_isize(src: ISize) -> Size {
         Self::new(src.width as _, src.height as _)
     }
 
-    pub fn new_empty() -> Self {
+    pub const fn new_empty() -> Self {
         Self::new(0.0, 0.0)
     }
 

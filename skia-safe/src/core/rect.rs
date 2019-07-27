@@ -25,7 +25,7 @@ impl AsRef<IRect> for IRect {
 }
 
 impl IRect {
-    pub fn new(left: i32, top: i32, right: i32, bottom: i32) -> Self {
+    pub const fn new(left: i32, top: i32, right: i32, bottom: i32) -> Self {
         Self {
             left,
             top,
@@ -34,8 +34,8 @@ impl IRect {
         }
     }
 
-    pub fn new_empty() -> Self {
-        Self::default()
+    pub const fn new_empty() -> Self {
+        Self::new(0, 0, 0, 0)
     }
 
     pub fn from_wh(w: i32, h: i32) -> Self {
@@ -47,7 +47,7 @@ impl IRect {
         Self::new(0, 0, size.width, size.height)
     }
 
-    pub fn from_ltrb(l: i32, t: i32, r: i32, b: i32) -> Self {
+    pub const fn from_ltrb(l: i32, t: i32, r: i32, b: i32) -> Self {
         Self::new(l, t, r, b)
     }
 
@@ -237,12 +237,9 @@ impl IRect {
 
     #[must_use]
     pub fn empty() -> &'static Self {
-        &EMPTY_IRECT
+        const EMPTY: IRect = IRect::new_empty();
+        &EMPTY
     }
-}
-
-lazy_static! {
-    static ref EMPTY_IRECT: IRect = IRect::default();
 }
 
 impl Contains<IPoint> for IRect {
@@ -287,7 +284,7 @@ impl AsRef<Rect> for Rect {
 }
 
 impl Rect {
-    pub fn new(left: scalar, top: scalar, right: scalar, bottom: scalar) -> Self {
+    pub const fn new(left: scalar, top: scalar, right: scalar, bottom: scalar) -> Self {
         Self {
             left,
             top,
