@@ -16,7 +16,7 @@ authors = ["Armin Sander <armin@replicator.org>"]
 edition = "2018"
 
 [features]
-default = []
+default = ["vulkan"]
 vulkan = ["skia-bindings/vulkan"]
 svg = ["skia-bindings/svg"]
 shaper = ["skia-bindings/shaper"]

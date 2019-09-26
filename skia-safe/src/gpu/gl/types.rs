@@ -1,9 +1,11 @@
 use crate::prelude::NativeTransmutable;
 use skia_bindings as sb;
-use skia_bindings::{GrGLFramebufferInfo, GrGLTextureInfo, GrGLenum, GrGLuint};
+use skia_bindings::{GrGLFramebufferInfo, GrGLTextureInfo, GrGLenum, GrGLsync, GrGLuint};
 
 pub type Enum = GrGLenum;
 pub type UInt = GrGLuint;
+
+pub type Sync = GrGLsync;
 
 #[derive(Copy, Clone, Debug)]
 #[repr(C)]

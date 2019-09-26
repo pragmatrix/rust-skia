@@ -853,6 +853,8 @@ const ENUM_TABLE: &[EnumEntry] = &[
     // TextStyle.h
     ("TextDecorationStyle", replace::k_xxx),
     ("StyleType", replace::k_xxx),
+    // Gr*
+    ("GrSemaphoresSubmitted", replace::k_xxx),
     // Vk*
     ("VkChromaLocation", replace::vk),
     ("VkFilter", replace::vk),

@@ -23,7 +23,7 @@ skia = "2417cee95d"
 depot_tools = "a110bf6"
 
 [features]
-default = []
+default = ["vulkan"]
 vulkan = []
 svg = []
 shaper = []

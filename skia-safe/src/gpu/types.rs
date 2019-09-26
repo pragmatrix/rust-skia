@@ -1,5 +1,10 @@
+use crate::gpu::BackendSemaphore;
 use crate::prelude::*;
-use skia_bindings::{GrBackendApi, GrMipMapped, GrProtected, GrRenderable, GrSurfaceOrigin};
+use skia_bindings as sb;
+use skia_bindings::{
+    GrBackendApi, GrFlushFlags, GrMipMapped, GrProtected, GrRenderable, GrSemaphoresSubmitted,
+    GrSurfaceOrigin,
+};
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[repr(u32)]
@@ -76,3 +81,25 @@ fn test_surface_origin_layout() {
 }
 
 // Note: BackendState is in gl/types.rs/
+
+bitflags! {
+    pub struct FlushFlags: i32 {
+        const NONE = sb::GrFlushFlags_kNone_GrFlushFlags as _;
+        const SYNC_CPU = sb::GrFlushFlags_kSyncCpu_GrFlushFlag as _;
+    }
+}
+
+impl NativeTransmutable<GrFlushFlags> for FlushFlags {}
+#[test]
+fn test_flush_flags_layout() {
+    FlushFlags::test_layout()
+}
+
+pub struct FlushInfo<'a> {
+    pub flags: FlushFlags,
+    pub signal_semaphores: &'a mut [BackendSemaphore],
+}
+
+pub type SemaphoresSubmitted = sb::GrSemaphoresSubmitted;
+
+// TODO: GrPrepareForExternalIORequests

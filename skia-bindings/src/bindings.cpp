@@ -91,6 +91,7 @@
 // gpu/
 #include "include/gpu/GrContext.h"
 #include "include/gpu/GrBackendDrawableInfo.h"
+#include "include/gpu/GrBackendSemaphore.h"
 // gpu/gl
 #include "include/gpu/gl/GrGLExtensions.h"
 #include "include/gpu/gl/GrGLInterface.h"

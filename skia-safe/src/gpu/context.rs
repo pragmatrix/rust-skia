@@ -1,11 +1,12 @@
-use crate::gpu::{gl, MipMapped};
+use crate::gpu::{gl, FinishedProc, FlushInfo, MipMapped};
 use crate::prelude::*;
 use skia_bindings as sb;
-use skia_bindings::{GrContext, SkRefCntBase};
+use skia_bindings::{GrContext, GrFlushInfo, GrGpuFinishedContext, SkRefCntBase};
 
 #[cfg(feature = "vulkan")]
 use super::vk;
 use crate::ColorType;
+use std::ptr;
 
 pub type Context = RCHandle<GrContext>;
 
@@ -168,6 +169,32 @@ impl RCHandle<GrContext> {
     pub fn flush(&mut self) -> &mut Self {
         unsafe { sb::C_GrContext_flush(self.native_mut()) }
         self
+    }
+
+    extern "C" fn flush_callback(context: GrGpuFinishedContext) {
+        let b = context as Box<FinishedProc>;
+    }
+
+    pub fn flush_with_info(
+        &mut self,
+        info: FlushInfo,
+        finished_proc: Option<impl FnOnce() + Send + 'static>,
+    ) {
+        let o: Option<Box<dyn FnOnce() + Send + 'static>> = match finished_proc {
+            Some(fp) => Some(Box::new(fp)),
+            None => None,
+        };
+
+        let fi = GrFlushInfo {
+            fFlags: info.flags.into_native(),
+            fNumSemaphores: info.signal_semaphores.len().try_into().unwrap(),
+            fSignalSemaphores: info.signal_semaphores.native().as_mut_ptr(),
+            fFinishedProc: None,
+            fFinishedContext: match finished_proc {
+                Some(mut fp) => fp as _,
+                None => ptr::null(),
+            },
+        };
     }
 
     // TODO: flush(GrFlushInfo, ..) two variants.
