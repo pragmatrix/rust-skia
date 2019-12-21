@@ -291,7 +291,7 @@ impl FinalBuildConfiguration {
                     // TODO: this should be checked as a prerequisite.
                     args.push(("clang_win", quote("C:/Program Files/LLVM")));
                 }
-                (arch, "linux", "android", _) => {
+                (arch, "linux", "android", _) | (arch, "linux", "androideabi", _) => {
                     args.push(("ndk", quote(&android::ndk())));
                     // TODO: make API-level configurable?
                     args.push(("ndk_api", android::API_LEVEL.into()));
@@ -440,7 +440,7 @@ impl BinariesConfiguration {
                     "usp10", "ole32", "user32", "gdi32", "fontsub", "opengl32",
                 ]);
             }
-            (_, "linux", "android", _) => {
+            (_, "linux", "android", _) | (_, "linux", "androideabi", _) => {
                 link_libraries.extend(vec![
                     "log",
                     "android",
@@ -772,7 +772,7 @@ fn bindgen_gen(build: &FinalBuildConfiguration, current_dir: &Path, output_direc
 
     let target = cargo::target();
     match target.as_strs() {
-        (arch, "linux", "android", _) => {
+        (arch, "linux", "android", _) | (arch, "linux", "androideabi", _) => {
             let target = &target.to_string();
             cc_build.target(target);
             for arg in android::additional_clang_args(target, arch) {

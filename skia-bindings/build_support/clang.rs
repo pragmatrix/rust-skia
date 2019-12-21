@@ -3,6 +3,7 @@ pub fn target_arch(arch: &str) -> &str {
     match arch {
         "aarch64" => "arm64",
         "i686" => "x86",
+        "armv7" => "arm",
         arch => arch,
     }
 }
