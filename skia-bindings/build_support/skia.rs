@@ -233,7 +233,22 @@ impl FinalBuildConfiguration {
                     if let Some(win_vc) = vs::resolve_win_vc() {
                         args.push(("win_vc", quote(win_vc.to_str().unwrap())))
                     }
-                    use_gcc = true;
+                    // Tell Skia's build system where LLVM is supposed to be located.
+                    if cargo::target_crt_static() {
+                        flags.push("/MT");
+                    }
+                    // otherwise the C runtime should be linked dynamically
+                    else {
+                        flags.push("/MD");
+                    }
+                    if let Some(llvm_home) = llvm::win::find_llvm_home() {
+                        args.push(("clang_win", quote(&llvm_home)));
+                    } else {
+                        panic!(
+                            "Unable to locate LLVM installation. skia-bindings can not be built."
+                        );
+                    }
+                    // use_gcc = true;
                 }
                 (arch, "linux", "android", _) | (arch, "linux", "androideabi", _) => {
                     args.push(("ndk", quote(&android::ndk())));
@@ -405,6 +420,8 @@ impl BinariesConfiguration {
                 if features.gl {
                     link_libraries.push("opengl32");
                 }
+                // needed to fix __gxx_personality_seh0 linker errors.
+                link_libraries.push("stdc++");
             }
             (_, "linux", "android", _) | (_, "linux", "androideabi", _) => {
                 link_libraries.extend(android::link_libraries(features));
@@ -449,7 +466,8 @@ impl BinariesConfiguration {
         // the system libraries.
 
         for lib in &self.built_libraries {
-            cargo::add_link_lib(format!("static={}", lib));
+            // cargo::add_link_lib(format!("static={}", lib));
+            cargo::add_link_lib(format!("{}", lib));
         }
 
         cargo::add_link_libs(&self.link_libraries);
@@ -682,7 +700,12 @@ fn bindgen_gen(build: &FinalBuildConfiguration, current_dir: &Path, output_direc
             }
         }
         (_, _, "windows", Some("gnu")) => {
-            builder = builder.clang_arg(format!("--target={}", target.to_string()));
+            let target = &target.to_string();
+            // TODO: probaby not needed.
+            cc_build.target(target);
+            builder = builder.clang_arg(format!("--target={}", target));
+            // TODO: this is probably not needed, too.
+            cc_build.flag("-std=c++17");
         }
         (arch, "linux", "android", _) | (arch, "linux", "androideabi", _) => {
             let target = &target.to_string();
