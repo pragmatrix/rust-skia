@@ -1,9 +1,6 @@
-use clap::{App, Arg};
-#[cfg(feature = "gl")]
-use offscreen_gl_context::{GLContext, GLVersion, NativeGLContext};
-use std::path::{Path, PathBuf};
-
 use crate::drivers::DrawingDriver;
+use clap::{App, Arg};
+use std::path::{Path, PathBuf};
 
 #[cfg(feature = "vulkan")]
 extern crate ash;
@@ -23,6 +20,9 @@ mod skparagraph_example;
 mod skpath_overview;
 #[cfg(feature = "textlayout")]
 mod skshaper_example;
+
+#[cfg(feature = "gl")]
+surfman::declare_surfman!();
 
 fn main() {
     const OUT_PATH: &str = "OUT_PATH";
@@ -75,26 +75,10 @@ fn main() {
     #[cfg(feature = "gl")]
     {
         if drivers.contains(&drivers::OpenGL::NAME) {
-            let context = GLContext::<NativeGLContext>::create(
-                sparkle::gl::GlType::Gl,
-                GLVersion::MajorMinor(3, 3),
-                None,
-            )
-            .unwrap();
-
-            context.make_current().unwrap();
             draw_all(&mut drivers::OpenGL::new(), &out_path);
         }
 
         if drivers.contains(&"opengl-es") {
-            let context = GLContext::<NativeGLContext>::create(
-                sparkle::gl::GlType::Gles,
-                GLVersion::MajorMinor(3, 3),
-                None,
-            )
-            .unwrap();
-
-            context.make_current().unwrap();
             draw_all(&mut drivers::OpenGL::new(), &out_path);
         }
     }

@@ -17,7 +17,7 @@ edition = "2018"
 
 [features]
 default = []
-gl = ["offscreen_gl_context", "sparkle", "skia-safe/gl"]
+gl = ["surfman", "gl-rs", "skia-safe/gl"]
 vulkan = ["ash", "skia-safe/vulkan"]
 metal = ["metal-rs", "foreign-types", "cocoa", "objc", "skia-safe/metal"]
 textlayout = ["skia-safe/textlayout"]
@@ -25,13 +25,9 @@ textlayout = ["skia-safe/textlayout"]
 [dependencies]
 skia-safe = { path = "../skia-safe" }
 
-# 0.25.1 fails to build on iOS targets on macOS: https://github.com/servo/rust-offscreen-rendering-context/pull/150 
-offscreen_gl_context = { git = "https://github.com/rust-skia/rust-offscreen-rendering-context", rev = "1b9c74737635add2b9076e12df129cc3326c1287", optional = true }
-# offscreen_gl_context = "0.25.1"
-# for offscreen_gl_context 0.25
-# sparkle 0.1.9 fails to compile on macOS targeting aarch64-linux-android
-sparkle = { version = "0.1.10", optional = true }
 clap = "2.33.0"
+surfman = { version = "0.3", optional = true }
+gl-rs = { package = "gl", version = "0.14", optional = true }
 ash = { version = "0.31", optional = true }
 # need to rename the package because of the feature with the same name.
 metal-rs = { package = "metal", version = "0.17.1", optional = true }
