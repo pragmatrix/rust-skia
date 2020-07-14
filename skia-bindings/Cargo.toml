@@ -33,7 +33,7 @@ doctest = false
 # Note: use short hashes here because of filesystem path size restrictions.
 [package.metadata]
 # TODO: add a versioned tag before the d3d branch gets merged
-skia = "m84-d3d"
+skia = "m85-d3d"
 depot_tools = "a110bf6"
 
 [features]
