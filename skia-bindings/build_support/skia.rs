@@ -1061,6 +1061,8 @@ const ENUM_TABLE: &[EnumEntry] = &[
     ("Verb", rewrite::k_xxx_name),
     // m84: SkVertices::Attribute::Usage
     ("Usage", rewrite::k_xxx),
+    ("GrSemaphoresSubmitted", rewrite::k_xxx),
+    ("BackendSurfaceAccess", rewrite::k_xxx),
 ];
 
 pub(crate) mod rewrite {
