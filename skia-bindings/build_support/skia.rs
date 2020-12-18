@@ -257,7 +257,7 @@ impl FinalBuildConfiguration {
             }
 
             if let Some(opt_level) = &build.opt_level {
-                /* Disabled for now, LTO generates corrupt libraries on the host platforms when building with --release
+                /* LTO generates corrupt libraries on the host platforms when building with --release
                 if opt_level.parse::<usize>() != Ok(0) {
                     cflags.push("-flto");
                 }
