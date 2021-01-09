@@ -607,8 +607,8 @@ pub fn build_offline(
     ninja_command: Option<&Path>,
     gn_command: Option<&Path>,
 ) {
-    let python2 = prerequisites::locate_python2_cmd();
-    configure_skia(&build, &config, &python2, gn_command);
+    // let python2 = prerequisites::locate_python2_cmd();
+    // configure_skia(&build, &config, &python2, gn_command);
     build_skia(
         &build,
         &config,
@@ -689,19 +689,6 @@ pub fn build_skia(
     config: &BinariesConfiguration,
     ninja_command: &Path,
 ) {
-    let ninja_status = Command::new(ninja_command)
-        .args(&["-C", config.output_directory.to_str().unwrap()])
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .status();
-
-    assert!(
-        ninja_status
-            .expect("failed to run `ninja`, does the directory depot_tools/ exist?")
-            .success(),
-        "`ninja` returned an error, please check the output for details."
-    );
-
     generate_bindings(build, &config.output_directory)
 }
 
@@ -889,10 +876,10 @@ fn generate_bindings(build: &FinalBuildConfiguration, output_directory: &Path) {
         cc_build.flag(&sysroot);
     }
 
-    println!("COMPILING BINDINGS: {:?}", build.binding_sources);
+    // println!("COMPILING BINDINGS: {:?}", build.binding_sources);
     // we add skia-bindings later on.
-    cc_build.cargo_metadata(false);
-    cc_build.compile(lib::SKIA_BINDINGS);
+    // cc_build.cargo_metadata(false);
+    // cc_build.compile(lib::SKIA_BINDINGS);
 
     println!("GENERATING BINDINGS");
     let bindings = builder.generate().expect("Unable to generate bindings");
