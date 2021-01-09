@@ -787,37 +787,38 @@ fn generate_bindings(build: &FinalBuildConfiguration, output_directory: &Path) {
     builder = builder.clang_arg(format!("-I{}", include_path.display()));
     cc_build.include(include_path);
 
-    let definitions = {
-        let mut definitions = Vec::new();
+    /*
+        let definitions = {
+            let mut definitions = Vec::new();
 
-        for ninja_file in &build.ninja_files {
-            let ninja_file = output_directory.join(ninja_file);
-            let contents = fs::read_to_string(ninja_file).unwrap();
-            definitions = definitions::combine(definitions, definitions::from_ninja(contents))
+            for ninja_file in &build.ninja_files {
+                let ninja_file = output_directory.join(ninja_file);
+                let contents = fs::read_to_string(ninja_file).unwrap();
+                definitions = definitions::combine(definitions, definitions::from_ninja(contents))
+            }
+
+            definitions::combine(definitions, build.definitions.clone())
+        };
+
+        // Whether GIF decoding is supported,
+        // is decided by BUILD.gn based on the existence of the libgifcodec directory:
+        if !definitions.iter().any(|(v, _)| v == "SK_USE_LIBGIFCODEC") {
+            cargo::warning("GIF decoding support may be missing, does the directory skia/third_party/externals/libgifcodec/ exist?")
         }
 
-        definitions::combine(definitions, build.definitions.clone())
-    };
-
-    // Whether GIF decoding is supported,
-    // is decided by BUILD.gn based on the existence of the libgifcodec directory:
-    if !definitions.iter().any(|(v, _)| v == "SK_USE_LIBGIFCODEC") {
-        cargo::warning("GIF decoding support may be missing, does the directory skia/third_party/externals/libgifcodec/ exist?")
-    }
-
-    for (name, value) in &definitions {
-        match value {
-            Some(value) => {
-                cc_build.define(name, value.as_str());
-                builder = builder.clang_arg(format!("-D{}={}", name, value));
-            }
-            None => {
-                cc_build.define(name, "");
-                builder = builder.clang_arg(format!("-D{}", name));
+        for (name, value) in &definitions {
+            match value {
+                Some(value) => {
+                    cc_build.define(name, value.as_str());
+                    builder = builder.clang_arg(format!("-D{}={}", name, value));
+                }
+                None => {
+                    cc_build.define(name, "");
+                    builder = builder.clang_arg(format!("-D{}", name));
+                }
             }
         }
-    }
-
+    */
     cc_build.cpp(true).out_dir(output_directory);
 
     if !cfg!(windows) {
