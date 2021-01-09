@@ -592,9 +592,9 @@ impl BinariesConfiguration {
 pub fn build(build: &FinalBuildConfiguration, config: &BinariesConfiguration) {
     let python2 = &prerequisites::locate_python2_cmd();
     println!("Python 2 found: {:?}", python2);
-    let ninja = fetch_dependencies(&python2);
-    configure_skia(build, config, &python2, None);
-    build_skia(build, config, &ninja);
+    // let ninja = fetch_dependencies(&python2);
+    // configure_skia(build, config, &python2, None);
+    build_skia(build, config, &ninja::default_exe_name());
 }
 
 /// Build Skia without any network access.
