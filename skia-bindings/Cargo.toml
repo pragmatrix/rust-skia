@@ -58,7 +58,6 @@ shaper = ["textlayout"]
 cc = "1.0.37"
 bindgen = "0.56.0"
 # For enum variant name replacements.
-regex = "1.2.1"
 heck = "0.3.1"
 # Version 1.1.0 causes a stack overflow in the binding generation.
 # thread_local = "~1.0.1"
