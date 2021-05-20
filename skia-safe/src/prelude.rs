@@ -533,6 +533,11 @@ impl<N: NativeRefCounted> RCHandle<N> {
     pub(crate) fn from_unshared_ptr_ref(n: &*mut N) -> &Option<Self> {
         unsafe { transmute_ref(n) }
     }
+
+    /// Returns the address of the native value.
+    pub(crate) fn as_ptr(&self) -> *const N {
+        ptr::NonNull::as_ptr(self.0)
+    }
 }
 
 #[cfg(tests)]
