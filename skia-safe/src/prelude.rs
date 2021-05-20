@@ -560,10 +560,9 @@ impl<N: NativeRefCounted> RCHandle<N> {
         unsafe { transmute_ref(n) }
     }
 
-    /// Returns the pointer to the handle.
-    #[allow(unused)]
-    pub(crate) fn as_ptr(&self) -> &NonNull<N> {
-        &self.0
+    /// Returns the address of the native value.
+    pub(crate) fn as_ptr(&self) -> *const N {
+        ptr::NonNull::as_ptr(self.0)
     }
 }
 
