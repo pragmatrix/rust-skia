@@ -54,7 +54,7 @@ pub struct FilterOptions {
     pub mipmap: MipmapMode,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
 #[repr(i32)]
 pub enum MediumBehavior {
     AsMipmapNearest = SkSamplingOptions_MediumBehavior::kMedium_asMipmapNearest as _,

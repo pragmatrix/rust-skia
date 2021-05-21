@@ -48,7 +48,7 @@ impl Mul for Matrix {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum Member {
     ScaleX = 0,
     SkewX = 1,
@@ -61,7 +61,7 @@ pub enum Member {
     Persp2 = 8,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum AffineMember {
     ScaleX = 0,
     SkewY = 1,

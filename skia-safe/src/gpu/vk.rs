@@ -116,7 +116,7 @@ impl From<NullHandle> for u64 {
 }
 
 #[repr(transparent)]
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
 pub struct Version(u32);
 
 impl Version {

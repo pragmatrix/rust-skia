@@ -9,13 +9,21 @@ use super::{
     FlushInfo, RecordingContext, SemaphoresSubmitted,
 };
 use crate::{image, prelude::*, Data};
-use skia_bindings::{self as sb, GrDirectContext, SkRefCntBase};
+use skia_bindings::{self as sb, GrDirectContext, GrDirectContext_DirectContextID, SkRefCntBase};
 use std::{
     fmt,
     ops::{Deref, DerefMut},
     ptr,
     time::Duration,
 };
+
+#[repr(C)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+pub struct DirectContextId {
+    id: u32,
+}
+
+impl NativeTransmutable<GrDirectContext_DirectContextID> for DirectContextId {}
 
 pub type DirectContext = RCHandle<GrDirectContext>;
 
@@ -37,13 +45,13 @@ impl DerefMut for DirectContext {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct ResourceCacheLimits {
     pub max_resources: usize,
     pub max_resource_bytes: usize,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct ResourceCacheUsage {
     pub resource_count: usize,
     pub resource_bytes: usize,
@@ -373,5 +381,21 @@ impl DirectContext {
             self.native_mut()
                 .precompileShader(key.native(), data.native())
         }
+    }
+
+    pub fn id(&self) -> DirectContextId {
+        let mut id = DirectContextId { id: 0 };
+        unsafe { sb::C_GrDirectContext_directContextId(self.native(), id.native_mut()) }
+        id
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_direct_context_id_layout() {
+        DirectContextId::test_layout();
     }
 }
