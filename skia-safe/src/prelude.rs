@@ -7,8 +7,7 @@ use std::{
     marker::PhantomData,
     mem::{self, MaybeUninit},
     ops::{Deref, DerefMut, Index, IndexMut},
-    ptr::{self, NonNull},
-    slice,
+    ptr, slice,
 };
 
 // Re-export TryFrom / TryInto to make them available in all modules that use prelude::*.

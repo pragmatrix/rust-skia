@@ -5,7 +5,7 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssi
 pub use IPoint as IVector;
 
 #[repr(C)]
-#[derive(Copy, Clone, PartialEq, Eq, Default, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Default, Debug)]
 pub struct IPoint {
     pub x: i32,
     pub y: i32,

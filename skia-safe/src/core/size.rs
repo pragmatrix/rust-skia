@@ -3,7 +3,7 @@ use skia_bindings::{self as sb, SkISize, SkSize};
 use std::ops::{Div, DivAssign, Mul, MulAssign};
 
 #[repr(C)]
-#[derive(Copy, Clone, PartialEq, Eq, Default, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Default, Debug)]
 pub struct ISize {
     pub width: i32,
     pub height: i32,

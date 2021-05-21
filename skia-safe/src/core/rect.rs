@@ -10,7 +10,7 @@ use std::{
 };
 
 #[repr(C)]
-#[derive(Copy, Clone, PartialEq, Eq, Default, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Default, Debug)]
 pub struct IRect {
     pub left: i32,
     pub top: i32,
