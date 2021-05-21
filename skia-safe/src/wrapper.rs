@@ -103,7 +103,7 @@ pub trait PtrEq {
 /// implemented by pointer equality.
 ///
 /// This way, reference counted Skia types can be used as hash map keys, for example.
-#[derive(Clone, Eq, Debug)]
+#[derive(Clone, Debug)]
 pub struct EqByPointer<T: PtrEq>(T);
 
 impl<T: PtrEq> EqByPointer<T> {
@@ -132,6 +132,8 @@ impl<T: PtrEq> PartialEq for EqByPointer<T> {
         <T as PtrEq>::ptr_eq(self, other)
     }
 }
+
+impl<T: PtrEq> Eq for EqByPointer<T> {}
 
 impl<T: PtrEq> Hash for EqByPointer<T> {
     fn hash<H>(&self, h: &mut H)
