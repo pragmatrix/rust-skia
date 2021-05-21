@@ -25,7 +25,7 @@ fn test_vertices_vertex_mode_naming() {
 }
 
 #[repr(u8)]
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum AttributeType {
     Float = sb::SkVertices_Attribute_Type::Float as _,
     Float2 = sb::SkVertices_Attribute_Type::Float2 as _,

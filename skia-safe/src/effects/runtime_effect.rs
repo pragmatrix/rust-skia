@@ -118,7 +118,7 @@ impl NativeRefCountedBase for SkRuntimeEffect {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, PartialEq, Eq, Default, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Default, Debug)]
 pub struct Options {
     pub force_no_inline: bool,
 }

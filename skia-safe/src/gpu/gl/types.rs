@@ -43,7 +43,7 @@ impl TextureInfo {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 #[repr(C)]
 pub struct FramebufferInfo {
     pub fboid: UInt,
