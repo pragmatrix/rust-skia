@@ -189,6 +189,9 @@ pub struct FinalBuildConfiguration {
     /// the BuildConfiguration).
     pub definitions: Definitions,
 
+    /// The binding headers that are used.
+    pub binding_headers: Vec<PathBuf>,
+
     /// The binding source files to compile.
     pub binding_sources: Vec<PathBuf>,
 
@@ -421,6 +424,8 @@ impl FinalBuildConfiguration {
             files
         };
 
+        let binding_headers = vec!["src/bindings.h".into()];
+
         let binding_sources = {
             let mut sources: Vec<PathBuf> = vec!["src/bindings.cpp".into()];
             if features.gl {
@@ -450,6 +455,7 @@ impl FinalBuildConfiguration {
             gn_args,
             ninja_files,
             definitions: build.definitions.clone(),
+            binding_headers,
             binding_sources,
             use_system_libraries,
         }
@@ -811,6 +817,10 @@ fn generate_bindings(build: &FinalBuildConfiguration, output_directory: &Path) {
     }
 
     let mut cc_build = Build::new();
+
+    for header in &build.binding_headers {
+        cargo::rerun_if_changed(header.to_str().unwrap());
+    }
 
     for source in &build.binding_sources {
         cc_build.file(source);
