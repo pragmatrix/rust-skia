@@ -10,6 +10,7 @@ use skia_bindings as sb;
 use skia_bindings::{
     SkAutoCanvasRestore, SkCanvas, SkCanvas_SaveLayerRec, SkImageFilter, SkPaint, SkRect,
 };
+use std::pin::Pin;
 use std::{
     convert::TryInto,
     ffi::CString,
@@ -217,19 +218,19 @@ impl fmt::Debug for Canvas {
 ///
 /// Access to the [`Canvas`] functions are resolved with the [`Deref`] trait.
 #[repr(transparent)]
-pub struct OwnedCanvas<'lt>(ptr::NonNull<Canvas>, PhantomData<&'lt ()>);
+pub struct OwnedCanvas<'lt>(Pin<ptr::NonNull<Canvas>>, PhantomData<&'lt ()>);
 
 impl Deref for OwnedCanvas<'_> {
-    type Target = Canvas;
+    type Target = Pin<&Canvas>;
 
     fn deref(&self) -> &Self::Target {
-        unsafe { self.0.as_ref() }
+        unsafe { self.0.() }
     }
 }
 
 impl DerefMut for OwnedCanvas<'_> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { self.0.as_mut() }
+        unsafe { self.0.deref_mut() }
     }
 }
 
@@ -2216,6 +2217,8 @@ impl AutoCanvasRestore {
 
 #[cfg(test)]
 mod tests {
+    use std::{mem, ops::DerefMut};
+
     use crate::{
         canvas::SaveLayerFlags, canvas::SaveLayerRec, AlphaType, Canvas, ClipOp, Color, ColorType,
         ImageInfo, OwnedCanvas, Rect,
@@ -2225,16 +2228,42 @@ mod tests {
     fn test_raster_direct_creation_and_clear_in_memory() {
         let info = ImageInfo::new((2, 2), ColorType::RGBA8888, AlphaType::Unpremul, None);
         assert_eq!(8, info.min_row_bytes());
+        let mut bytes_2: [u8; 8 * 2] = Default::default();
         let mut bytes: [u8; 8 * 2] = Default::default();
         {
-            let mut canvas = Canvas::from_raster_direct(&info, bytes.as_mut(), None, None).unwrap();
-            canvas.clear(Color::RED);
+            {
+                let mut canvas2 =
+                    Canvas::from_raster_direct(&info, bytes_2.as_mut(), None, None).unwrap();
+
+                let mut canvas =
+                    Canvas::from_raster_direct(&info, bytes.as_mut(), None, None).unwrap();
+
+                canvas.save();
+
+                let c2 = canvas2.deref_mut();
+                let c1 = canvas.deref_mut();
+
+                std::mem::swap(c1, c2);
+
+                canvas.clear(Color::RED);
+
+                println!(
+                    "savecounts: {} {}",
+                    canvas.save_count(),
+                    canvas2.save_count()
+                );
+            }
         }
 
         assert_eq!(0xff, bytes[0]);
         assert_eq!(0x00, bytes[1]);
         assert_eq!(0x00, bytes[2]);
         assert_eq!(0xff, bytes[3]);
+
+        assert_eq!(0x00, bytes_2[0]);
+        assert_eq!(0x00, bytes_2[1]);
+        assert_eq!(0x00, bytes_2[2]);
+        assert_eq!(0x00, bytes_2[3]);
     }
 
     #[test]
@@ -2288,6 +2317,16 @@ mod tests {
         c.clip_rect(Rect::default(), ClipOp::Difference, None);
         // both
         c.clip_rect(Rect::default(), ClipOp::Difference, true);
+    }
+
+    #[test]
+    fn owned_canvases_can_be_swapped() {
+        let mut c = OwnedCanvas::default();
+        let mut c2 = OwnedCanvas::default();
+        let c1 = c.deref_mut();
+        let c2 = c2.deref_mut();
+
+        mem::swap(c1, c2);
     }
 
     /// Regression test for: https://github.com/rust-skia/rust-skia/issues/427
