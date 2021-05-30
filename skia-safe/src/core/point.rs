@@ -92,6 +92,10 @@ impl IPoint {
     pub fn equals(self, x: i32, y: i32) -> bool {
         self == IPoint::new(x, y)
     }
+
+    pub fn to_isize(self) -> ISize {
+        (self.x, self.y).into()
+    }
 }
 
 pub type Vector = Point;
@@ -305,6 +309,10 @@ impl Point {
 
     pub fn dot(self, vec: Vector) -> scalar {
         Self::dot_product(self, vec)
+    }
+
+    pub fn to_size(self) -> Size {
+        (self.x, self.y).into()
     }
 }
 
