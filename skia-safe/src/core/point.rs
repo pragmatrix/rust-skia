@@ -314,9 +314,21 @@ impl From<(i32, i32)> for IPoint {
     }
 }
 
+impl From<IPoint> for (i32, i32) {
+    fn from(p: IPoint) -> Self {
+        (p.x, p.y)
+    }
+}
+
 impl From<(scalar, scalar)> for Point {
     fn from(source: (scalar, scalar)) -> Self {
         Point::new(source.0, source.1)
+    }
+}
+
+impl From<Point> for (scalar, scalar) {
+    fn from(p: Point) -> Self {
+        (p.x, p.y)
     }
 }
 

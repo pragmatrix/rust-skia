@@ -794,6 +794,12 @@ impl From<(IPoint, ISize)> for IRect {
     }
 }
 
+impl From<IRect> for (IPoint, ISize) {
+    fn from(r: IRect) -> Self {
+        (IPoint::new(r.x(), r.y()), r.size())
+    }
+}
+
 impl From<(Point, Size)> for Rect {
     fn from((point, size): (Point, Size)) -> Self {
         Rect::new(
@@ -802,6 +808,12 @@ impl From<(Point, Size)> for Rect {
             point.x + size.width,
             point.y + size.height,
         )
+    }
+}
+
+impl From<Rect> for (Point, Size) {
+    fn from(r: Rect) -> Self {
+        (Point::new(r.x(), r.y()), r.size())
     }
 }
 
