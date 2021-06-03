@@ -744,6 +744,7 @@ fn generate_bindings(build: &FinalBuildConfiguration, output_directory: &Path) {
         .raw_line("#![allow(clippy::all)]")
         // GrVkBackendContext contains u128 fields on macOS
         .raw_line("#![allow(improper_ctypes)]")
+        .allowlist_recursively(false)
         .allowlist_function("C_.*")
         .constified_enum(".*Mask")
         .constified_enum(".*Flags")
@@ -752,39 +753,39 @@ fn generate_bindings(build: &FinalBuildConfiguration, output_directory: &Path) {
         .constified_enum("GrVkAlloc_Flag")
         .constified_enum("GrGLBackendState")
         // not used:
-        .blocklist_type("SkPathRef_Editor")
-        .blocklist_function("SkPathRef_Editor_Editor")
+        // .blocklist_type("SkPathRef_Editor")
+        // .blocklist_function("SkPathRef_Editor_Editor")
         // private types that pull in inline functions that cannot be linked:
         // https://github.com/rust-skia/rust-skia/issues/318
-        .raw_line("pub enum GrContext_Base {}")
-        .blocklist_type("GrContext_Base")
-        .blocklist_function("GrContext_Base_.*")
-        .raw_line("pub enum GrImageContext {}")
-        .blocklist_type("GrImageContext")
-        .raw_line("pub enum GrImageContextPriv {}")
-        .blocklist_type("GrImageContextPriv")
-        .raw_line("pub enum GrContextThreadSafeProxy {}")
-        .blocklist_type("GrContextThreadSafeProxy")
-        .blocklist_type("GrContextThreadSafeProxyPriv")
-        .raw_line("pub enum GrContextThreadSafeProxyPriv {}")
-        .blocklist_type("GrRecordingContextPriv")
-        .raw_line("pub enum GrRecordingContextPriv {}")
-        .blocklist_function("GrRecordingContext_priv.*")
-        .blocklist_function("GrDirectContext_priv.*")
-        .blocklist_type("GrContextPriv")
-        .raw_line("pub enum GrContextPriv {}")
-        .blocklist_function("GrContext_priv.*")
-        .blocklist_function("SkDeferredDisplayList_priv.*")
-        .raw_line("pub enum SkVerticesPriv {}")
-        .blocklist_type("SkVerticesPriv")
-        .blocklist_function("SkVertices_priv.*")
-        .blocklist_function("std::bitset_flip.*")
+        // .raw_line("pub enum GrContext_Base {}")
+        // .blocklist_type("GrContext_Base")
+        // .blocklist_function("GrContext_Base_.*")
+        // .raw_line("pub enum GrImageContext {}")
+        // .blocklist_type("GrImageContext")
+        // .raw_line("pub enum GrImageContextPriv {}")
+        // .blocklist_type("GrImageContextPriv")
+        // .raw_line("pub enum GrContextThreadSafeProxy {}")
+        // .blocklist_type("GrContextThreadSafeProxy")
+        // .blocklist_type("GrContextThreadSafeProxyPriv")
+        // .raw_line("pub enum GrContextThreadSafeProxyPriv {}")
+        // .blocklist_type("GrRecordingContextPriv")
+        // .raw_line("pub enum GrRecordingContextPriv {}")
+        // .blocklist_function("GrRecordingContext_priv.*")
+        // .blocklist_function("GrDirectContext_priv.*")
+        // .blocklist_type("GrContextPriv")
+        // .raw_line("pub enum GrContextPriv {}")
+        // .blocklist_function("GrContext_priv.*")
+        // .blocklist_function("SkDeferredDisplayList_priv.*")
+        // .raw_line("pub enum SkVerticesPriv {}")
+        // .blocklist_type("SkVerticesPriv")
+        // .blocklist_function("SkVertices_priv.*")
+        // .blocklist_function("std::bitset_flip.*")
         // Vulkan reexports that got swallowed by making them opaque.
         // (these can not be allowlisted by a extern "C" function)
-        .allowlist_type("VkPhysicalDeviceFeatures")
-        .allowlist_type("VkPhysicalDeviceFeatures2").
+        // .allowlist_type("VkPhysicalDeviceFeatures")
+        // .allowlist_type("VkPhysicalDeviceFeatures2").
         // m91: These functions are not actually implemented.
-        blocklist_function("SkCustomTypefaceBuilder_setGlyph[123].*")
+        .blocklist_function("SkCustomTypefaceBuilder_setGlyph[123].*")
         // misc
         .allowlist_var("SK_Color.*")
         .allowlist_var("kAll_GrBackendState")
@@ -804,13 +805,27 @@ fn generate_bindings(build: &FinalBuildConfiguration, output_directory: &Path) {
         builder
     };
 
+    for ty in ALLOWLISTED_TYPES {
+        builder = builder.allowlist_type(ty)
+    }
+
+    for ty in ALLOWED_OPAQUE_TYPES {
+        builder = builder.allowlist_type(ty).opaque_type(ty)
+    }
+
+    for ty in PRIVATE_TYPES {
+        builder = builder.raw_line(format!("pub enum {} {{}}", ty));
+    }
+
     for function in ALLOWLISTED_FUNCTIONS {
         builder = builder.allowlist_function(function)
     }
 
-    for opaque_type in OPAQUE_TYPES {
-        builder = builder.opaque_type(opaque_type)
-    }
+    /*
+        for opaque_type in OPAQUE_TYPES {
+            builder = builder.opaque_type(opaque_type)
+        }
+    */
 
     for t in BLOCKLISTED_TYPES {
         builder = builder.blocklist_type(t);
@@ -938,6 +953,193 @@ fn generate_bindings(build: &FinalBuildConfiguration, output_directory: &Path) {
         .expect("Couldn't write bindings!");
 }
 
+const ALLOWLISTED_TYPES: &[&str] = &[];
+
+const ALLOWED_OPAQUE_TYPES: &[&str] = &[
+    "DXGI_FORMAT",
+    "FILE",
+    "GrBackendFormat",
+    "GrBackendSurfaceMutableState",
+    "GrBackendTexture",
+    "GrColorFormatDesc",
+    "GrColorType",
+    "GrContextOptions",
+    "GrD3DBackendSurfaceInfo",
+    "GrD3DResourceStateEnum",
+    "GrDirectContext",
+    "GrFlushInfo",
+    "GrGLBackendTextureInfo",
+    "GrGLEnum",
+    "GrGLExtensions",
+    "GrGLFormat",
+    "GrGLFrameBufferInfo",
+    "GrGLInterface",
+    "GrGLTextureInfo",
+    "GrMipmapped",
+    "GrMockTextureInfo",
+    "GrProtected",
+    "GrRecordingContext",
+    "GrSemaphoresSubmitted",
+    "GrSurfaceOrigin",
+    "GrVkImageInfo",
+    "GrVkYcbcrConversionInfo",
+    "sk_sp",
+    "Sk3DView",
+    "SkAlphaType",
+    "SkApplyPerspectiveClip",
+    "SkBitmap",
+    "SkBlendMode",
+    "SkBlendModeCoeff",
+    "SkBlurStyle",
+    "SkBudgeted",
+    "SkCanvas",
+    "SkClipOp",
+    "skcms_.*",
+    "SkCodec_Options",
+    "SkCodec_Result",
+    "SkCodec_SkScanlineOrder",
+    "SkCodec",
+    "SkCodecAnimation_.*",
+    "SkCodecAnimation_Blend",
+    "SkCodecAnimation_DisposalMethod",
+    "SkColor",
+    "SkColor4f",
+    "SkColorChannelFlag",
+    "SkColorFilter",
+    "SkColorInfo",
+    "SkColorMatrix",
+    "SkColorSpace",
+    "SkColorType",
+    "SkCoverageMode",
+    "SkCubicMap",
+    "SkCubicResampler",
+    "SkCustomTypefaceBuilder",
+    "SkData",
+    "SkDataTable",
+    "SkDeferredDisplayList",
+    "SkDeferredDisplayListRecorder",
+    "SkDrawable",
+    "SkDrawShadowRec",
+    "SkDynamicMemoryWStream",
+    "SkEncodedImageFormat",
+    "SkEncodedInfo",
+    "SkEncodedOrigin",
+    "SkFilterMode",
+    "SkFilterQuality",
+    "SkFlattenable",
+    "SkFont",
+    "SkGlyphID",
+    "SkGradientShader",
+    "SkGraphics",
+    "SkHighContrastConfig",
+    "SkImage",
+    "SkImageFilter",
+    "SkImageFilters_CropRect",
+    "SkImageGenerator",
+    "SkImageInfo",
+    "SkIPoint",
+    "SkIRect",
+    "SkISize",
+    "SkM44",
+    "SkMask",
+    "SkMaskFilter",
+    "SkMatrix",
+    "SkMemoryStream",
+    "SkOnce",
+    "SkOpBuilder",
+    "SkOrderedFontMgr",
+    "SkPaint",
+    "SkParsePath",
+    "SkPath",
+    "SkPath1DPathEffect_Style",
+    "SkPathDirection",
+    "SkPathEffect",
+    "SkPathFillType",
+    "SkPathOp",
+    "SkPDF_Metadata",
+    "SkPDF_StructureElementNode",
+    "SkPicture",
+    "SkPixelGeometry",
+    "SkPixmap",
+    "SkPMColor",
+    "SkPngChunkReader",
+    "SkPoint",
+    "SkPoint3",
+    "SkRasterHandleAllocator_Handle",
+    "SkRect",
+    "SkRefCnt",
+    "SkRegion",
+    "SkRRect",
+    "SkRSXform",
+    "SkRuntimeEffect",
+    "SkSamplingOptions",
+    "SkScalar",
+    "SkShader_GradientInfo",
+    "SkShader_GradientType",
+    "SkShader",
+    "SkShadowFlags",
+    "SkSize",
+    "SkStream",
+    "SkStreamMemory",
+    "SkString",
+    "SkStrings",
+    "SkStrokeRec",
+    "SkSurface",
+    "SkSurfaceCharacterization",
+    "SkSurfaceProps",
+    "SkTableMaskFilter",
+    "SkTextBlob",
+    "SkTextEncoding",
+    "SkTextUtils",
+    "SkTileMode",
+    "SkUnichar",
+    "SkV3",
+    "SkV4",
+    "SkVector",
+    "SkVertices",
+    "SkWStream",
+    "SkYUVAInfo_PlaneConfig",
+    "SkYUVAInfo_Subsampling",
+    "SkYUVAInfo",
+    "SkYUVAPixmapInfo_SupportedDataTypes",
+    "SkYUVAPixmapInfo",
+    "SkYUVAPixmaps",
+    "SkYUVColorSpace",
+    "std::atomic",
+    "std::function",
+    "std::string",
+    "std::unique_ptr",
+    "std::vector",
+    "U8CPU",
+    "va_list",
+    "VkBool32",
+    "VkFormat",
+    "VkStructureType",
+    "SkCodecAnimation::DisposalMethod",
+    "SkCodecAnimation::Blend",
+    "GrBackendSurfaceMutableState_.*",
+    "GrYUVABackendTextures",
+    "GrMipMapped",
+    "GrYUVABackendTextureInfo",
+];
+
+const PRIVATE_TYPES: &[&str] = &[
+    "GrVkBackendSurfaceInfo",
+    "SkReadBuffer",
+    "SkSerialProcs",
+    "SkDeserialProcs",
+    "GrImageContext",
+];
+
+const BLOCKLISTED_TYPES: &[&str] = &[
+    "sk_sp_.*",
+    "std::atomic_.*",
+    "std::vector_.*",
+    "std::unique_ptr_.*",
+    "std::string_.*",
+    "std::function_.*",
+];
+
 const ALLOWLISTED_FUNCTIONS: &[&str] = &[
     "SkAnnotateRectWithURL",
     "SkAnnotateNamedDestination",
@@ -961,11 +1163,6 @@ const ALLOWLISTED_FUNCTIONS: &[&str] = &[
     "Simplify",
     "TightBounds",
     "AsWinding",
-    // utils/
-    "Sk3LookAt",
-    "Sk3Perspective",
-    "Sk3MapPts",
-    "SkUnitCubicInterp",
 ];
 
 const OPAQUE_TYPES: &[&str] = &[
@@ -1081,8 +1278,11 @@ const OPAQUE_TYPES: &[&str] = &[
     "GrD3DMemoryAllocator",
     // m87, yuva_pixmaps
     "std::tuple",
+    // m92: referred, but yet unused
+    "SkFontDescriptor",
 ];
 
+/*
 const BLOCKLISTED_TYPES: &[&str] = &[
     // modules/skparagraph
     //   pulls in a std::map<>, which we treat as opaque, but bindgen creates wrong bindings for
@@ -1102,6 +1302,7 @@ const BLOCKLISTED_TYPES: &[&str] = &[
     "std::__cxx.*",
     "std::array.*",
 ];
+*/
 
 #[derive(Debug)]
 struct ParseCallbacks;
