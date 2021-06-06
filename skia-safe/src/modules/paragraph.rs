@@ -1,5 +1,5 @@
 use crate::interop::AsStr;
-use std::ops::Index;
+use std::{fmt, ops::Index};
 
 mod dart_types;
 mod font_arguments;
@@ -29,8 +29,14 @@ pub use typeface_font_provider::*;
 /// Efficient reference type to a C++ vector of font family SkStrings.
 ///
 /// Use indexer or .iter() to access the Rust str references.
-#[derive(Debug)]
 pub struct FontFamilies<'a>(&'a [skia_bindings::SkString]);
+
+impl fmt::Debug for FontFamilies<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let families: Vec<_> = self.iter().collect();
+        f.debug_tuple("FontFamilies").field(&families).finish()
+    }
+}
 
 impl Index<usize> for FontFamilies<'_> {
     type Output = str;
