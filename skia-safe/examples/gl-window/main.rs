@@ -16,18 +16,24 @@ fn main() {
 
 #[cfg(all(not(target_os = "android"), feature = "gl"))]
 fn main() {
-    use skia_safe::gpu::gl::FramebufferInfo;
-    use skia_safe::gpu::{BackendRenderTarget, SurfaceOrigin};
-    use skia_safe::{Color, ColorType, Surface};
-    use std::convert::TryInto;
-
-    use glutin::event::{Event, KeyboardInput, VirtualKeyCode, WindowEvent};
-    use glutin::event_loop::{ControlFlow, EventLoop};
-    use glutin::window::WindowBuilder;
-    use glutin::GlProfile;
-    type WindowedContext = glutin::ContextWrapper<glutin::PossiblyCurrent, glutin::window::Window>;
     use gl::types::*;
     use gl_rs as gl;
+    use glutin::{
+        event::{Event, KeyboardInput, VirtualKeyCode, WindowEvent},
+        event_loop::{ControlFlow, EventLoop},
+        window::WindowBuilder,
+        GlProfile,
+    };
+    use skia_safe::{
+        gpu::{
+            context_options, gl::FramebufferInfo, BackendRenderTarget, ContextOptions,
+            DirectContext, SurfaceOrigin,
+        },
+        Color, ColorType, Surface,
+    };
+    use std::convert::TryInto;
+
+    type WindowedContext = glutin::ContextWrapper<glutin::PossiblyCurrent, glutin::window::Window>;
 
     let el = EventLoop::new();
     let wb = WindowBuilder::new().with_title("rust-skia-gl-window");
@@ -51,7 +57,15 @@ fn main() {
 
     gl::load_with(|s| windowed_context.get_proc_address(&s));
 
-    let mut gr_context = skia_safe::gpu::DirectContext::new_gl(None, None).unwrap();
+    let mut gr_context = {
+        let mut options = ContextOptions::default();
+        // `glGetError()` deadlocks if the `DirectContext` is dropped in response to a `Surface`
+        // destruction on Windows. Therefore we skip error checks for now.
+        // 
+        // See: https://github.com/rust-skia/rust-skia/issues/476
+        options.skip_gl_error_checks = context_options::Enable::Yes;
+        DirectContext::new_gl(None, &options).unwrap()
+    };
 
     let fb_info = {
         let mut fboid: GLint = 0;
