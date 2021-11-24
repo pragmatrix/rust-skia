@@ -22,13 +22,12 @@ public:
         _loadCb = loadCb;
         _loadTfCb = loadTfCb;
     }
-
+    ~ImageResourceProvider() {}
 
     sk_sp<SkData> load(const char resource_path [],
                        const char resource_name []) const {
         return sp(((loadSkData)_loadCb)(resource_path,resource_name));
     }
-
 
     sk_sp<skresources::ImageAsset> loadImageAsset(const char resource_path [],
                                                   const char resource_name [],
@@ -40,11 +39,8 @@ public:
 
     sk_sp<SkTypeface> loadTypeface(const char name[],
                                    const char url[]) const {
-        return sp(((loadSkTypeface)_loadTfCb)(url,name));
+        return sp(((loadSkTypeface)_loadTfCb)(url, name));
     }
-
-    ~ImageResourceProvider() {}
-
 };
 
 

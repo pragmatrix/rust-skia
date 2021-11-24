@@ -7,8 +7,10 @@ use skia_bindings as sb;
 use skia_bindings::{SkData, SkTypeface};
 use std::{
     error::Error,
+    ffi::CStr,
     fmt,
     io::{self, Read},
+    os::raw::c_char,
     str::FromStr,
 };
 
@@ -54,9 +56,9 @@ impl From<LoadError> for io::Error {
     }
 }
 
-extern "C" fn handle_load_type_face(
-    resource_path: *const ::std::os::raw::c_char,
-    resource_name: *const ::std::os::raw::c_char,
+extern "C" fn handle_load_typeface(
+    resource_path: *const c_char,
+    resource_name: *const c_char,
 ) -> *mut SkTypeface {
     let data = Data::from_ptr(handle_load(resource_path, resource_name));
     match data {
@@ -72,17 +74,14 @@ extern "C" fn handle_load_type_face(
 }
 
 extern "C" fn handle_load(
-    resource_path: *const ::std::os::raw::c_char,
-    resource_name: *const ::std::os::raw::c_char,
+    resource_path: *const c_char,
+    resource_name: *const c_char,
 ) -> *mut SkData {
     unsafe {
-        let mut is_base64 = false;
-        if resource_path.is_null() {
-            is_base64 = true;
-        }
-
-        let resource_path = std::ffi::CStr::from_ptr(resource_path);
-        let resource_name = std::ffi::CStr::from_ptr(resource_name);
+        assert!(!resource_path.is_null());
+        assert!(!resource_name.is_null());
+        let resource_path = CStr::from_ptr(resource_path);
+        let resource_name = CStr::from_ptr(resource_name);
 
         if resource_path.to_string_lossy().is_empty() {
             is_base64 = true;
@@ -145,7 +144,7 @@ impl Dom {
         let stream = reader.stream_mut();
 
         let out = unsafe {
-            sb::C_SkSVGDOM_MakeFromStream(stream, Some(handle_load), Some(handle_load_type_face))
+            sb::C_SkSVGDOM_MakeFromStream(stream, Some(handle_load), Some(handle_load_typeface))
         };
 
         Self::from_ptr(out).ok_or(LoadError)
@@ -158,7 +157,7 @@ impl Dom {
             sb::C_SkSVGDOM_MakeFromStream(
                 ms.native_mut().as_stream_mut(),
                 Some(handle_load),
-                Some(handle_load_type_face),
+                Some(handle_load_typeface),
             )
         };
         Self::from_ptr(out).ok_or(LoadError)
