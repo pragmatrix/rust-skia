@@ -83,6 +83,11 @@ extern "C" fn handle_load(
         let resource_path = CStr::from_ptr(resource_path);
         let resource_name = CStr::from_ptr(resource_name);
 
+        println!("resource_path: {:?}", resource_path);
+        println!("resource_name: {:?}", resource_name);
+
+        let mut is_base64 = false;
+
         if resource_path.to_string_lossy().is_empty() {
             is_base64 = true;
         }
