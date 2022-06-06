@@ -14,7 +14,7 @@ pub(crate) const SK_MIN_S32: i32 = -SK_MAX_S32;
 // FourByteTag
 //
 
-#[derive(Copy, Clone, PartialEq, Eq, Default, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Default, Debug)]
 #[repr(transparent)]
 pub struct FourByteTag(SkFourByteTag);
 
@@ -82,7 +82,7 @@ pub type Unichar = skia_bindings::SkUnichar;
 // pub(crate) const MSEC_MAX: u32 = std::i32::MAX as u32;
 
 #[repr(C)]
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
 pub struct Budgeted(bool);
 
 native_transmutable!(SkBudgeted, Budgeted, budgeted_layout);

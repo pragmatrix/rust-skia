@@ -21,6 +21,12 @@ impl From<(scalar, scalar, scalar)> for Point3 {
     }
 }
 
+impl From<Point3> for (scalar, scalar, scalar) {
+    fn from(p: Point3) -> Self {
+        (p.x, p.y, p.z)
+    }
+}
+
 impl Neg for Point3 {
     type Output = Self;
     fn neg(self) -> Self::Output {

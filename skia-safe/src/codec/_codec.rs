@@ -23,7 +23,7 @@ variant_name!(SelectionPolicy::PreferStillImage, selection_policy_naming);
 pub use sb::SkCodec_ZeroInitialized as ZeroInitialized;
 variant_name!(ZeroInitialized::Yes, zero_initialized_naming);
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Options {
     pub zero_initialized: ZeroInitialized,
     pub subset: Option<IRect>,

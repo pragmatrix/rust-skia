@@ -19,7 +19,7 @@ variant_name!(
     serialize_behavior_naming
 );
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
 pub struct LocalizedString {
     pub string: String,
     pub language: String,

@@ -7,7 +7,7 @@ use skia_bindings::{self as sb, SkEncodedOrigin};
 
 /// These values match the orientation www.exif.org/Exif2-2.PDF.
 #[repr(i32)]
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
 pub enum EncodedOrigin {
     /// Default
     TopLeft = SkEncodedOrigin::TopLeft as _,

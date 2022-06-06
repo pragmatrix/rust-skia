@@ -18,7 +18,7 @@ use std::{
 };
 
 #[repr(C)]
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct DirectContextId {
     id: u32,
 }
@@ -49,13 +49,13 @@ impl DerefMut for DirectContext {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct ResourceCacheLimits {
     pub max_resources: usize,
     pub max_resource_bytes: usize,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct ResourceCacheUsage {
     pub resource_count: usize,
     pub resource_bytes: usize,

@@ -10,7 +10,7 @@ use std::ops::{BitAnd, BitOr, Index, IndexMut, Mul};
 // Note: SkColor _is_ a u32, and therefore its components are
 // endian dependent, so we can't expose it as (transmuted) individual
 // argb fields.
-#[derive(Copy, Clone, PartialEq, Eq, Default, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Default, Debug)]
 #[repr(transparent)]
 pub struct Color(SkColor);
 
@@ -69,8 +69,8 @@ impl Color {
         Self(argb)
     }
 
-    // note: we don't use the u8cpu type in the arguments here, because we trust the Rust
-    // compiler to optimize the storage type.
+    // We don't use the `u8cpu` Skia type in the arguments here, because we trust the Rust compiler
+    // to optimize the parameter layout.
     pub const fn from_argb(a: u8, r: u8, g: u8, b: u8) -> Color {
         Self(((a as u8cpu) << 24) | ((r as u8cpu) << 16) | ((g as u8cpu) << 8) | (b as u8cpu))
     }
@@ -79,24 +79,24 @@ impl Color {
         Self::from_argb(0xff, r, g, b)
     }
 
-    pub fn a(self) -> u8 {
-        (self.into_native() >> 24) as _
+    pub const fn a(self) -> u8 {
+        (self.0 >> 24) as _
     }
 
-    pub fn r(self) -> u8 {
-        (self.into_native() >> 16) as _
+    pub const fn r(self) -> u8 {
+        (self.0 >> 16) as _
     }
 
-    pub fn g(self) -> u8 {
-        (self.into_native() >> 8) as _
+    pub const fn g(self) -> u8 {
+        (self.0 >> 8) as _
     }
 
-    pub fn b(self) -> u8 {
-        self.into_native() as _
+    pub const fn b(self) -> u8 {
+        self.0 as _
     }
 
     #[must_use]
-    pub fn with_a(self, a: u8) -> Self {
+    pub const fn with_a(self, a: u8) -> Self {
         Self::from_argb(a, self.r(), self.g(), self.b())
     }
 
@@ -113,8 +113,12 @@ impl Color {
     pub const CYAN: Self = Self(sb::SK_ColorCYAN);
     pub const MAGENTA: Self = Self(sb::SK_ColorMAGENTA);
 
-    pub fn to_rgb(self) -> RGB {
-        (self.r(), self.g(), self.b()).into()
+    pub const fn to_rgb(self) -> RGB {
+        RGB {
+            r: self.r(),
+            g: self.g(),
+            b: self.b(),
+        }
     }
 
     pub fn to_hsv(self) -> HSV {
@@ -122,7 +126,7 @@ impl Color {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct RGB {
     pub r: u8,
     pub g: u8,

@@ -3,7 +3,7 @@ use skia_bindings::{self as sb, SkPixelGeometry, SkSurfaceProps};
 use std::fmt;
 
 // TODO: use the enum rewriter and strip underscores?
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 #[repr(i32)]
 pub enum PixelGeometry {
     Unknown = SkPixelGeometry::kUnknown_SkPixelGeometry as _,

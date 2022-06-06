@@ -5,7 +5,7 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssi
 pub use IPoint as IVector;
 
 #[repr(C)]
-#[derive(Copy, Clone, PartialEq, Eq, Default, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Default, Debug)]
 pub struct IPoint {
     pub x: i32,
     pub y: i32,
@@ -91,6 +91,10 @@ impl IPoint {
 
     pub fn equals(self, x: i32, y: i32) -> bool {
         self == IPoint::new(x, y)
+    }
+
+    pub fn to_isize(self) -> ISize {
+        (self.x, self.y).into()
     }
 }
 
@@ -306,6 +310,10 @@ impl Point {
     pub fn dot(self, vec: Vector) -> scalar {
         Self::dot_product(self, vec)
     }
+
+    pub fn to_size(self) -> Size {
+        (self.x, self.y).into()
+    }
 }
 
 impl From<(i32, i32)> for IPoint {
@@ -314,9 +322,21 @@ impl From<(i32, i32)> for IPoint {
     }
 }
 
+impl From<IPoint> for (i32, i32) {
+    fn from(p: IPoint) -> Self {
+        (p.x, p.y)
+    }
+}
+
 impl From<(scalar, scalar)> for Point {
     fn from(source: (scalar, scalar)) -> Self {
         Point::new(source.0, source.1)
+    }
+}
+
+impl From<Point> for (scalar, scalar) {
+    fn from(p: Point) -> Self {
+        (p.x, p.y)
     }
 }
 

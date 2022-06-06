@@ -180,7 +180,7 @@ impl ColorSpace {
     // TODO: hash()?
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
 pub struct XYZD50Hash(pub u32);
 
 #[cfg(test)]
