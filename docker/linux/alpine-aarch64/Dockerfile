@@ -12,8 +12,8 @@ RUN apk update && apk add --update --no-cache \
     musl-dev build-base openssl-dev g++ \
     fontconfig-dev fontconfig ttf-dejavu
 
-RUN apk add --update --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/edge/testing \
-    gn ninja
+RUN apk add --update --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/edge/community \
+    ninja gn
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
 ENV PATH="/root/.cargo/bin:${PATH}"
