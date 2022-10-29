@@ -10,6 +10,10 @@ pub fn warning(warn: impl AsRef<str>) {
     println!("cargo:warning={}", warn.as_ref());
 }
 
+pub fn add_link_arg(arg: impl AsRef<str>) {
+    println!("cargo:rustc-link-arg={}", arg.as_ref());
+}
+
 pub fn output_directory() -> PathBuf {
     PathBuf::from(env::var("OUT_DIR").unwrap())
 }
