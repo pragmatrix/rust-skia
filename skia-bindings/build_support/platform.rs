@@ -11,6 +11,7 @@ use super::{
 
 pub mod alpine;
 pub mod android;
+mod catalyst;
 pub mod emscripten;
 mod generic;
 pub mod ios;
@@ -23,7 +24,13 @@ pub fn gn_args(config: &BuildConfiguration, mut builder: GnArgsBuilder) -> Vec<(
     builder.into_gn_args()
 }
 
-pub fn bindgen_and_cc_args(target: &Target, sysroot: Option<&str>) -> (Vec<String>, Vec<String>) {
+pub struct BindgenAndCCArgs {
+    pub bindgen: Vec<String>,
+    pub cc_args: Vec<String>,
+    pub target_override: Option<String>,
+}
+
+pub fn bindgen_and_cc_args(target: &Target, sysroot: Option<&str>) -> BindgenAndCCArgs {
     let mut builder = BindgenArgsBuilder::new(sysroot);
     details(target).bindgen_args(target, &mut builder);
     builder.into_bindgen_and_cc_args()
@@ -46,6 +53,7 @@ fn details(target: &Target) -> Box<dyn PlatformDetails> {
         ("wasm32", "unknown", "emscripten", _) => Box::new(emscripten::Emscripten),
         (_, "linux", "android", _) | (_, "linux", "androideabi", _) => Box::new(android::Android),
         (_, "apple", "darwin", _) => Box::new(macos::MacOs),
+        (_, "apple", "ios", Some("macabi")) => Box::new(catalyst::Catalyst),
         (_, "apple", "ios", _) => Box::new(ios::Ios),
         (_, _, "windows", Some("msvc")) if host.is_windows() => Box::new(windows::Msvc),
         (_, _, "windows", _) => Box::new(windows::Generic),
@@ -153,6 +161,7 @@ pub struct BindgenArgsBuilder {
     sysroot: Option<String>,
     sysroot_prefix: String,
     bindgen_clang_args: Vec<String>,
+    target_override: Option<String>,
 }
 
 impl BindgenArgsBuilder {
@@ -161,6 +170,7 @@ impl BindgenArgsBuilder {
             sysroot: sysroot.map(|s| s.into()),
             sysroot_prefix: "--sysroot=".into(),
             bindgen_clang_args: Vec::new(),
+            target_override: None,
         }
     }
 
@@ -192,7 +202,12 @@ impl BindgenArgsBuilder {
         });
     }
 
-    pub fn into_bindgen_and_cc_args(mut self) -> (Vec<String>, Vec<String>) {
+    /// Override the predefined target.
+    pub fn target(&mut self, target_override: impl Into<String>) {
+        self.target_override = Some(target_override.into());
+    }
+
+    pub fn into_bindgen_and_cc_args(mut self) -> BindgenAndCCArgs {
         let mut cc_build_args = Vec::new();
 
         if let Some(sysroot) = &self.sysroot {
@@ -201,7 +216,11 @@ impl BindgenArgsBuilder {
             cc_build_args.push(sysroot_arg);
         }
 
-        (self.bindgen_clang_args.into_iter().collect(), cc_build_args)
+        BindgenAndCCArgs {
+            bindgen: self.bindgen_clang_args.into_iter().collect(),
+            cc_args: cc_build_args,
+            target_override: self.target_override,
+        }
     }
 }
 

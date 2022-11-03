@@ -215,15 +215,23 @@ pub fn generate_bindings(
         cc_args.push(cpp17.into());
     }
 
-    let target_str = &target.to_string();
-    cc_build.target(target_str);
-    bindgen_args.push(format!("--target={}", target_str));
-
     // Platform specific arguments and flags.
+
+    let bindgen_and_cc_args = platform::bindgen_and_cc_args(&target, sysroot);
+    let original_target = target.to_string();
+    let target_str = if let Some(target) = &bindgen_and_cc_args.target_override {
+        target
+    } else {
+        &original_target
+    };
+
     {
-        let (bindgen, cc) = platform::bindgen_and_cc_args(&target, sysroot);
-        bindgen_args.extend(bindgen);
-        cc_args.extend(cc);
+        // Overriding targets with `cc_build.target()` does not seem to work.
+        cc_args.push(format!("--target={target_str}"));
+        bindgen_args.push(format!("--target={target_str}"));
+
+        bindgen_args.extend(bindgen_and_cc_args.bindgen);
+        cc_args.extend(bindgen_and_cc_args.cc_args);
     }
 
     {
@@ -236,6 +244,7 @@ pub fn generate_bindings(
                 .collect::<Vec<_>>()
                 .join(" ")
         );
+        println!("  TARGET: {target_str}");
         println!("  ARGS: {}", cc_args.join(" "));
 
         for (var, val) in cc_defines {
