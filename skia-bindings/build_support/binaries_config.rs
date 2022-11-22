@@ -20,7 +20,7 @@ pub mod lib {
 /// The configuration of the resulting binaries.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct BinariesConfiguration {
-    /// The feature identifiers we built with.
+    /// The feature identifiers the binaries were built with.
     pub feature_ids: HashSet<String>,
 
     /// The output directory of the libraries we build and we need to inform cargo about.
@@ -71,7 +71,7 @@ impl BinariesConfiguration {
             ninja_built_libraries.push(lib::SK_RESOURCES.into());
         }
 
-        let link_libraries = platform::link_libraries(features, &target);
+        let link_libraries = platform::link_libraries(&target, features);
 
         let output_directory = cargo::output_directory()
             .join(SKIA_OUTPUT_DIR)

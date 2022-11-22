@@ -10,6 +10,8 @@ impl PlatformDetails for Linux {
     fn link_libraries(&self, features: &Features) -> Vec<String> {
         link_libraries(features)
     }
+
+    fn upgrade_features(&self, requested: &Features) -> Option<Features> {}
 }
 
 pub fn gn_args(config: &BuildConfiguration, builder: &mut GnArgsBuilder) {
@@ -35,4 +37,19 @@ pub fn link_libraries(features: &Features) -> Vec<String> {
     }
 
     libs.iter().map(|l| l.to_string()).collect()
+}
+
+fn all_features() -> Features {
+    // See `/skia-safe/Cargo.toml`
+    [
+        "egl",
+        "gl",
+        "vulkan",
+        "x11",
+        "wayland",
+        "textlayout",
+        "webp",
+        "svg",
+    ]
+    .into()
 }

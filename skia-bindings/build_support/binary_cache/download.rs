@@ -1,5 +1,5 @@
 use super::{binaries, env, git, utils, SRC_BINDINGS_RS};
-use crate::build_support::{binaries_config, cargo};
+use crate::build_support::{binaries_config, cargo, platform};
 use flate2::read::GzDecoder;
 use std::{
     ffi::OsStr,
@@ -153,6 +153,28 @@ pub fn try_prepare_download(binaries_config: &binaries_config::BinariesConfigura
                 if force_download {
                     panic!("Downloading of binaries was forced but failed.")
                 }
+            
+                if cargo::env_var("SKIA_EXP_FEATURE_UPGRADE").is_some() {
+                    let target = cargo::target();
+                    if let Some(upgraded) = platform::upgrade_features(&target, binaries_config.feature_ids) {
+                        if let Some(features_available) = binaries_config.upgrade_features() {
+                            println!("FEATURE UPGRADE:")
+                            println!("  REQUESTED: {:?}", binaries_config.feature_ids);
+                            println!("  UPGRADED: {:?}", upgraded);
+                            
+                            
+                        }
+    
+                    } else {
+
+                    }
+                    
+    
+    
+
+                }
+
+
                 true
             } else {
                 println!("DOWNLOAD AND INSTALL SUCCEEDED");

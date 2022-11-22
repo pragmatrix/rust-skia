@@ -20,7 +20,8 @@ fn main() -> Result<(), io::Error> {
 
     let skia_debug = env::is_skia_debug();
     let features = features::Features::default();
-    let binaries_config =
+    // Binaries config may change in a feature upgrade.
+    let mut binaries_config =
         binaries_config::BinariesConfiguration::from_features(&features, skia_debug);
 
     //

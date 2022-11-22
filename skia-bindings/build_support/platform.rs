@@ -29,14 +29,22 @@ pub fn bindgen_and_cc_args(target: &Target, sysroot: Option<&str>) -> (Vec<Strin
     builder.into_bindgen_and_cc_args()
 }
 
-pub fn link_libraries(features: &Features, target: &Target) -> Vec<String> {
+pub fn link_libraries(target: &Target, features: &Features) -> Vec<String> {
     details(target).link_libraries(features)
+}
+
+pub fn upgrade_features(target: &Target, requested: &Features) -> Option<Features> {
+    details(target).upgrade_features(requested)
 }
 
 pub trait PlatformDetails {
     fn gn_args(&self, config: &BuildConfiguration, builder: &mut GnArgsBuilder);
     fn bindgen_args(&self, _target: &Target, _builder: &mut BindgenArgsBuilder) {}
     fn link_libraries(&self, features: &Features) -> Vec<String>;
+    /// Is there a binary available that can be upgraded to from the given feature set.
+    fn upgrade_features(&self, requested: &HashSet<String>) -> Option<HashSet<String>> {
+        None
+    }
 }
 
 #[allow(clippy::type_complexity)]
