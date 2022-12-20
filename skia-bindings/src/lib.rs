@@ -21,3 +21,18 @@ pub mod icu;
 #[doc(hidden)]
 #[cfg(feature = "use-system-jpeg-turbo")]
 use mozjpeg_sys;
+
+use cpp::cpp;
+
+cpp! {{
+    #include "include/codec/SkCodec.h"
+    #include "bindings.h"
+}}
+
+pub fn make_from_data(data: *mut SkData) -> *mut SkCodec {
+    unsafe {
+        cpp!([data as "SkData*"] -> *mut SkCodec as "SkCodec*" {
+            return SkCodec::MakeFromData(sp(data)).release();
+        })
+    }
+}

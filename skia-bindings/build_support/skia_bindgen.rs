@@ -162,6 +162,7 @@ pub fn generate_bindings(
     }
 
     let mut cc_build = Build::new();
+    let mut cpp_build = cpp_build::Config::new();
 
     for source in &build.binding_sources {
         cc_build.file(source);
@@ -179,6 +180,7 @@ pub fn generate_bindings(
 
     bindgen_args.push(format!("-I{}", include_path.display()));
     cc_build.include(include_path);
+    cpp_build.include(include_path);
 
     for (name, value) in &build.definitions {
         match value {
@@ -208,6 +210,7 @@ pub fn generate_bindings(
     let target_str = &target.to_string();
     cc_build.target(target_str);
     bindgen_args.push(format!("--target={target_str}"));
+    cpp_build.flag(&format!("--target={target_str}"));
 
     // Platform specific arguments and flags.
     {
@@ -230,10 +233,12 @@ pub fn generate_bindings(
 
         for (var, val) in cc_defines {
             cc_build.define(var, val);
+            cpp_build.define(var, Some(val));
         }
 
         for arg in cc_args {
             cc_build.flag(&arg);
+            cpp_build.flag(&arg);
         }
 
         // we add skia-bindings later on.
@@ -252,6 +257,13 @@ pub fn generate_bindings(
         bindings
             .write_to_file(out_path.join("bindings.rs"))
             .expect("Couldn't write bindings!");
+    }
+
+    {
+        println!("GENERATING CPP BINDINGS");
+        let src_dir = std::env::current_dir().unwrap().join("src");
+        cpp_build.include(src_dir);
+        cpp_build.build("src/lib.rs");
     }
 }
 
