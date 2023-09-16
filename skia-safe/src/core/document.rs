@@ -1,7 +1,9 @@
-use crate::{interop::DynamicMemoryWStream, prelude::*, Canvas, Data, Rect, Size};
+use std::{pin::Pin, ptr};
+
 use core::fmt;
 use skia_bindings::{self as sb, SkDocument, SkRefCntBase};
-use std::{pin::Pin, ptr};
+
+use crate::{interop::DynamicMemoryWStream, prelude::*, Canvas, Data, Rect, Size};
 
 pub struct Document<State = state::Open> {
     // note: order matters here, first the document must be
