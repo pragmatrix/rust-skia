@@ -1,13 +1,15 @@
 pub mod pdf {
+    use std::{ffi::CString, fmt, mem, ptr};
+
     use crate::{
         interop::{AsStr, DynamicMemoryWStream, SetStr},
         prelude::*,
         scalar, DateTime, Document,
     };
+
     use skia_bindings::{
         self as sb, SkPDF_AttributeList, SkPDF_Metadata, SkPDF_StructureElementNode,
     };
-    use std::{ffi::CString, fmt, mem, ptr};
 
     pub type AttributeList = Handle<SkPDF_AttributeList>;
     unsafe_send_sync!(AttributeList);
@@ -286,9 +288,13 @@ pub mod pdf {
     }
 }
 
-#[test]
-fn create_attribute_list() {
-    use pdf::AttributeList;
-    let mut _al = AttributeList::default();
-    _al.append_float_array("Owner", "Name", &[1.0, 2.0, 3.0]);
+#[cfg(test)]
+mod tests {
+    use super::pdf::AttributeList;
+
+    #[test]
+    fn create_attribute_list() {
+        let mut _al = AttributeList::default();
+        _al.append_float_array("Owner", "Name", &[1.0, 2.0, 3.0]);
+    }
 }

@@ -7,7 +7,7 @@ use crate::{prelude::*, Data};
 use skia_bindings::{
     self as sb, SkDynamicMemoryWStream, SkMemoryStream, SkStream, SkStreamAsset, SkWStream,
 };
-use std::{ffi, fmt, io, marker::PhantomData, mem, ptr};
+use std::{ffi, fmt, io, marker::PhantomData, mem, ops::Deref, pin::Pin, ptr};
 
 /// Trait representing an Skia allocated Stream type with a base class of SkStream.
 #[repr(transparent)]
@@ -355,15 +355,22 @@ impl<'a> RustStream<'a> {
 }
 
 #[allow(unused)]
-pub struct RustWStream<'a> {
-    inner: Handle<sb::RustWStream>,
-    _phantom: PhantomData<&'a mut ()>,
+pub struct RustWStream<W: Deref> {
+    writer: Pin<Box<W>>,
+    rust_stream: Handle<sb::RustWStream>,
 }
 
-#[allow(unused)]
-impl RustWStream<'_> {
+impl<W: Deref> RustWStream<W> {
     pub fn stream_mut(&mut self) -> &mut SkWStream {
-        self.inner.native_mut().base_mut()
+        self.rust_stream.native_mut().base_mut()
+    }
+
+    pub fn into_writer(mut self) -> W
+    where
+        W: Deref,
+    {
+        drop(self.rust_stream);
+        *unsafe { Pin::into_inner_unchecked(self.writer) }
     }
 }
 
@@ -375,21 +382,26 @@ impl NativeDrop for sb::RustWStream {
     }
 }
 
-impl<'a> RustWStream<'a> {
-    pub fn new<T: io::Write>(writer: &'a mut T) -> Self {
+impl<W: Deref> RustWStream<W> {
+    pub(crate) fn new(writer: W) -> Self
+    where
+        W: io::Write,
+    {
+        let mut writer = Box::pin(writer);
+        let writer_ptr: *mut W = unsafe { writer.as_mut().get_unchecked_mut() };
         return RustWStream {
-            inner: Handle::construct(|ptr| unsafe {
+            writer,
+            rust_stream: Handle::construct(|ptr| unsafe {
                 sb::C_RustWStream_construct(
                     ptr,
-                    writer as *mut T as *mut ffi::c_void,
-                    Some(write_trampoline::<T>),
-                    Some(flush_trampoline::<T>),
+                    writer_ptr as *mut ffi::c_void,
+                    Some(write_trampoline::<W>),
+                    Some(flush_trampoline::<W>),
                 );
             }),
-            _phantom: PhantomData,
         };
 
-        unsafe extern "C" fn write_trampoline<T: io::Write>(
+        unsafe extern "C" fn write_trampoline<W: io::Write>(
             val: *mut ffi::c_void,
             buf: *const ffi::c_void,
             count: usize,
@@ -398,7 +410,7 @@ impl<'a> RustWStream<'a> {
                 return true;
             }
             let buf: &[u8] = std::slice::from_raw_parts(buf as _, count as _);
-            let val: &mut T = &mut *(val as *mut _);
+            let val: &mut W = &mut *(val as *mut _);
 
             // This is OK because we just abort if it panics anyway.
             let mut val = std::panic::AssertUnwindSafe(val);
@@ -423,8 +435,8 @@ impl<'a> RustWStream<'a> {
             }
         }
 
-        unsafe extern "C" fn flush_trampoline<T: io::Write>(val: *mut ffi::c_void) {
-            let val: &mut T = &mut *(val as *mut _);
+        unsafe extern "C" fn flush_trampoline<W: io::Write>(val: *mut ffi::c_void) {
+            let val: &mut W = &mut *(val as *mut _);
             // This is OK because we just abort if it panics anyway.
             let mut val = std::panic::AssertUnwindSafe(val);
             match std::panic::catch_unwind(move || {

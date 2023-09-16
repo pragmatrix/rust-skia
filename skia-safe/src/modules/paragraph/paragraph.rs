@@ -13,7 +13,8 @@ use crate::{
 };
 
 pub type Paragraph = RefHandle<sb::skia_textlayout_Paragraph>;
-unsafe_send_sync!(Paragraph);
+// <https://github.com/rust-skia/rust-skia/issues/537>
+// unsafe_send_sync!(Paragraph);
 
 impl NativeDrop for sb::skia_textlayout_Paragraph {
     fn drop(&mut self) {
@@ -74,7 +75,7 @@ impl Paragraph {
         unsafe { sb::C_Paragraph_layout(self.native_mut(), width) }
     }
 
-    pub fn paint(&self, canvas: &mut Canvas, p: impl Into<Point>) {
+    pub fn paint(&self, canvas: &Canvas, p: impl Into<Point>) {
         let p = p.into();
         unsafe { sb::C_Paragraph_paint(self.native_mut_force(), canvas.native_mut(), p.x, p.y) }
     }
