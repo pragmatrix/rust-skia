@@ -132,6 +132,15 @@ fn main() {
         }
     }
 
+    #[cfg(feature = "dawn")]
+    {
+        use drivers::dawn::Dawn;
+
+        if drivers.contains(&Driver::Dawn) {
+            draw_all(&mut Dawn::new(), &out_path)
+        }
+    }
+
     fn draw_all<Driver: DrawingDriver>(driver: &mut Driver, out_path: &Path) {
         let out_path = out_path.join(Driver::DRIVER.to_string());
 

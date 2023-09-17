@@ -57,6 +57,9 @@ impl Configuration {
             if features.d3d {
                 sources.push("src/d3d.cpp".into());
             }
+            if features.dawn {
+                sources.push("src/dawn.cpp".into());
+            }
             if features.gpu() {
                 sources.push("src/gpu.cpp".into());
             }

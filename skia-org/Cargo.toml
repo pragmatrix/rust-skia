@@ -18,7 +18,7 @@ edition = "2021"
 default-run = "skia-org"
 
 [features]
-default = []
+default = ["dawn"]
 gl = ["offscreen_gl_context", "sparkle", "skia-safe/gl"]
 egl = ["gl", "skia-safe/egl"]
 x11 = ["gl", "skia-safe/x11"]
@@ -26,6 +26,7 @@ wayland = ["egl", "skia-safe/wayland"]
 vulkan = ["ash", "skia-safe/vulkan"]
 metal = ["metal-rs", "foreign-types-shared", "cocoa", "objc", "skia-safe/metal"]
 d3d = ["skia-safe/d3d", "winapi", "wio"]
+dawn = ["skia-safe/dawn"]
 textlayout = ["skia-safe/textlayout"]
 webp = ["skia-safe/webp"]
 svg = ["skia-safe/svg"]

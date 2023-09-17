@@ -134,6 +134,14 @@ impl DirectContext {
         ))
     }
 
+    #[cfg(feature = "dawn")]
+    #[allow(clippy::missing_safety_doc)]
+    pub fn new_dawn<'a>(options: impl Into<Option<&'a ContextOptions>>) -> Option<DirectContext> {
+        DirectContext::from_ptr(unsafe {
+            sb::C_GrDirectContext_MakeDawn(options.into().native_ptr_or_null())
+        })
+    }
+
     pub fn reset(&mut self, backend_state: Option<u32>) -> &mut Self {
         unsafe {
             self.native_mut()

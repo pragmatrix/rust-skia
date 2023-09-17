@@ -5,6 +5,8 @@ use std::{fmt::Display, path::Path, str::FromStr};
 pub mod cpu;
 #[cfg(feature = "d3d")]
 pub mod d3d;
+#[cfg(feature = "dawn")]
+pub mod dawn;
 #[cfg(feature = "gl")]
 pub mod gl;
 #[cfg(feature = "metal")]
@@ -19,6 +21,8 @@ pub mod vulkan;
 pub use cpu::Cpu;
 #[cfg(feature = "d3d")]
 pub use d3d::D3D;
+#[cfg(feature = "dawn")]
+pub use dawn::Dawn;
 #[cfg(feature = "gl")]
 pub use gl::OpenGl;
 #[cfg(feature = "metal")]
@@ -57,6 +61,8 @@ pub enum Driver {
     Metal,
     #[cfg(feature = "d3d")]
     D3d,
+    #[cfg(feature = "dawn")]
+    Dawn,
     #[cfg(feature = "svg")]
     RenderSvg,
 }
@@ -102,6 +108,8 @@ impl Display for Driver {
             Metal => "metal",
             #[cfg(feature = "d3d")]
             D3d => "d3d",
+            #[cfg(feature = "dawn")]
+            Dawn => "dawn",
             #[cfg(feature = "svg")]
             RenderSvg => "render-svg",
         };

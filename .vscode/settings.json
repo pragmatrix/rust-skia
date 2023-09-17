@@ -56,6 +56,7 @@
         "USERPROFILE",
         "uset",
         "webgl",
+        "wgpu",
         "wuffs",
         "Yocto"
     ],
