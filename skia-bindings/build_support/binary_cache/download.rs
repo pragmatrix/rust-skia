@@ -19,22 +19,22 @@ pub fn resolve_dependencies() {
         return;
     }
 
-    // Not in a crate, assuming a git repo. Update all submodules.
-    let submodules_updated = Command::new("git")
-        .args(["submodule", "update", "--init", "--depth", "1"])
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .status()
-        .unwrap()
-        .success();
+    // // Not in a crate, assuming a git repo. Update all submodules.
+    // let submodules_updated = Command::new("git")
+    //     .args(["submodule", "update", "--init", "--depth", "1"])
+    //     .stdout(Stdio::inherit())
+    //     .stderr(Stdio::inherit())
+    //     .status()
+    //     .unwrap()
+    //     .success();
 
-    // If `git submodule update` failed, either git is not installed,
-    // or we're not building from a git repo.
-    // This can happen if the repo is downloaded as a ZIP archive.
-    if !submodules_updated {
-        println!("`git submodule update` failed. Falling back to HTTP download");
-        download_dependencies();
-    }
+    // // If `git submodule update` failed, either git is not installed,
+    // // or we're not building from a git repo.
+    // // This can happen if the repo is downloaded as a ZIP archive.
+    // if !submodules_updated {
+    //     println!("`git submodule update` failed. Falling back to HTTP download");
+    //     download_dependencies();
+    // }
 }
 
 /// Downloads the `skia` and `depot_tools` from their repositories.

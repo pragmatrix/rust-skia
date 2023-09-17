@@ -1,14 +1,23 @@
 //! Full build support for the SkiaBindings library, and bindings.rs file.
-use crate::build_support::{binaries_config, cargo, cargo::Target, features, platform};
-use bindgen::{CodegenConfig, EnumVariation, RustTarget};
-use cc::Build;
 use std::path::{Path, PathBuf};
 
+use bindgen::{CodegenConfig, EnumVariation, RustTarget};
+use cc::Build;
+
+use crate::build_support::{binaries_config, cargo, cargo::Target, features, platform};
+
 pub mod env {
+    use std::env;
+
     use crate::build_support::cargo;
 
     pub fn skia_lib_definitions() -> Option<String> {
         cargo::env_var("SKIA_BUILD_DEFINES")
+    }
+
+    pub fn out_dir() -> String {
+        // Don't track `OUT_DIR` through cargo, `OUT_DIR` contains only generated items.
+        env::var("OUT_DIR").unwrap()
     }
 }
 
@@ -22,6 +31,9 @@ pub struct Configuration {
 
     /// Further definitions needed for build consistency.
     pub definitions: Definitions,
+
+    /// Hack (allow to specify include dirs instead)
+    pub dawn: bool,
 }
 
 impl Configuration {
@@ -30,6 +42,7 @@ impl Configuration {
         definitions: Definitions,
         skia_source_dir: &Path,
     ) -> Self {
+        let dawn = features.dawn;
         let binding_sources = {
             let mut sources: Vec<PathBuf> = vec!["src/bindings.cpp".into()];
             if features.gl {
@@ -63,6 +76,7 @@ impl Configuration {
             skia_source_dir: skia_source_dir.into(),
             binding_sources,
             definitions,
+            dawn,
         }
     }
 }
@@ -179,8 +193,20 @@ pub fn generate_bindings(
     let include_path = &build.skia_source_dir;
     cargo::rerun_if_file_changed(include_path.join("include"));
 
-    bindgen_args.push(format!("-I{}", include_path.display()));
-    cc_build.include(include_path);
+    let mut include_paths = vec![include_path.clone()];
+    if build.dawn {
+        let out_dir = env::out_dir();
+        // <webgpu/webgpu_cpp.h>
+        include_paths.push(PathBuf::from("skia/third_party/externals/dawn/include"));
+        // <dawn/webgpu_cpp.h>
+        include_paths
+            .push(PathBuf::from(out_dir).join("skia/gen/third_party/externals/dawn/include"));
+    }
+
+    for include_path in include_paths {
+        bindgen_args.push(format!("-I{}", include_path.display()));
+        cc_build.include(include_path);
+    }
 
     for (name, value) in &build.definitions {
         match value {

@@ -23,6 +23,9 @@ pub struct Features {
     /// Build with Direct3D support?
     pub d3d: bool,
 
+    /// Enable WebGPU backend?
+    pub dawn: bool,
+
     /// Features related to text layout. Modules skshaper and skparagraph.
     pub text_layout: bool,
 
@@ -59,6 +62,7 @@ impl Default for Features {
             vulkan: cfg!(feature = "vulkan"),
             metal: cfg!(feature = "metal"),
             d3d: cfg!(feature = "d3d"),
+            dawn: cfg!(feature = "dawn"),
             text_layout: cfg!(feature = "textlayout"),
             svg: cfg!(feature = "svg"),
             webp_encode: cfg!(feature = "webp-encode"),
@@ -73,7 +77,7 @@ impl Default for Features {
 
 impl Features {
     pub fn gpu(&self) -> bool {
-        self.gl || self.vulkan || self.metal || self.d3d
+        self.gl || self.vulkan || self.metal || self.d3d || self.dawn
     }
 
     /// Feature Ids used to look up prebuilt binaries.
@@ -101,6 +105,9 @@ impl Features {
         if self.d3d {
             feature_ids.push(feature_id::D3D);
         }
+        if self.dawn {
+            feature_ids.push(feature_id::DAWN);
+        }
         if self.text_layout {
             feature_ids.push(feature_id::TEXTLAYOUT);
         }
@@ -127,6 +134,7 @@ mod feature_id {
     pub const VULKAN: &str = "vulkan";
     pub const METAL: &str = "metal";
     pub const D3D: &str = "d3d";
+    pub const DAWN: &str = "dawn";
     pub const TEXTLAYOUT: &str = "textlayout";
     pub const SVG: &str = "svg";
     pub const WEBPE: &str = "webpe";
