@@ -188,7 +188,10 @@ impl FinalBuildConfiguration {
             }
 
             if features.embed_freetype {
+                // Enable freetype for platforms it isn't enabled by default (e.g. macOS).
+                builder.arg("skia_use_freetype", yes());
                 builder.arg("skia_use_system_freetype2", no());
+                builder.arg("skia_use_freetype_woff2", yes());
             } else {
                 // third_party/freetype2/BUILD.gn hard-codes /usr/include/freetype2
                 // as include path. When cross-compiling against a sysroot, we don't
