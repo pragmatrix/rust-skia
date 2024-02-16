@@ -28,6 +28,8 @@ public:
         _loadContext = loadContext;
     }
 
+    ~ImageResourceProvider() {}
+
     sk_sp<SkData> load(const char resource_path [],
                        const char resource_name []) const {
         return sp(_loadCb(resource_path, resource_name, _loadContext));
@@ -46,9 +48,6 @@ public:
                                    const char url[]) const {
         return sp(_loadTfCb(url, name, _loadContext));
     }
-
-    ~ImageResourceProvider() {}
-
 };
 
 

@@ -3,7 +3,9 @@ use std::{
     ffi::CStr,
     fmt,
     io::{self, Read},
+    mem,
     os::raw,
+    ptr::{self, null_mut},
 };
 
 use skia_bindings as sb;
@@ -12,7 +14,7 @@ use skia_bindings::{SkData, SkTypeface};
 use crate::{
     interop::{MemoryStream, NativeStreamBase, RustStream},
     prelude::*,
-    Canvas, Data, FontMgr, FontStyle, RCHandle, Size,
+    Canvas, Data, FontMgr, FontStyle, RCHandle, Size, Typeface,
 };
 
 pub type Dom = RCHandle<sb::SkSVGDOM>;
@@ -34,7 +36,7 @@ impl NativeRefCounted for sb::SkSVGDOM {
 }
 
 /// Error when something goes wrong when loading an SVG file. Sadly, Skia doesn't give further
-/// details so we can't return a more expressive error type, but we still use this instead of
+/// details, so we can't return a more expressive error type, but we still use this instead of
 /// `Option` to express the intent and allow for `Try`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct LoadError;
@@ -57,97 +59,157 @@ impl From<LoadError> for io::Error {
     }
 }
 
+pub trait ResourceProvider {
+    fn load_resource(&self, url: &str) -> Option<Data>;
+    fn new_typeface(&self, bytes: &[u8]) -> Option<Typeface>;
+    fn new_default_typeface(&self) -> Typeface;
+}
+
 #[derive(Debug)]
-#[repr(C)]
-struct LoadContext {
+pub struct UReqResourceProvider {
     font_mgr: FontMgr,
 }
 
-impl LoadContext {
-    fn new(font_mgr: FontMgr) -> Self {
-        Self { font_mgr }
-    }
-
-    fn native(&mut self) -> *mut raw::c_void {
-        self as *mut _ as _
+impl UReqResourceProvider {
+    pub fn new(font_mgr: impl Into<FontMgr>) -> Self {
+        Self {
+            font_mgr: font_mgr.into(),
+        }
     }
 }
 
-extern "C" fn handle_load_type_face(
-    resource_path: *const raw::c_char,
-    resource_name: *const raw::c_char,
-    load_context: *mut raw::c_void,
-) -> *mut SkTypeface {
-    let data = Data::from_ptr(handle_load(resource_path, resource_name, load_context));
-    let load_context: &mut LoadContext = unsafe { &mut *(load_context as *mut LoadContext) };
-    if let Some(data) = data {
-        if let Some(typeface) = load_context.font_mgr.new_from_data(&data, None) {
-            return typeface.into_ptr();
+impl From<FontMgr> for UReqResourceProvider {
+    fn from(font_mgr: FontMgr) -> Self {
+        UReqResourceProvider::new(font_mgr)
+    }
+}
+
+impl From<&FontMgr> for UReqResourceProvider {
+    fn from(font_mgr: &FontMgr) -> Self {
+        UReqResourceProvider::new(font_mgr.clone())
+    }
+}
+
+impl ResourceProvider for UReqResourceProvider {
+    fn load_resource(&self, url: &str) -> Option<Data> {
+        match ureq::get(url).call() {
+            Ok(response) => {
+                let mut reader = response.into_reader();
+                let mut data = Vec::new();
+                if reader.read_to_end(&mut data).is_err() {
+                    data.clear();
+                };
+                Some(Data::new_copy(&data))
+            }
+            Err(_) => None,
         }
     }
 
-    load_context
-        .font_mgr
-        .legacy_make_typeface(None, FontStyle::default())
-        .unwrap()
-        .into_ptr()
+    fn new_typeface(&self, bytes: &[u8]) -> Option<Typeface> {
+        self.font_mgr.new_from_data(bytes, None)
+    }
+
+    fn new_default_typeface(&self) -> Typeface {
+        self.font_mgr
+            .legacy_make_typeface(None, FontStyle::default())
+            .unwrap()
+    }
+}
+
+#[repr(C)]
+struct LoadContextC {
+    resource_provider: sb::TraitObject,
+}
+
+impl LoadContextC {
+    fn new(rp: &dyn ResourceProvider) -> Self {
+        Self {
+            resource_provider: unsafe { mem::transmute(rp) },
+        }
+    }
+
+    fn native(&mut self) -> *mut raw::c_void {
+        self as *mut LoadContextC as *mut raw::c_void
+    }
 }
 
 extern "C" fn handle_load(
     resource_path: *const raw::c_char,
     resource_name: *const raw::c_char,
-    _load_context: *mut raw::c_void,
+    load_context: *mut raw::c_void,
 ) -> *mut SkData {
-    unsafe {
-        let mut is_base64 = false;
-        if resource_path.is_null() {
-            is_base64 = true;
-        }
+    if let Some(data) = try_load_base64(resource_path, resource_name) {
+        return data.into_ptr();
+    }
 
-        let resource_path = CStr::from_ptr(resource_path);
-        let resource_name = CStr::from_ptr(resource_name);
+    let resource_path = unsafe { CStr::from_ptr(resource_path) };
+    let resource_name = unsafe { CStr::from_ptr(resource_name) };
 
-        if resource_path.to_string_lossy().is_empty() {
-            is_base64 = true;
-        }
+    let url = if cfg!(windows) {
+        resource_name.to_string_lossy().to_string()
+    } else {
+        format!(
+            "{}/{}",
+            resource_path.to_string_lossy(),
+            resource_name.to_string_lossy()
+        )
+    };
 
-        if cfg!(windows) && !resource_name.to_string_lossy().starts_with("data:") {
-            is_base64 = false;
-        }
+    let provider = unsafe { resolve_resource_provider(load_context) };
+    let loaded = provider.load_resource(&url);
+    loaded.unwrap_or_else(Data::new_empty).into_ptr()
+}
 
-        if is_base64 {
-            let data = Dom::handle_load_base64(resource_name.to_string_lossy().as_ref());
-            data.into_ptr()
-        } else {
-            // url returned in the resource_name on windows
-            // https://github.com/rust-skia/rust-skia/pull/569#issuecomment-978034696
-            let path = if cfg!(windows) {
-                resource_name.to_string_lossy().to_string()
-            } else {
-                format!(
-                    "{}/{}",
-                    resource_path.to_string_lossy(),
-                    resource_name.to_string_lossy()
-                )
-            };
-
-            match ureq::get(&path).call() {
-                Ok(response) => {
-                    let mut reader = response.into_reader();
-                    let mut data = Vec::new();
-                    if reader.read_to_end(&mut data).is_err() {
-                        data.clear();
-                    };
-                    let data = Data::new_copy(&data);
-                    data.into_ptr()
-                }
-                Err(_) => {
-                    let data = Data::new_empty();
-                    data.into_ptr()
-                }
-            }
+extern "C" fn handle_load_typeface(
+    resource_path: *const raw::c_char,
+    resource_name: *const raw::c_char,
+    load_context: *mut raw::c_void,
+) -> *mut SkTypeface {
+    let data = handle_load(resource_path, resource_name, load_context);
+    let data = Data::from_ptr(data).unwrap();
+    let provider = unsafe { resolve_resource_provider(load_context) };
+    if !data.is_empty() {
+        if let Some(typeface) = provider.new_typeface(&data) {
+            return typeface.into_ptr();
         }
     }
+
+    provider.new_default_typeface().into_ptr()
+}
+
+fn try_load_base64(
+    resource_path: *const raw::c_char,
+    resource_name: *const raw::c_char,
+) -> Option<Data> {
+    let mut is_base64 = false;
+    // TODO: This can't happen, because otherwise `CStr::from_ptr` below would crash.
+    if resource_path.is_null() {
+        is_base64 = true;
+    }
+
+    let resource_path = unsafe { CStr::from_ptr(resource_path) };
+    let resource_name = unsafe { CStr::from_ptr(resource_name) };
+
+    if resource_path.to_string_lossy().is_empty() {
+        is_base64 = true;
+    }
+
+    if cfg!(windows) && !resource_name.to_string_lossy().starts_with("data:") {
+        is_base64 = false;
+    }
+
+    if !is_base64 {
+        return None;
+    }
+
+    Dom::handle_load_base64(resource_name.to_string_lossy().as_ref())
+}
+
+unsafe fn resolve_resource_provider(
+    load_context: *mut raw::c_void,
+) -> &'static dyn ResourceProvider {
+    let load_context: &mut LoadContextC = &mut *(load_context as *mut LoadContextC);
+    mem::transmute(load_context.resource_provider)
 }
 
 impl fmt::Debug for Dom {
@@ -159,17 +221,17 @@ impl fmt::Debug for Dom {
 impl Dom {
     pub fn read<R: io::Read>(
         mut reader: R,
-        font_mgr: impl Into<FontMgr>,
+        resource_provider: &impl ResourceProvider,
     ) -> Result<Self, LoadError> {
         let mut reader = RustStream::new(&mut reader);
         let stream = reader.stream_mut();
-        let mut load_context = LoadContext::new(font_mgr.into());
+        let mut load_context = LoadContextC::new(resource_provider);
 
         let out = unsafe {
             sb::C_SkSVGDOM_MakeFromStream(
                 stream,
                 Some(handle_load),
-                Some(handle_load_type_face),
+                Some(handle_load_typeface),
                 load_context.native(),
             )
         };
@@ -177,19 +239,22 @@ impl Dom {
         Self::from_ptr(out).ok_or(LoadError)
     }
 
-    pub fn from_str(svg: impl AsRef<str>, font_mgr: impl Into<FontMgr>) -> Result<Self, LoadError> {
-        Self::from_bytes(svg.as_ref().as_bytes(), font_mgr)
+    pub fn from_str(
+        svg: impl AsRef<str>,
+        resource_provider: &impl ResourceProvider,
+    ) -> Result<Self, LoadError> {
+        Self::from_bytes(svg.as_ref().as_bytes(), resource_provider)
     }
 
-    pub fn from_bytes(svg: &[u8], font_mgr: impl Into<FontMgr>) -> Result<Self, LoadError> {
+    pub fn from_bytes(svg: &[u8], provider: &impl ResourceProvider) -> Result<Self, LoadError> {
         let mut ms = MemoryStream::from_bytes(svg);
-        let mut load_context = LoadContext::new(font_mgr.into());
+        let mut load_context = LoadContextC::new(provider);
 
         let out = unsafe {
             sb::C_SkSVGDOM_MakeFromStream(
                 ms.native_mut().as_stream_mut(),
                 Some(handle_load),
-                Some(handle_load_type_face),
+                Some(handle_load_typeface),
                 load_context.native(),
             )
         };
@@ -209,13 +274,13 @@ impl Dom {
         unsafe { sb::C_SkSVGDOM_setContainerSize(self.native_mut(), size.native()) }
     }
 
-    fn handle_load_base64(data: &str) -> Data {
+    fn handle_load_base64(data: &str) -> Option<Data> {
         let data: Vec<_> = data.split(',').collect();
-        if data.len() > 1 {
-            let result = decode_base64(data[1]);
-            return Data::new_copy(result.as_slice());
+        if data.len() <= 1 {
+            return None;
         }
-        Data::new_empty()
+        let result = decode_base64(data[1])?;
+        Some(Data::new_copy(result.as_slice()))
     }
 }
 
@@ -225,7 +290,7 @@ const HTML_SPACE_CHARACTERS: StaticCharVec =
     &['\u{0020}', '\u{0009}', '\u{000a}', '\u{000c}', '\u{000d}'];
 
 // https://github.com/servo/servo/blob/1610bd2bc83cea8ff0831cf999c4fba297788f64/components/script/dom/window.rs#L575
-fn decode_base64(value: &str) -> Vec<u8> {
+fn decode_base64(value: &str) -> Option<Vec<u8>> {
     fn is_html_space(c: char) -> bool {
         HTML_SPACE_CHARACTERS.iter().any(|&m| m == c)
     }
@@ -235,8 +300,8 @@ fn decode_base64(value: &str) -> Vec<u8> {
         .collect::<String>();
 
     match base64::decode(&without_spaces) {
-        Ok(bytes) => bytes,
-        Err(_) => Vec::new(),
+        Ok(bytes) => Some(bytes),
+        Err(_) => None,
     }
 }
 
@@ -261,7 +326,7 @@ mod base64 {
 mod tests {
     use std::{fs::File, io::Write, path::Path};
 
-    use super::Dom;
+    use super::{Dom, UReqResourceProvider};
     use crate::{modules::svg::decode_base64, surfaces, EncodedImageFormat, FontMgr, Surface};
 
     #[test]
@@ -275,10 +340,26 @@ mod tests {
             </svg>"##;
         let mut surface = surfaces::raster_n32_premul((256, 256)).unwrap();
         let canvas = surface.canvas();
-        let font_mgr = FontMgr::new();
-        let dom = Dom::from_str(svg, font_mgr).unwrap();
+        let resource_provider = UReqResourceProvider::new(FontMgr::new());
+        let dom = Dom::from_str(svg, &resource_provider).unwrap();
         dom.render(canvas);
-        // save_surface_to_tmp(surface);
+        // save_surface_to_tmp(&mut surface);
+    }
+
+    #[test]
+    fn render_resource_loading_svg() {
+        let svg = r##"
+            <svg version="1.1"
+            xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+            width="128" height="128">
+            <image width="128" height="128" transform="rotate(45)" transform-origin="64 64"
+                xlink:href="https://www.rust-lang.org/logos/rust-logo-128x128.png"/>
+            </svg>"##;
+        let mut surface = surfaces::raster_n32_premul((256, 256)).unwrap();
+        let canvas = surface.canvas();
+        let resource_provider = UReqResourceProvider::new(FontMgr::new());
+        let dom = Dom::from_str(svg, &resource_provider).unwrap();
+        dom.render(canvas);
     }
 
     #[allow(unused)]
@@ -298,22 +379,28 @@ mod tests {
         use std::str::from_utf8;
 
         // padding length of 0-2 should be supported
-        assert_eq!("Hello", from_utf8(&decode_base64("SGVsbG8=")).unwrap());
-        assert_eq!("Hello!", from_utf8(&decode_base64("SGVsbG8h")).unwrap());
+        assert_eq!(
+            "Hello",
+            from_utf8(&decode_base64("SGVsbG8=").unwrap()).unwrap()
+        );
+        assert_eq!(
+            "Hello!",
+            from_utf8(&decode_base64("SGVsbG8h").unwrap()).unwrap()
+        );
         assert_eq!(
             "Hello!!",
-            from_utf8(&decode_base64("SGVsbG8hIQ==")).unwrap()
+            from_utf8(&decode_base64("SGVsbG8hIQ==").unwrap()).unwrap()
         );
 
         // padding length of 3 is invalid
-        assert_eq!(0, decode_base64("SGVsbG8hIQ===").len());
+        assert_eq!(None, decode_base64("SGVsbG8hIQ==="));
 
         // if input length divided by 4 gives a remainder of 1 after padding removal, it's invalid
-        assert_eq!(0, decode_base64("SGVsbG8hh").len());
-        assert_eq!(0, decode_base64("SGVsbG8hh=").len());
-        assert_eq!(0, decode_base64("SGVsbG8hh==").len());
+        assert_eq!(None, decode_base64("SGVsbG8hh"));
+        assert_eq!(None, decode_base64("SGVsbG8hh="));
+        assert_eq!(None, decode_base64("SGVsbG8hh=="));
 
         // invalid characters in the input
-        assert_eq!(0, decode_base64("$GVsbG8h").len());
+        assert_eq!(None, decode_base64("$GVsbG8h"));
     }
 }
