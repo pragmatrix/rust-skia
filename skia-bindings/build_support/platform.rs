@@ -16,6 +16,7 @@ mod generic;
 pub mod ios;
 pub mod linux;
 pub mod macos;
+pub mod wasi;
 mod windows;
 
 pub fn uses_freetype(config: &BuildConfiguration) -> bool {
@@ -70,6 +71,7 @@ fn details(target: &Target) -> &dyn PlatformDetails {
     let host = cargo::host();
     match target.as_strs() {
         ("wasm32", "unknown", "emscripten", _) => &emscripten::Emscripten,
+        ("wasm32", "wasip1", "threads", _) => &wasi::Wasm32Wasip1Threads,
         (_, "linux", "android", _) | (_, "linux", "androideabi", _) => &android::Android,
         (_, "apple", "darwin", _) => &macos::MacOs,
         (_, "apple", "ios", _) => &ios::Ios,
