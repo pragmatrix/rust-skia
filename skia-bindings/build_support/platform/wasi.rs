@@ -87,11 +87,16 @@ fn flags() -> Vec<String> {
 }
 
 fn emsdk_system_include() -> String {
-    match std::env::var("EMSDK_SYSTEM_INCLUDE") {
-        Ok(val) => val,
-        Err(_e) => panic!(
-            "please set the EMSDK_SYSTEM_INCLUDE environment variable to the {{emsdk}}/system/include directory"
-        ),
+    match cargo::env_var("EMSDK_SYSTEM_INCLUDE") {
+        Some(val) => val,
+        None => match cargo::env_var("EMSDK") {
+            Some(emsdk) => format!("{emsdk}/system/include"),
+            None => {
+                panic!(
+                        "please set the EMSDK or EMSDK_SYSTEM_INCLUDE environment variable to the {{emsdk}}/system/include directory"
+                    )
+            }
+        },
     }
 }
 
