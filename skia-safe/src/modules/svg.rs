@@ -57,17 +57,19 @@ impl From<LoadError> for io::Error {
     }
 }
 
-#[derive(Debug)]
-#[repr(C)]
-struct LoadContext {
-    font_mgr: FontMgr,
+/// A trait that acts as a backend to load resources from the Internet.
+pub trait ResourceProvider {
+    /// `load` is being called when a resource on the Internet is needed to read a SVG file.
+    fn load(&self, url: &str) -> Result<Vec<u8>, LoadError>;
 }
 
-impl LoadContext {
-    fn new(font_mgr: FontMgr) -> Self {
-        Self { font_mgr }
-    }
+#[repr(C)]
+struct LoadContext<'a> {
+    font_mgr: FontMgr,
+    resource_provider: &'a dyn ResourceProvider,
+}
 
+impl LoadContext<'_> {
     fn native(&mut self) -> *mut raw::c_void {
         self as *mut _ as _
     }
@@ -96,8 +98,9 @@ extern "C" fn handle_load_type_face(
 extern "C" fn handle_load(
     resource_path: *const raw::c_char,
     resource_name: *const raw::c_char,
-    _load_context: *mut raw::c_void,
+    load_context: *mut raw::c_void,
 ) -> *mut SkData {
+    let load_context: &mut LoadContext = unsafe { &mut *(load_context as *mut LoadContext) };
     unsafe {
         let mut is_base64 = false;
         if resource_path.is_null() {
@@ -131,20 +134,9 @@ extern "C" fn handle_load(
                 )
             };
 
-            match ureq::get(&path).call() {
-                Ok(response) => {
-                    let mut reader = response.into_reader();
-                    let mut data = Vec::new();
-                    if reader.read_to_end(&mut data).is_err() {
-                        data.clear();
-                    };
-                    let data = Data::new_copy(&data);
-                    data.into_ptr()
-                }
-                Err(_) => {
-                    let data = Data::new_empty();
-                    data.into_ptr()
-                }
+            match load_context.resource_provider.load(&path) {
+                Ok(data) => Data::new_copy(&data).into_ptr(),
+                Err(_) => Data::new_empty().into_ptr(),
             }
         }
     }
@@ -160,11 +152,15 @@ impl Dom {
     pub fn read<R: io::Read>(
         mut reader: R,
         font_mgr: impl Into<FontMgr>,
+        resource_provider: Option<&dyn ResourceProvider>,
     ) -> Result<Self, LoadError> {
         let mut reader = RustStream::new(&mut reader);
         let stream = reader.stream_mut();
         let font_mgr = font_mgr.into();
-        let mut load_context = LoadContext::new(font_mgr.clone());
+        let mut load_context = LoadContext {
+            font_mgr: font_mgr.clone(),
+            resource_provider: resource_provider.unwrap_or(&EmptyResourceProvider),
+        };
 
         let out = unsafe {
             sb::C_SkSVGDOM_MakeFromStream(
@@ -179,14 +175,25 @@ impl Dom {
         Self::from_ptr(out).ok_or(LoadError)
     }
 
-    pub fn from_str(svg: impl AsRef<str>, font_mgr: impl Into<FontMgr>) -> Result<Self, LoadError> {
-        Self::from_bytes(svg.as_ref().as_bytes(), font_mgr)
+    pub fn from_str(
+        svg: impl AsRef<str>,
+        font_mgr: impl Into<FontMgr>,
+        resource_provider: Option<&dyn ResourceProvider>,
+    ) -> Result<Self, LoadError> {
+        Self::from_bytes(svg.as_ref().as_bytes(), font_mgr, resource_provider)
     }
 
-    pub fn from_bytes(svg: &[u8], font_mgr: impl Into<FontMgr>) -> Result<Self, LoadError> {
+    pub fn from_bytes(
+        svg: &[u8],
+        font_mgr: impl Into<FontMgr>,
+        resource_provider: Option<&dyn ResourceProvider>,
+    ) -> Result<Self, LoadError> {
         let mut ms = MemoryStream::from_bytes(svg);
         let font_mgr = font_mgr.into();
-        let mut load_context = LoadContext::new(font_mgr.clone());
+        let mut load_context = LoadContext {
+            font_mgr: font_mgr.clone(),
+            resource_provider: resource_provider.unwrap_or(&EmptyResourceProvider),
+        };
 
         let out = unsafe {
             sb::C_SkSVGDOM_MakeFromStream(
@@ -258,6 +265,35 @@ mod base64 {
     );
 }
 
+struct EmptyResourceProvider;
+
+impl ResourceProvider for EmptyResourceProvider {
+    fn load(&self, _url: &str) -> Result<Vec<u8>, LoadError> {
+        Ok(Vec::new())
+    }
+}
+
+#[cfg(feature = "ureq")]
+pub struct UReqResourceProvider;
+
+#[cfg(feature = "ureq")]
+impl ResourceProvider for UReqResourceProvider {
+    fn load(&self, url: &str) -> Result<Vec<u8>, LoadError> {
+        match ureq::get(url).call() {
+            Ok(response) => {
+                let mut reader = response.into_reader();
+                let mut data = Vec::new();
+                if reader.read_to_end(&mut data).is_ok() {
+                    Ok(data)
+                } else {
+                    Err(LoadError)
+                }
+            }
+            Err(_) => Err(LoadError),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::{fs::File, io::Write, path::Path};
@@ -277,7 +313,7 @@ mod tests {
         let mut surface = surfaces::raster_n32_premul((256, 256)).unwrap();
         let canvas = surface.canvas();
         let font_mgr = FontMgr::new();
-        let dom = Dom::from_str(svg, font_mgr).unwrap();
+        let dom = Dom::from_str(svg, font_mgr, None).unwrap();
         dom.render(canvas);
         // save_surface_to_tmp(&mut surface);
     }
