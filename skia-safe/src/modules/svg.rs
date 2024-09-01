@@ -318,6 +318,27 @@ mod tests {
         // save_surface_to_tmp(&mut surface);
     }
 
+    #[test]
+    fn external_resource() {
+        // <https://github.com/rust-skia/rust-skia/pull/569#issuecomment-977843719>
+        let svg = r##"
+            <svg version="1.1"
+                xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+                width="128" height="128">
+            
+            <image width="128" height="128" transform="rotate(45)" transform-origin="64 64"
+                xlink:href="https://www.rust-lang.org/logos/rust-logo-128x128.png"/>
+            
+            </svg>
+        "##;
+        let mut surface = surfaces::raster_n32_premul((128, 128)).unwrap();
+        let canvas = surface.canvas();
+        let font_mgr = FontMgr::new();
+        let dom = Dom::from_str(svg, font_mgr, None).unwrap();
+        dom.render(canvas);
+        // save_surface_to_tmp(&mut surface);
+    }
+
     #[allow(unused)]
     fn save_surface_to_tmp(surface: &mut Surface) {
         let image = surface.image_snapshot();
