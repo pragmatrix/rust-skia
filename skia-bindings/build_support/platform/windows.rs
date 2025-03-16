@@ -64,6 +64,8 @@ impl PlatformDetails for Msvc {
         };
 
         builder.cflag(runtime_library);
+
+        builder.cflag("-D__RTMINTRIN_H");
     }
 
     fn link_libraries(&self, features: &Features) -> Vec<String> {
