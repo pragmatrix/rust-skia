@@ -4,7 +4,10 @@ use vulkano::{
         physical::PhysicalDeviceType, Device, DeviceCreateInfo, DeviceExtensions, Queue,
         QueueCreateInfo, QueueFlags,
     },
-    instance::{Instance, InstanceCreateFlags, InstanceCreateInfo},
+    instance::{
+        debug::{DebugUtilsMessageSeverity, DebugUtilsMessageType, DebugUtilsMessenger, DebugUtilsMessengerCallback, DebugUtilsMessengerCreateInfo, DebugUtilsMessengerCallbackData},
+        Instance, InstanceCreateFlags, InstanceCreateInfo,
+    },
     swapchain::Surface,
     VulkanLibrary,
 };
@@ -13,9 +16,34 @@ use winit::{event_loop::ActiveEventLoop, window::Window};
 
 use super::renderer::VulkanRenderer;
 
+// Debug callback function for validation layers
+fn debug_callback(
+    message_severity: DebugUtilsMessageSeverity,
+    message_types: DebugUtilsMessageType,
+    callback_data: DebugUtilsMessengerCallbackData<'_>,
+) {
+    let severity = match message_severity {
+        DebugUtilsMessageSeverity::ERROR => "ERROR",
+        DebugUtilsMessageSeverity::WARNING => "WARNING",
+        DebugUtilsMessageSeverity::INFO => "INFO",
+        DebugUtilsMessageSeverity::VERBOSE => "VERBOSE",
+        _ => "UNKNOWN",
+    };
+    
+    let message_type = match message_types {
+        DebugUtilsMessageType::GENERAL => "GENERAL",
+        DebugUtilsMessageType::VALIDATION => "VALIDATION",
+        DebugUtilsMessageType::PERFORMANCE => "PERFORMANCE",
+        _ => "UNKNOWN",
+    };
+    
+    eprintln!("[VULKAN {}] [{}] {}", severity, message_type, callback_data.message);
+}
+
 #[derive(Default)]
 pub struct VulkanRenderContext {
     pub queue: Option<Arc<Queue>>,
+    pub _debug_messenger: Option<DebugUtilsMessenger>, // Keep debug messenger alive
 }
 
 impl VulkanRenderContext {
@@ -25,14 +53,16 @@ impl VulkanRenderContext {
         window: Arc<Window>,
     ) -> VulkanRenderer {
         // lazily set up a shared instance, device, and queue to use for all subsequent renderers
-        let queue = self
-            .queue
-            .get_or_insert_with(|| Self::shared_queue(event_loop, window.clone()));
+        if self.queue.is_none() {
+            let (queue, debug_messenger) = Self::shared_queue(event_loop, window.clone());
+            self.queue = Some(queue);
+            self._debug_messenger = debug_messenger;
+        }
 
-        VulkanRenderer::new(window.clone(), queue.clone())
+        VulkanRenderer::new(window.clone(), self.queue.as_ref().unwrap().clone())
     }
 
-    fn shared_queue(event_loop: &ActiveEventLoop, window: Arc<Window>) -> Arc<Queue> {
+    fn shared_queue(event_loop: &ActiveEventLoop, window: Arc<Window>) -> (Arc<Queue>, Option<DebugUtilsMessenger>) {
         let library = VulkanLibrary::new().expect("Vulkan libraries not found on system");
 
         // The first step of any Vulkan program is to create an instance.
@@ -42,7 +72,17 @@ impl VulkanRenderContext {
         // All the window-drawing functionalities are part of non-core extensions that we need to
         // enable manually. To do so, we ask `Surface` for the list of extensions required to draw
         // to a window.
-        let required_extensions = Surface::required_extensions(event_loop).unwrap();
+        let mut required_extensions = Surface::required_extensions(event_loop).unwrap();
+        
+        // Enable debug utils extension for validation layers
+        required_extensions.ext_debug_utils = true;
+
+        // Enable validation layers in debug builds
+        let enabled_layers = if cfg!(debug_assertions) {
+            vec!["VK_LAYER_KHRONOS_validation".to_owned()]
+        } else {
+            vec![]
+        };
 
         // Now creating the instance.
         let instance = Instance::new(
@@ -52,12 +92,32 @@ impl VulkanRenderContext {
                 // (e.g. MoltenVK)
                 flags: InstanceCreateFlags::ENUMERATE_PORTABILITY,
                 enabled_extensions: required_extensions,
+                enabled_layers,
                 ..Default::default()
             },
         )
         .unwrap_or_else(|_| {
             panic!("Could not create instance supporting: {required_extensions:?}")
         });
+
+        // Create debug messenger for validation layer output
+        let debug_messenger = if cfg!(debug_assertions) {
+            let callback = unsafe {
+                DebugUtilsMessengerCallback::new(debug_callback)
+            };
+            
+            let mut create_info = DebugUtilsMessengerCreateInfo::user_callback(callback);
+            create_info.message_severity = DebugUtilsMessageSeverity::ERROR
+                | DebugUtilsMessageSeverity::WARNING
+                | DebugUtilsMessageSeverity::INFO;
+            create_info.message_type = DebugUtilsMessageType::GENERAL
+                | DebugUtilsMessageType::VALIDATION
+                | DebugUtilsMessageType::PERFORMANCE;
+            
+            Some(DebugUtilsMessenger::new(instance.clone(), create_info).expect("Failed to create debug messenger"))
+        } else {
+            None
+        };
 
         // Choose device extensions that we're going to use. In order to present images to a
         // surface, we need a `Swapchain`, which is provided by the `khr_swapchain` extension.
@@ -172,6 +232,8 @@ impl VulkanRenderContext {
         // Since we can request multiple queues, the `queues` variable is in fact an iterator. We
         // only use one queue in this example, so we just retrieve the first and only element of
         // the iterator.
-        queues.next().unwrap()
+        let queue = queues.next().unwrap();
+        
+        (queue, debug_messenger)
     }
 }
