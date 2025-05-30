@@ -2,7 +2,7 @@ use ash::vk::Handle;
 use std::{ptr, sync::Arc};
 use vulkano::{
     device::Queue,
-    image::{view::ImageView, ImageUsage},
+    image::{view::ImageView, ImageLayout, ImageUsage},
     render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass},
     swapchain::{
         acquire_next_image, PresentMode, Surface, Swapchain, SwapchainAcquireFuture,
@@ -13,7 +13,7 @@ use vulkano::{
 };
 
 use skia_safe::{
-    gpu::{self, backend_render_targets, direct_contexts, surfaces, vk},
+    gpu::{self, backend_render_targets, direct_contexts, surfaces, vk, FlushInfo},
     ColorType,
 };
 
@@ -147,6 +147,9 @@ impl VulkanRenderer {
                     // `store_op: Store` means that we ask the GPU to store the output of the draw
                     // in the actual image. We could also ask it to discard the result.
                     store_op: Store,
+                    // Set proper initial and final layouts for swapchain images
+                    initial_layout: ImageLayout::Undefined,
+                    final_layout: ImageLayout::PresentSrc,
                 },
             },
             pass: {
@@ -262,6 +265,10 @@ impl VulkanRenderer {
         // window size. In this example that includes the swapchain & the framebuffers
         let window_size: PhysicalSize<u32> = self.window.inner_size();
         if window_size.width > 0 && window_size.height > 0 && !self.swapchain_is_valid {
+            // Before recreating the swapchain, make sure we have a clean state
+            // Just drop the old future and create a fresh one to avoid any semaphore reuse issues
+            self.last_render = Some(sync::now(self.queue.device().clone()).boxed());
+
             // Use the new dimensions of the window.
             let (new_swapchain, new_images) = self
                 .swapchain
@@ -275,7 +282,6 @@ impl VulkanRenderer {
 
             // Because framebuffers contains a reference to the old swapchain, we need to
             // recreate framebuffers as well.
-            // self.framebuffers = allocate_framebuffers(&new_images, &self.render_pass);
             self.framebuffers = new_images
                 .iter()
                 .map(|image| {
@@ -328,14 +334,11 @@ impl VulkanRenderer {
     where
         F: FnOnce(&skia_safe::Canvas, LogicalSize<f32>),
     {
-        // find the next framebuffer to render into and acquire a new GpuFuture to block on
-        let next_frame = self.get_next_frame().or_else(|| {
-            // if suboptimal or out-of-date, recreate the swapchain and try once more
-            self.prepare_swapchain();
-            self.get_next_frame()
-        });
+        // Ensure swapchain is valid before trying to acquire
+        self.prepare_swapchain();
 
-        if let Some((image_index, acquire_future)) = next_frame {
+        // find the next framebuffer to render into and acquire a new GpuFuture to block on
+        if let Some((image_index, acquire_future)) = self.get_next_frame() {
             // pull the appropriate framebuffer from the swapchain and attach a skia Surface to it
             let framebuffer = self.framebuffers[image_index as usize].clone();
             let mut surface = surface_for_framebuffer(&mut self.skia_ctx, framebuffer.clone());
@@ -353,28 +356,50 @@ impl VulkanRenderer {
             canvas.reset_matrix();
             canvas.scale(scale);
 
-            // pass the suface's canvas and canvas size to the user-provided callback
+            // Pass the surface's canvas and canvas size to the user-provided callback
             f(canvas, size);
 
-            // flush the canvas's contents to the framebuffer
-            self.skia_ctx.flush_and_submit();
+            // Create the target layout state for presentation
+            let present_state = vk::mutable_texture_states::new_vulkan(
+                vk::ImageLayout::PRESENT_SRC_KHR,
+                self.queue.queue_family_index(),
+            );
+
+            // flush the canvas's contents to the framebuffer with proper layout transition
+            let flush_info = FlushInfo::default();
+            self.skia_ctx.flush_surface_with_texture_state(
+                &mut surface,
+                &flush_info,
+                Some(&present_state),
+            );
+            self.skia_ctx.submit(None);
+
+            // Make sure we have a valid last_render future
+            let last_render = match self.last_render.take() {
+                Some(future) => future,
+                None => sync::now(self.queue.device().clone()).boxed(),
+            };
 
             // send the framebuffer to the gpu and display it on screen
-            self.last_render = self
-                .last_render
-                .take()
-                .unwrap()
-                .join(acquire_future)
-                .then_swapchain_present(
-                    self.queue.clone(),
-                    SwapchainPresentInfo::swapchain_image_index(
-                        self.swapchain.clone(),
-                        image_index,
-                    ),
-                )
-                .then_signal_fence_and_flush()
-                .map(|f| Box::new(f) as _)
-                .ok();
+            let joined_future = last_render.join(acquire_future);
+            let present_future = joined_future.then_swapchain_present(
+                self.queue.clone(),
+                SwapchainPresentInfo::swapchain_image_index(self.swapchain.clone(), image_index),
+            );
+
+            // Attempt to create a fence for this future
+            match present_future.then_signal_fence_and_flush() {
+                Ok(fence_future) => {
+                    self.last_render = Some(Box::new(fence_future) as Box<dyn GpuFuture>);
+                }
+                Err(_) => {
+                    // If fence creation failed, create a new fresh future
+                    self.last_render = Some(sync::now(self.queue.device().clone()).boxed());
+                }
+            }
+        } else if self.last_render.is_none() {
+            // Ensure we always have a valid future even when we can't draw a frame
+            self.last_render = Some(sync::now(self.queue.device().clone()).boxed());
         }
     }
 }
@@ -404,7 +429,8 @@ fn surface_for_framebuffer(
             image_object as _,
             alloc,
             vk::ImageTiling::OPTIMAL,
-            vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
+            // Use UNDEFINED layout initially, let the render pass handle transitions
+            vk::ImageLayout::UNDEFINED,
             vk_format,
             1,
             None,
