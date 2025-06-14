@@ -38,6 +38,9 @@ jobs:
     - name: Python Version
       run: python --version
 
+    - name: Python Platform
+      run: python -c "import platform, sys; print('System:', platform.system()); print('Platform:', platform.platform()); print('Uname:', platform.uname()); print('sys.platform:', sys.platform)"
+
     - name: Install LLVM and Clang
       uses: KyleMayes/install-llvm-action@v2
       with:
