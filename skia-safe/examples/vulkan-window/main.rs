@@ -54,23 +54,19 @@ fn main() {
         ) {
             match event {
                 WindowEvent::CloseRequested => {
+                    self.renderer = None;
                     event_loop.exit();
                 }
                 WindowEvent::Resized(_) => {
                     if let Some(renderer) = self.renderer.as_mut() {
-                        // When the window size changes, the framebuffers need to be reallocated to match
-                        // before redrawing the window contents
+                        // Simple approach: just invalidate and request redraw
                         renderer.invalidate_swapchain();
                         renderer.window.request_redraw();
                     }
                 }
                 WindowEvent::RedrawRequested => {
                     if let Some(renderer) = self.renderer.as_mut() {
-                        // The swapchain (which manages framebuffers and timing screen updates) needs
-                        // to be cleaned up/validated in between redraws
-                        renderer.prepare_swapchain();
-
-                        // After the draw routine completes, the contents of the canvas will be displayed
+                        // draw_and_present will handle swapchain recreation as needed
                         renderer.draw_and_present(|canvas, size| {
                             let canvas_size = skia_safe::Size::new(size.width, size.height);
                             canvas.clear(Color4f::new(1.0, 1.0, 1.0, 1.0));

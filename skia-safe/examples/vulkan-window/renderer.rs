@@ -28,6 +28,7 @@ pub struct VulkanRenderer {
     last_render: Option<Box<dyn GpuFuture>>,
     skia_ctx: gpu::DirectContext,
     swapchain_is_valid: bool,
+    pending_resize: bool,
 }
 
 impl Drop for VulkanRenderer {
@@ -68,6 +69,18 @@ impl VulkanRenderer {
                 .surface_formats(&surface, Default::default())
                 .unwrap()[0];
 
+            // Check supported present modes for smoother rendering
+            let supported_modes = device
+                .physical_device()
+                .surface_present_modes(&surface, Default::default())
+                .unwrap();
+
+            let present_mode = if supported_modes.contains(&PresentMode::Mailbox) {
+                PresentMode::Mailbox
+            } else {
+                PresentMode::Fifo
+            };
+
             // Please take a look at the docs for the meaning of the parameters we didn't mention.
             Swapchain::new(
                 device.clone(),
@@ -105,7 +118,7 @@ impl VulkanRenderer {
                     //
                     // Only `Fifo` is guaranteed to be supported on every device. For the others, you must call
                     // [`surface_present_modes`] to see if they are supported.
-                    present_mode: PresentMode::Fifo,
+                    present_mode,
 
                     // The alpha mode indicates how the alpha value of the final image will behave.
                     // For example, you can choose whether the window will be
@@ -244,90 +257,150 @@ impl VulkanRenderer {
             render_pass,
             framebuffers,
             last_render,
+            pending_resize: false,
         }
     }
 
     pub fn invalidate_swapchain(&mut self) {
-        // Typically called when the window size changes and we need to recreate framebufffers
+        // Mark both swapchain as invalid and indicate a resize is pending
         self.swapchain_is_valid = false;
+        self.pending_resize = true;
     }
 
-    pub fn prepare_swapchain(&mut self) {
-        // It is important to call this function from time to time, otherwise resources
-        // will keep accumulating and you will eventually reach an out of memory error.
-        // Calling this function polls various fences in order to determine what the GPU
-        // has already processed, and frees the resources that are no longer needed.
+    fn ensure_gpu_idle(&mut self) {
+        // Ensure all GPU operations are complete before swapchain recreation
         if let Some(last_render) = self.last_render.as_mut() {
             last_render.cleanup_finished();
         }
 
-        // Whenever the window resizes we need to recreate everything dependent on the
-        // window size. In this example that includes the swapchain & the framebuffers
-        let window_size: PhysicalSize<u32> = self.window.inner_size();
-        if window_size.width > 0 && window_size.height > 0 && !self.swapchain_is_valid {
-            // Before recreating the swapchain, make sure we have a clean state
-            // Just drop the old future and create a fresh one to avoid any semaphore reuse issues
-            self.last_render = Some(sync::now(self.queue.device().clone()).boxed());
+        // Submit any pending Skia operations and wait for completion
+        self.skia_ctx.submit(Some(gpu::SyncCpu::Yes)); // Sync/wait for completion
 
-            // Use the new dimensions of the window.
-            let (new_swapchain, new_images) = self
-                .swapchain
-                .recreate(SwapchainCreateInfo {
-                    image_extent: window_size.into(),
-                    ..self.swapchain.create_info()
-                })
-                .expect("failed to recreate swapchain");
-
-            self.swapchain = new_swapchain;
-
-            // Because framebuffers contains a reference to the old swapchain, we need to
-            // recreate framebuffers as well.
-            self.framebuffers = new_images
-                .iter()
-                .map(|image| {
-                    let view = ImageView::new_default(image.clone()).unwrap();
-
-                    Framebuffer::new(
-                        self.render_pass.clone(),
-                        FramebufferCreateInfo {
-                            attachments: vec![view],
-                            ..Default::default()
-                        },
-                    )
-                    .unwrap()
-                })
-                .collect::<Vec<_>>();
-
-            self.swapchain_is_valid = true;
+        // For critical operations like swapchain recreation, ensure device is fully idle
+        unsafe {
+            self.queue.device().wait_idle().ok();
         }
     }
 
+    pub fn prepare_swapchain(&mut self) {
+        // Early exit if swapchain is already valid and no resize is pending
+        if self.swapchain_is_valid && !self.pending_resize {
+            // Still do regular cleanup
+            if let Some(last_render) = self.last_render.as_mut() {
+                last_render.cleanup_finished();
+            }
+            return;
+        }
+
+        // Get current window size
+        let window_size: PhysicalSize<u32> = self.window.inner_size();
+        if window_size.width == 0 || window_size.height == 0 {
+            // Window is minimized or has zero size, can't recreate swapchain
+            return;
+        }
+
+        // Ensure complete GPU synchronization before recreating swapchain
+        self.ensure_gpu_idle();
+
+        // Recreate the swapchain
+        let (new_swapchain, new_images) = self
+            .swapchain
+            .recreate(SwapchainCreateInfo {
+                image_extent: window_size.into(),
+                ..self.swapchain.create_info()
+            })
+            .expect("failed to recreate swapchain");
+
+        self.swapchain = new_swapchain;
+
+        // Recreate framebuffers with the new swapchain images
+        self.framebuffers = new_images
+            .iter()
+            .map(|image| {
+                let view = ImageView::new_default(image.clone()).unwrap();
+
+                Framebuffer::new(
+                    self.render_pass.clone(),
+                    FramebufferCreateInfo {
+                        attachments: vec![view],
+                        ..Default::default()
+                    },
+                )
+                .unwrap()
+            })
+            .collect::<Vec<_>>();
+
+        // Create a fresh future for the new swapchain
+        self.last_render = Some(sync::now(self.queue.device().clone()).boxed());
+
+        // Mark swapchain as valid and clear pending resize flag
+        self.swapchain_is_valid = true;
+        self.pending_resize = false;
+    }
+
     fn get_next_frame(&mut self) -> Option<(u32, SwapchainAcquireFuture)> {
-        // prepare to render by identifying the next framebuffer to draw to and acquiring the
-        // GpuFuture that we'll be replacing `last_render` with once we submit the frame
-        let (image_index, suboptimal, acquire_future) =
-            match acquire_next_image(self.swapchain.clone(), None).map_err(Validated::unwrap) {
-                Ok(r) => r,
+        // Only try to acquire if the swapchain is currently valid
+        if !self.swapchain_is_valid || self.pending_resize {
+            return None;
+        }
+
+        // Try to acquire with a retry mechanism in case of semaphore issues
+        for attempt in 0..3 {
+            // Prepare to render by identifying the next framebuffer to draw to and acquiring the
+            // GpuFuture that we'll be replacing `last_render` with once we submit the frame
+            let result =
+                acquire_next_image(self.swapchain.clone(), None).map_err(Validated::unwrap);
+
+            match result {
+                Ok((image_index, suboptimal, acquire_future)) => {
+                    // `acquire_next_image` can be successful, but suboptimal. This means that the
+                    // swapchain image will still work, but it may not display correctly. With some
+                    // drivers this can be when the window resizes, but it may not cause the swapchain
+                    // to become out of date.
+                    if suboptimal {
+                        self.swapchain_is_valid = false;
+                        self.pending_resize = true;
+                    }
+                    return Some((image_index, acquire_future));
+                }
                 Err(VulkanError::OutOfDate) => {
                     self.swapchain_is_valid = false;
+                    self.pending_resize = true;
                     return None;
                 }
-                Err(e) => panic!("failed to acquire next image: {e}"),
-            };
+                Err(e) => {
+                    eprintln!(
+                        "Failed to acquire next image (attempt {}): {e}",
+                        attempt + 1
+                    );
 
-        // `acquire_next_image` can be successful, but suboptimal. This means that the
-        // swapchain image will still work, but it may not display correctly. With some
-        // drivers this can be when the window resizes, but it may not cause the swapchain
-        // to become out of date.
-        if suboptimal {
-            self.swapchain_is_valid = false;
+                    // If this is a validation error related to semaphores and we have retries left,
+                    // ensure GPU synchronization and try again
+                    if attempt < 2 {
+                        // Clean up any pending operations
+                        if let Some(last_render) = self.last_render.as_mut() {
+                            last_render.cleanup_finished();
+                        }
+
+                        // For persistent errors, ensure complete GPU synchronization
+                        if attempt == 1 {
+                            self.skia_ctx.submit(Some(gpu::SyncCpu::Yes)); // Sync submit
+                        }
+
+                        // Brief pause to allow GPU operations to settle
+                        std::thread::sleep(std::time::Duration::from_millis(2));
+                        continue;
+                    }
+
+                    // After all retries failed, mark for recreation
+                    self.swapchain_is_valid = false;
+                    self.pending_resize = true;
+                    return None;
+                }
+            }
         }
 
-        if self.swapchain_is_valid {
-            Some((image_index, acquire_future))
-        } else {
-            None
-        }
+        None
     }
 
     pub fn draw_and_present<F>(&mut self, f: F)
@@ -337,14 +410,14 @@ impl VulkanRenderer {
         // Ensure swapchain is valid before trying to acquire
         self.prepare_swapchain();
 
-        // find the next framebuffer to render into and acquire a new GpuFuture to block on
+        // Find the next framebuffer to render into and acquire a new GpuFuture to block on
         if let Some((image_index, acquire_future)) = self.get_next_frame() {
-            // pull the appropriate framebuffer from the swapchain and attach a skia Surface to it
+            // Pull the appropriate framebuffer from the swapchain and attach a skia Surface to it
             let framebuffer = self.framebuffers[image_index as usize].clone();
             let mut surface = surface_for_framebuffer(&mut self.skia_ctx, framebuffer.clone());
             let canvas = surface.canvas();
 
-            // use the display's DPI to convert the window size to logical coords and pre-scale the
+            // Use the display's DPI to convert the window size to logical coords and pre-scale the
             // canvas's matrix to match
             let extent: PhysicalSize<u32> = self.window.inner_size();
             let size: LogicalSize<f32> = extent.to_logical(self.window.scale_factor());
@@ -365,41 +438,55 @@ impl VulkanRenderer {
                 self.queue.queue_family_index(),
             );
 
-            // flush the canvas's contents to the framebuffer with proper layout transition
+            // Flush the canvas's contents to the framebuffer with proper layout transition
             let flush_info = FlushInfo::default();
             self.skia_ctx.flush_surface_with_texture_state(
                 &mut surface,
                 &flush_info,
                 Some(&present_state),
             );
+            
+            // Submit all pending GPU operations
             self.skia_ctx.submit(None);
 
-            // Make sure we have a valid last_render future
-            let last_render = match self.last_render.take() {
-                Some(future) => future,
-                None => sync::now(self.queue.device().clone()).boxed(),
-            };
+            // Get the current last_render future, creating a fresh one if None
+            let last_render = self
+                .last_render
+                .take()
+                .unwrap_or_else(|| sync::now(self.queue.device().clone()).boxed());
 
-            // send the framebuffer to the gpu and display it on screen
+            // Send the framebuffer to the GPU and display it on screen
             let joined_future = last_render.join(acquire_future);
             let present_future = joined_future.then_swapchain_present(
                 self.queue.clone(),
                 SwapchainPresentInfo::swapchain_image_index(self.swapchain.clone(), image_index),
             );
 
-            // Attempt to create a fence for this future
+            // Attempt to create a fence for this future with better error handling
             match present_future.then_signal_fence_and_flush() {
                 Ok(fence_future) => {
                     self.last_render = Some(Box::new(fence_future) as Box<dyn GpuFuture>);
                 }
-                Err(_) => {
-                    // If fence creation failed, create a new fresh future
+                Err(vulkano::Validated::Error(vulkano::VulkanError::OutOfDate)) => {
+                    // Swapchain is out of date, mark it for recreation
+                    self.swapchain_is_valid = false;
+                    self.pending_resize = true;
                     self.last_render = Some(sync::now(self.queue.device().clone()).boxed());
                 }
+                Err(e) => {
+                    eprintln!("Failed to create fence for present future: {e}");
+                    // If fence creation failed for other reasons, create a fresh future
+                    self.last_render = Some(sync::now(self.queue.device().clone()).boxed());
+                    // Also mark for potential swapchain recreation if this keeps happening
+                    self.swapchain_is_valid = false;
+                    self.pending_resize = true;
+                }
             }
-        } else if self.last_render.is_none() {
-            // Ensure we always have a valid future even when we can't draw a frame
-            self.last_render = Some(sync::now(self.queue.device().clone()).boxed());
+        } else {
+            // Failed to acquire frame, ensure we have a valid future
+            if self.last_render.is_none() {
+                self.last_render = Some(sync::now(self.queue.device().clone()).boxed());
+            }
         }
     }
 }
@@ -429,8 +516,8 @@ fn surface_for_framebuffer(
             image_object as _,
             alloc,
             vk::ImageTiling::OPTIMAL,
-            // Use UNDEFINED layout initially, let the render pass handle transitions
-            vk::ImageLayout::UNDEFINED,
+            // Use COLOR_ATTACHMENT_OPTIMAL for rendering
+            vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
             vk_format,
             1,
             None,
