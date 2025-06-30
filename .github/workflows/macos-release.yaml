@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   macos-release-release:
-    runs-on: macos-13
+    runs-on: macos-12-xlarge
     env:
       SKIA_DEBUG: 0
       MACOSX_DEPLOYMENT_TARGET: '10.13'
@@ -416,7 +416,7 @@ jobs:
         token: ${{ secrets.RUST_SKIA_RELEASE_TOKEN }}
         prerelease: true
   macos-release-release-gl:
-    runs-on: macos-13
+    runs-on: macos-12-xlarge
     env:
       SKIA_DEBUG: 0
       MACOSX_DEPLOYMENT_TARGET: '10.13'
@@ -820,7 +820,7 @@ jobs:
         token: ${{ secrets.RUST_SKIA_RELEASE_TOKEN }}
         prerelease: true
   macos-release-release-vulkan:
-    runs-on: macos-13
+    runs-on: macos-12-xlarge
     env:
       SKIA_DEBUG: 0
       MACOSX_DEPLOYMENT_TARGET: '10.13'
@@ -1224,7 +1224,7 @@ jobs:
         token: ${{ secrets.RUST_SKIA_RELEASE_TOKEN }}
         prerelease: true
   macos-release-release-textlayout:
-    runs-on: macos-13
+    runs-on: macos-12-xlarge
     env:
       SKIA_DEBUG: 0
       MACOSX_DEPLOYMENT_TARGET: '10.13'
@@ -1628,7 +1628,7 @@ jobs:
         token: ${{ secrets.RUST_SKIA_RELEASE_TOKEN }}
         prerelease: true
   macos-release-release-gl-textlayout:
-    runs-on: macos-13
+    runs-on: macos-12-xlarge
     env:
       SKIA_DEBUG: 0
       MACOSX_DEPLOYMENT_TARGET: '10.13'
@@ -2032,7 +2032,7 @@ jobs:
         token: ${{ secrets.RUST_SKIA_RELEASE_TOKEN }}
         prerelease: true
   macos-release-release-textlayout-vulkan:
-    runs-on: macos-13
+    runs-on: macos-12-xlarge
     env:
       SKIA_DEBUG: 0
       MACOSX_DEPLOYMENT_TARGET: '10.13'
@@ -2436,7 +2436,7 @@ jobs:
         token: ${{ secrets.RUST_SKIA_RELEASE_TOKEN }}
         prerelease: true
   macos-release-release-gl-textlayout-vulkan:
-    runs-on: macos-13
+    runs-on: macos-12-xlarge
     env:
       SKIA_DEBUG: 0
       MACOSX_DEPLOYMENT_TARGET: '10.13'
@@ -2840,7 +2840,7 @@ jobs:
         token: ${{ secrets.RUST_SKIA_RELEASE_TOKEN }}
         prerelease: true
   macos-release-release-metal:
-    runs-on: macos-13
+    runs-on: macos-12-xlarge
     env:
       SKIA_DEBUG: 0
       MACOSX_DEPLOYMENT_TARGET: '10.14'
@@ -3244,7 +3244,7 @@ jobs:
         token: ${{ secrets.RUST_SKIA_RELEASE_TOKEN }}
         prerelease: true
   macos-release-release-metal-textlayout:
-    runs-on: macos-13
+    runs-on: macos-12-xlarge
     env:
       SKIA_DEBUG: 0
       MACOSX_DEPLOYMENT_TARGET: '10.14'
@@ -4052,7 +4052,7 @@ jobs:
         token: ${{ secrets.RUST_SKIA_RELEASE_TOKEN }}
         prerelease: true
   macos-release-release-gl-svg-textlayout:
-    runs-on: macos-13
+    runs-on: macos-12-xlarge
     env:
       SKIA_DEBUG: 0
       MACOSX_DEPLOYMENT_TARGET: '10.13'

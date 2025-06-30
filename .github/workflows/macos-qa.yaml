@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   macos-qa-stable-all-features:
-    runs-on: macos-13
+    runs-on: macos-12-xlarge
     env:
       SKIA_DEBUG: 0
       MACOSX_DEPLOYMENT_TARGET: '10.14'
@@ -421,7 +421,7 @@ jobs:
         token: ${{ secrets.RUST_SKIA_RELEASE_TOKEN }}
         prerelease: true
   macos-qa-beta-all-features:
-    runs-on: macos-13
+    runs-on: macos-12-xlarge
     env:
       SKIA_DEBUG: 0
       MACOSX_DEPLOYMENT_TARGET: '10.14'
