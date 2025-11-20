@@ -112,7 +112,12 @@ fn main() {
         use drivers::metal::Metal;
 
         if drivers.contains(&Driver::Metal) {
-            draw_all(&mut Metal::new(), &out_path)
+            draw_all(&mut drivers::metal::Metal::new(), &out_path);
+        }
+
+        #[cfg(all(feature = "graphite", feature = "metal"))]
+        if drivers.contains(&Driver::GraphiteMetal) {
+            draw_all(&mut drivers::graphite_metal::GraphiteMetal::new(), &out_path);
         }
     }
 
@@ -122,6 +127,18 @@ fn main() {
 
         if drivers.contains(&Driver::D3d) {
             draw_all(&mut D3D::new(), &out_path)
+        }
+    }
+
+    #[cfg(all(feature = "graphite", feature = "vulkan"))]
+    {
+        use drivers::graphite_vulkan::GraphiteVulkan;
+
+        if drivers.contains(&Driver::GraphiteVulkan) {
+            draw_all(
+                &mut GraphiteVulkan::new(),
+                &out_path,
+            );
         }
     }
 

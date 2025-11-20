@@ -3,6 +3,8 @@ pub mod d3d;
 pub mod ganesh;
 #[cfg(feature = "gl")]
 pub mod gl;
+#[cfg(feature = "graphite")]
+pub mod graphite;
 mod mutable_texture_state;
 mod types;
 #[cfg(feature = "vulkan")]

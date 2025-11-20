@@ -16,6 +16,11 @@ pub mod svg;
 #[cfg(feature = "vulkan")]
 pub mod vulkan;
 
+#[cfg(all(feature = "graphite", feature = "metal"))]
+pub mod graphite_metal;
+#[cfg(all(feature = "graphite", feature = "vulkan"))]
+pub mod graphite_vulkan;
+
 pub use cpu::Cpu;
 pub use pdf::Pdf;
 pub use svg::Svg;
@@ -49,6 +54,10 @@ pub enum Driver {
     D3d,
     #[cfg(feature = "svg")]
     RenderSvg,
+    #[cfg(all(feature = "graphite", feature = "metal"))]
+    GraphiteMetal,
+    #[cfg(all(feature = "graphite", feature = "vulkan"))]
+    GraphiteVulkan,
 }
 
 impl FromStr for Driver {
@@ -90,6 +99,10 @@ impl Display for Driver {
             Vulkan => "vulkan",
             #[cfg(feature = "metal")]
             Metal => "metal",
+            #[cfg(all(feature = "graphite", feature = "metal"))]
+            GraphiteMetal => "graphite-metal",
+            #[cfg(all(feature = "graphite", feature = "vulkan"))]
+            GraphiteVulkan => "graphite-vulkan",
             #[cfg(feature = "d3d")]
             D3d => "d3d",
             #[cfg(feature = "svg")]

@@ -60,6 +60,9 @@ impl Configuration {
             if features[feature::D3D] {
                 sources.push("src/d3d.cpp".into());
             }
+            if features[feature::GRAPHITE] {
+                sources.push("src/graphite.cpp".into());
+            }
             if features.gpu() {
                 sources.push("src/gpu.cpp".into());
             }
@@ -348,6 +351,7 @@ const OPAQUE_TYPES: &[&str] = &[
     "SkPicture",
     "SkPixelRef",
     "SkSurface",
+    "skgpu::graphite::VulkanTextureInfo",
     // Types not needed (for now):
     "SkDeque",
     "SkDeque_Iter",
@@ -472,6 +476,8 @@ const OPAQUE_TYPES: &[&str] = &[
     "std::__tree.*",
     // libstdc++ 10 on Linux (since m143, c++20)
     "std::strong_ordering",
+    // Graphite
+    "skgpu::graphite::Recording",
 ];
 
 const BLOCKLISTED_TYPES: &[&str] = &[

@@ -38,7 +38,7 @@ impl DrawingDriver for Vulkan {
                     ash_graphics.device.handle().as_raw() as _,
                     (
                         ash_graphics.queue_and_index.0.as_raw() as _,
-                        ash_graphics.queue_and_index.1,
+                        ash_graphics.queue_and_index.1 as usize,
                     ),
                     &get_proc,
                 )
@@ -77,12 +77,13 @@ impl DrawingDriver for Vulkan {
     }
 }
 
+#[allow(dead_code)]
 pub struct AshGraphics {
     pub entry: Entry,
     pub instance: Instance,
     pub physical_device: vk::PhysicalDevice,
     pub device: ash::Device,
-    pub queue_and_index: (vk::Queue, usize),
+    pub queue_and_index: (vk::Queue, u32),
 }
 
 impl Drop for AshGraphics {
@@ -209,7 +210,7 @@ impl AshGraphics {
         let queue: vk::Queue = device.get_device_queue(queue_family_index as _, queue_index as _);
 
         AshGraphics {
-            queue_and_index: (queue, queue_index),
+            queue_and_index: (queue, queue_index as u32),
             device,
             physical_device,
             instance,

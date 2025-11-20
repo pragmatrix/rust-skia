@@ -32,6 +32,8 @@ pub use sb::VkFlags as Flags;
 pub use sb::VkFormat as Format;
 pub use sb::VkFormatFeatureFlags as FormatFeatureFlags;
 pub use sb::VkImage as Image;
+pub use sb::VkImageAspectFlags as ImageAspectFlags;
+pub use sb::VkImageCreateFlags as ImageCreateFlags;
 pub use sb::VkImageLayout as ImageLayout;
 pub use sb::VkImageTiling as ImageTiling;
 pub use sb::VkImageUsageFlags as ImageUsageFlags;
