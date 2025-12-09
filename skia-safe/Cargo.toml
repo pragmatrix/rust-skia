@@ -83,6 +83,7 @@ skia-svg-macros = { version = "0.1.0", path = "../skia-svg-macros", optional = t
 
 serial_test = "3.0"
 static_assertions = "1.1"
+[target.'cfg(not(target_os = "emscripten"))'.dev-dependencies]
 winit = "0.30.2"
 
 # gl-window & vulkan-window
