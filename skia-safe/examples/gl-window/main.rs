@@ -227,6 +227,98 @@ fn main() {
         }
     }
 
+    let (tex_width, tex_height) = (64, 64);
+    let y_tex = unsafe {
+        let mut t = 0;
+        gl::GenTextures(1, &mut t);
+        t
+    };
+    unsafe {
+        gl::BindTexture(gl::TEXTURE_2D, y_tex);
+        gl::TexImage2D(
+            gl::TEXTURE_2D,
+            0,
+            gl::R8 as _,
+            tex_width as _,
+            tex_height as _,
+            0,
+            gl::RED,
+            gl::UNSIGNED_BYTE,
+            std::ptr::null(),
+        );
+        gl::BindTexture(gl::TEXTURE_2D, 0);
+    }
+
+    let uv_tex = unsafe {
+        let mut t = 0;
+        gl::GenTextures(1, &mut t);
+        t
+    };
+    unsafe {
+        gl::BindTexture(gl::TEXTURE_2D, uv_tex);
+        gl::TexImage2D(
+            gl::TEXTURE_2D,
+            0,
+            gl::RG8 as _,
+            (tex_width / 2) as _,
+            (tex_height / 2) as _,
+            0,
+            gl::RG,
+            gl::UNSIGNED_BYTE,
+            std::ptr::null(),
+        );
+        gl::BindTexture(gl::TEXTURE_2D, 0);
+    }
+
+    {
+        let info = skia_safe::YUVAInfo::new(
+            skia_safe::ISize::new(width as i32, height as i32),
+            skia_safe::yuva_info::PlaneConfig::Y_UV,
+            skia_safe::yuva_info::Subsampling::S420,
+            skia_safe::YUVColorSpace::Rec709_Limited,
+            None,
+            None,
+        ).unwrap();
+
+        let tex_origin = skia_safe::gpu::SurfaceOrigin::TopLeft;
+
+        let mut y_tex_info = skia_safe::gpu::gl::TextureInfo::from_target_and_id(
+            gl::TEXTURE_2D,
+            y_tex,
+        );
+        y_tex_info.format = gl::R8;
+
+        let mut uv_tex_info = skia_safe::gpu::gl::TextureInfo::from_target_and_id(
+            gl::TEXTURE_2D,
+            uv_tex,
+        );
+        uv_tex_info.format = gl::RG8;
+
+        unsafe {
+            let y_tex = skia_safe::gpu::backend_textures::make_gl(
+                (width as i32, height as i32),
+                skia_safe::gpu::Mipmapped::No,
+                y_tex_info,
+                "foo",
+            );
+
+            let uv_tex = skia_safe::gpu::backend_textures::make_gl(
+                (width as i32 / 2, height as i32 / 2),
+                skia_safe::gpu::Mipmapped::No,
+                uv_tex_info,
+                "bar",
+            );
+
+            let backend_textures = skia_safe::gpu::ganesh::YUVABackendTextures::new(
+                &info,
+                &[y_tex, uv_tex],
+                tex_origin
+            ).unwrap();
+
+            drop(backend_textures);
+        }
+    }
+
     let env = Env {
         surface,
         gl_surface,
