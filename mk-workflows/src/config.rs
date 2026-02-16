@@ -3,6 +3,7 @@ use crate::{
     MACOS_JOB, WASM_JOB, WINDOWS_ARM_JOB, WINDOWS_JOB,
 };
 
+const QA_ALL_FEATURES: &str = "gl,vulkan,graphite,textlayout,svg,skottie,ureq,webp";
 pub const DEFAULT_ANDROID_API_LEVEL: usize = 26;
 
 pub fn workflows() -> Vec<Workflow> {
@@ -74,7 +75,6 @@ pub fn qa_jobs(workflow: &Workflow) -> Vec<Job> {
             }]
         }
         _ => {
-            const QA_ALL_FEATURES: &str = "gl,vulkan,textlayout,svg,skottie,ureq,webp";
             vec![Job {
                 name: JobName::Named("stable-all-features".into()),
                 toolchain: "stable",

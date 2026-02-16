@@ -1,6 +1,6 @@
-doc-features-win="gl,vulkan,d3d,textlayout,svg,skottie,ureq,webp"
-doc-features-mac="gl,vulkan,metal,textlayout,svg,skottie,ureq,webp"
-doc-features-docs-rs="gl,textlayout,svg,skottie,ureq,webp"
+doc-features-win="gl,vulkan,d3d,graphite,textlayout,svg,skottie,ureq,webp"
+doc-features-mac="gl,vulkan,metal,graphite,textlayout,svg,skottie,ureq,webp"
+doc-features-docs-rs="gl,textlayout,graphite,svg,skottie,ureq,webp"
 
 .PHONY: all
 all:
@@ -119,16 +119,6 @@ update-doc:
 .PHONY: doc
 doc:
 	cargo doc --no-deps --features ${doc-features-mac}
-
-build-flags-win=--release --features "gl,vulkan,d3d,textlayout,webp"
-
-.PHONY: github-build-win
-github-build-win:
-	cargo clean
-	cargo build -p skia-safe ${build-flags-win} --all-targets
-	cd cargo clippy ${build-flags-win} --all-targets -- -D warnings 
-	cd cargo test --all ${build-flags-win} --all-targets -- --nocapture
-	cd cargo run ${build-flags-win}
 
 .PHONY: workflows
 workflows:
