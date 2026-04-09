@@ -60,7 +60,11 @@ publish-bindings-docs: bindings-docs
 	cd skia-bindings && cp /tmp/bindings.rs bindings_docs.rs
 	cd skia-bindings && cargo publish -vv --no-verify --allow-dirty
 
-# SVG Macros are most likely changed rarely. So this is separate.
+# SVG Macros and WASM shims are rarely changed. So this is separate from the primary publishing targets.
+
+.PHONY: publish-skia-wasm-shims
+publish-skia-wasm-shims:
+	cd skia-wasm-shims && cargo publish -vv
 
 .PHONY: publish-svg-macros
 publish-svg-macros:
