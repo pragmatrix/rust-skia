@@ -20,11 +20,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: ["wasm32-unknown-emscripten"]
+        target: ["wasm32-unknown-emscripten", "wasm32-unknown-unknown"]
         include:
           - target: wasm32-unknown-emscripten
             androidEnv: false
             emscriptenEnv: true
+            runClippy: false
+            runTests: false
+            exampleArgs: ''
+            generateArtifacts: false
+            features: 'gl,skottie,svg,textlayout,webp'
+          - target: wasm32-unknown-unknown
+            androidEnv: false
+            emscriptenEnv: false
             runClippy: false
             runTests: false
             exampleArgs: ''
