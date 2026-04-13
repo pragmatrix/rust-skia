@@ -305,3 +305,24 @@ jobs:
       shell: bash
       run: |
         cargo build --features gl,egl,vulkan,x11,wayland,textlayout,svg,webp
+
+  linux-image-tool-versions:
+    runs-on: ubuntu-24.04
+    container: ghcr.io/pragmatrix/rust-skia-linux:latest
+
+    steps:
+    - name: Show key tool versions in the Linux image
+      shell: bash
+      run: |
+        tools=(rustc cargo rustup clang cmake ninja python3 git emcc)
+        for tool in "${tools[@]}"; do
+          if command -v "$tool" >/dev/null 2>&1; then
+            if version=$("$tool" --version 2>&1 | head -n 1); then
+              echo "$tool: $version"
+            else
+              echo "$tool: version check failed ($version)"
+            fi
+          else
+            echo "$tool: not installed"
+          fi
+        done
