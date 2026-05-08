@@ -40,9 +40,6 @@ svg = ["skia-safe/svg"]
 [dependencies]
 skia-safe = { path = "../skia-safe" }
 
-# 0.25.1 fails to build on iOS targets on macOS: https://github.com/servo/rust-offscreen-rendering-context/pull/150 
-offscreen_gl_context = { git = "https://github.com/rust-skia/rust-offscreen-rendering-context", rev = "82b022cd0e42baaabfb82c319c9785a84a04f395", optional = true }
-sparkle = { version = "0.1.25", optional = true }
 clap = { version = "4.0.7", features = ["derive"] }
 ash = { version = "0.38.0", optional = true }
 # need to rename the package because of the feature with the same name.
@@ -67,4 +64,9 @@ windows = { version = "0.62.0", features = [
 ], optional = true }
 # default typeface
 once_cell = { version = "1.19.0" }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+# 0.25.1 fails to build on iOS targets on macOS: https://github.com/servo/rust-offscreen-rendering-context/pull/150
+offscreen_gl_context = { git = "https://github.com/rust-skia/rust-offscreen-rendering-context", rev = "82b022cd0e42baaabfb82c319c9785a84a04f395", optional = true }
+sparkle = { version = "0.1.25", optional = true }
 

@@ -89,7 +89,7 @@ serde_json = "1.0.39"
 # For reading Cargo.toml from within a package.
 toml = "1.0.3"
 
-[dev-dependencies]
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 # build dependencies duplicated for testing :(
 cc = { version = "1.1.28" }
 bindgen = { version = "0.72.0" }

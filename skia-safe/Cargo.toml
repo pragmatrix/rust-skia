@@ -85,9 +85,11 @@ skia-svg-macros = { version = "0.1.0", path = "../skia-svg-macros", optional = t
 serial_test = "3.0"
 static_assertions = "1.1"
 winit = "0.30.2"
+# dotlottie example
+zip = { version = "8.1", default-features = false, features = ["deflate"] }
 
 # gl-window & vulkan-window
-[target.'cfg(all(not(target_os = "android"), not(target_os = "emscripten"), not(target_os = "ios")))'.dev-dependencies]
+[target.'cfg(all(not(target_arch = "wasm32"), not(target_os = "android"), not(target_os = "ios")))'.dev-dependencies]
 glutin = "0.32.0"
 glutin-winit = "0.5.0"
 raw-window-handle = "0.6.0"
@@ -125,10 +127,6 @@ windows = { version = "0.62.0", features = [
     "Win32_Foundation",
     "Win32_Graphics_Dxgi_Common",
 ] }
-
-# dotlottie example
-[dev-dependencies.zip]
-version = "8.1"
 
 [dev-dependencies.serde]
 version = "1.0"

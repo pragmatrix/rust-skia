@@ -7,3 +7,5 @@ code-macos-gl:
 code-windows:
     code .vscode/rust-skia-windows.code-workspace
 
+code-wasm-unknown:
+    code .vscode/rust-skia-wasm-unknown.code-workspace

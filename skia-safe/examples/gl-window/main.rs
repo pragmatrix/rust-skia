@@ -10,9 +10,9 @@ fn main() {
     println!("This example is not supported on Android (https://github.com/rust-windowing/winit/issues/948).")
 }
 
-#[cfg(target_os = "emscripten")]
+#[cfg(target_arch = "wasm32")]
 fn main() {
-    println!("This example is not supported on Emscripten (https://github.com/rust-windowing/glutin/issues/1349)")
+    println!("This example is not supported on wasm32 targets.")
 }
 
 #[cfg(target_os = "ios")]
@@ -22,7 +22,7 @@ fn main() {
 
 #[cfg(all(
     not(target_os = "android"),
-    not(target_os = "emscripten"),
+    not(target_arch = "wasm32"),
     not(target_os = "ios"),
     not(feature = "gl")
 ))]
@@ -32,7 +32,7 @@ fn main() {
 
 #[cfg(all(
     not(target_os = "android"),
-    not(target_os = "emscripten"),
+    not(target_arch = "wasm32"),
     not(target_os = "ios"),
     feature = "gl"
 ))]
