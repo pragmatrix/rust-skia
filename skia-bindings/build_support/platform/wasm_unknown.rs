@@ -65,7 +65,7 @@ impl PlatformDetails for WasmUnknown {
         builder.arg("-D__wasi__=1");
     }
 
-    fn configure_build_environment(&self, target: &Target, output_directory: &Path) {
+    fn build_environment(&self, target: &Target, output_directory: &Path) -> BuildEnvironment {
         let bin = locate_wasi_sdk_bin_from(output_directory);
         let clang = bin.join(exe_name("clang"));
         let clangxx = bin.join(exe_name("clang++"));
@@ -91,14 +91,16 @@ impl PlatformDetails for WasmUnknown {
         let clangxx = clangxx.display().to_string();
         let ar = ar.display().to_string();
         let target_var = target.to_string().replace('-', "_");
-        std::env::set_var("CLANGCC", &clang);
-        std::env::set_var("CLANGCXX", &clangxx);
-        std::env::set_var("CC", &clang);
-        std::env::set_var("CXX", &clangxx);
-        std::env::set_var("AR", &ar);
-        std::env::set_var(format!("CC_{target_var}"), &clang);
-        std::env::set_var(format!("CXX_{target_var}"), &clangxx);
-        std::env::set_var(format!("AR_{target_var}"), &ar);
+        BuildEnvironment::new(vec![
+            ("CLANGCC".into(), clang.clone()),
+            ("CLANGCXX".into(), clangxx.clone()),
+            ("CC".into(), clang.clone()),
+            ("CXX".into(), clangxx.clone()),
+            ("AR".into(), ar.clone()),
+            (format!("CC_{target_var}"), clang),
+            (format!("CXX_{target_var}"), clangxx),
+            (format!("AR_{target_var}"), ar),
+        ])
     }
 
     fn prepare_build_support(&self, output_directory: &Path) {
