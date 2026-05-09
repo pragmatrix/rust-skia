@@ -29,7 +29,11 @@ fn main() -> Result<(), io::Error> {
 
     let skia_debug = env::is_skia_debug();
     let cargo_target = cargo::target();
-    platform::configure_build_environment(&cargo_target, &cargo::output_directory());
+    let build_env = platform::build_environment(
+        &cargo_target,
+        &cargo::output_directory(),
+        platform::BuildEnvironment::default(),
+    );
 
     let features = {
         let mut features = features::Features::from_cargo_env();
@@ -78,6 +82,7 @@ fn main() -> Result<(), io::Error> {
                 &source_dir,
                 cargo_target.clone(),
                 None,
+                &build_env,
             );
         } else {
             if cfg!(feature = "no-compile") {
@@ -91,6 +96,7 @@ fn main() -> Result<(), io::Error> {
                 &binaries_config,
                 &source_dir,
                 skia_debug,
+                &build_env,
                 true,
             );
             let definitions = skia_bindgen::definitions::from_ninja_features(
@@ -108,6 +114,7 @@ fn main() -> Result<(), io::Error> {
                     .sysroot
                     .as_ref()
                     .map(AsRef::as_ref),
+                &build_env,
             );
         }
     } else {
@@ -139,6 +146,7 @@ fn main() -> Result<(), io::Error> {
                 &binaries_config,
                 &source_dir,
                 skia_debug,
+                &build_env,
                 false,
             );
             let definitions = skia_bindgen::definitions::from_ninja_features(
@@ -156,6 +164,7 @@ fn main() -> Result<(), io::Error> {
                     .sysroot
                     .as_ref()
                     .map(AsRef::as_ref),
+                &build_env,
             );
         }
     };
@@ -176,9 +185,10 @@ fn build_from_source(
     binaries_config: &binaries_config::BinariesConfiguration,
     skia_source_dir: &std::path::Path,
     skia_debug: bool,
+    build_env: &platform::BuildEnvironment,
     offline: bool,
 ) -> skia::FinalBuildConfiguration {
-    let build_config = skia::BuildConfiguration::from_features(features, skia_debug);
+    let build_config = skia::BuildConfiguration::from_features(features, skia_debug, build_env);
     let final_configuration = skia::FinalBuildConfiguration::from_build_configuration(
         &build_config,
         skia::env::use_system_libraries(),
@@ -188,6 +198,7 @@ fn build_from_source(
     skia::build(
         &final_configuration,
         binaries_config,
+        build_env,
         skia::env::ninja_command(),
         skia::env::gn_command(),
         offline,
@@ -203,6 +214,7 @@ fn generate_bindings(
     skia_source_dir: &std::path::Path,
     target: Target,
     sysroot: Option<&str>,
+    build_env: &platform::BuildEnvironment,
 ) {
     // Emit the ninja definitions, to help debug build consistency.
     skia_bindgen::definitions::save_definitions(&definitions, &binaries_config.output_directory)
@@ -214,6 +226,7 @@ fn generate_bindings(
         &binaries_config.output_directory,
         target,
         sysroot,
+        build_env,
     );
 }
 

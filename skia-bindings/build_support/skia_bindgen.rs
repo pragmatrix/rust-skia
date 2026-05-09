@@ -95,6 +95,7 @@ pub fn generate_bindings(
     output_directory: &Path,
     target: Target,
     sysroot: Option<&str>,
+    build_env: &platform::BuildEnvironment,
 ) {
     let mut builder = bindgen::Builder::default()
         .generate_comments(false)
@@ -229,6 +230,14 @@ pub fn generate_bindings(
     }
 
     cc_build.cpp(true).out_dir(output_directory);
+
+    if let Some(cxx) = build_env.resolve_cxx(&target) {
+        cc_build.compiler(cxx);
+    }
+
+    if let Some(ar) = build_env.resolve_ar(&target) {
+        cc_build.archiver(ar);
+    }
 
     {
         let std_cpp_arg = if target.builds_with_msvc() {

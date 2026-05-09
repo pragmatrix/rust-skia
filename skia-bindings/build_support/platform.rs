@@ -9,7 +9,7 @@ use super::{
     skia::BuildConfiguration,
 };
 use crate::build_support::features::feature;
-use std::path::Path;
+use std::{collections::HashMap, ops::Deref, path::Path};
 
 pub mod alpine;
 pub mod android;
@@ -60,8 +60,66 @@ pub fn bindgen_and_cc_args(target: &Target, sysroot: Option<&str>) -> BindgenAnd
     builder.into_bindgen_and_cc_args()
 }
 
-pub fn configure_build_environment(target: &Target, output_directory: &Path) {
-    details(target).configure_build_environment(target, output_directory)
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct BuildEnvironment {
+    vars: HashMap<String, String>,
+}
+
+impl BuildEnvironment {
+    pub fn new(vars: Vec<(String, String)>) -> Self {
+        Self {
+            vars: vars.into_iter().collect(),
+        }
+    }
+
+    pub fn get(&self, name: &str) -> Option<&str> {
+        self.vars.get(name).map(String::as_str)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.vars
+            .iter()
+            .map(|(name, value)| (name.as_str(), value.as_str()))
+    }
+
+    pub fn overwrite_with(&mut self, other: &BuildEnvironment) {
+        self.vars
+            .extend(other.vars.iter().map(|(k, v)| (k.clone(), v.clone())));
+    }
+
+    pub fn resolve_cxx(&self, target: &Target) -> Option<&str> {
+        let target_var = target.to_string().replace('-', "_");
+        self.get(&format!("CXX_{target_var}"))
+            .or_else(|| self.get("CLANGCXX"))
+            .or_else(|| self.get("CXX"))
+            .or_else(|| self.get(&format!("CC_{target_var}")))
+            .or_else(|| self.get("CLANGCC"))
+            .or_else(|| self.get("CC"))
+    }
+
+    pub fn resolve_ar(&self, target: &Target) -> Option<&str> {
+        let target_var = target.to_string().replace('-', "_");
+        self.get(&format!("AR_{target_var}"))
+            .or_else(|| self.get("AR"))
+    }
+}
+
+impl Deref for BuildEnvironment {
+    type Target = HashMap<String, String>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.vars
+    }
+}
+
+pub fn build_environment(
+    target: &Target,
+    output_directory: &Path,
+    mut environment: BuildEnvironment,
+) -> BuildEnvironment {
+    let platform_environment = details(target).build_environment(target, output_directory);
+    environment.overwrite_with(&platform_environment);
+    environment
 }
 
 pub fn prepare_build_support(target: &Target, output_directory: &Path) {
@@ -89,7 +147,9 @@ pub trait PlatformDetails {
     fn uses_freetype(&self) -> bool;
     fn gn_args(&self, config: &BuildConfiguration, builder: &mut GnArgsBuilder);
     fn bindgen_args(&self, _target: &Target, _builder: &mut BindgenArgsBuilder) {}
-    fn configure_build_environment(&self, _target: &Target, _output_directory: &Path) {}
+    fn build_environment(&self, _target: &Target, _output_directory: &Path) -> BuildEnvironment {
+        BuildEnvironment::default()
+    }
     fn prepare_build_support(&self, _output_directory: &Path) {}
     fn link_libraries(&self, features: &Features) -> Vec<String>;
     fn link_search_paths(&self) -> Vec<String> {
@@ -275,7 +335,7 @@ impl BindgenArgsBuilder {
 
 pub mod prelude {
     pub use self::{cargo::Target, skia::BuildConfiguration};
-    pub use super::{BindgenArgsBuilder, GnArgsBuilder, PlatformDetails};
+    pub use super::{BindgenArgsBuilder, BuildEnvironment, GnArgsBuilder, PlatformDetails};
     pub use crate::build_support::{cargo, clang, features::feature, features::Features, skia};
 
     pub fn quote(s: &str) -> String {
