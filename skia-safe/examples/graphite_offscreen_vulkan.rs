@@ -101,15 +101,17 @@ fn main() {
     // `main`, satisfying `BackendContext`'s "handles must outlive it" contract,
     // and `resolver` outlives every returned `BackendContext`.
     let make_backend = || unsafe {
-        gpu::vk::BackendContext::new_with_extensions(
+        // No instance/device extensions are needed for headless offscreen
+        // rendering, so the builder's empty defaults are used directly.
+        gpu::vk::BackendContext::new_builder(
             instance.handle().as_raw() as gpu::vk::Instance,
             pdevice.as_raw() as gpu::vk::PhysicalDevice,
             device.handle().as_raw() as gpu::vk::Device,
             (queue.as_raw() as gpu::vk::Queue, family_index as usize),
             &resolver,
-            &[],
-            &[],
+            None,
         )
+        .build()
     };
 
     // reuse mode: one Context + Recorder for the whole run (the BackendContext

@@ -3,7 +3,14 @@ use skia_bindings as sb;
 use std::fmt;
 
 pub type Recording = RefHandle<sb::skgpu_graphite_Recording>;
-unsafe_send_sync!(Recording);
+
+// `Send` but deliberately NOT `Sync`: a `Recording` is produced on one thread
+// (via `Recorder::snap`) and may be moved to and inserted on another thread (via
+// `Context::insert_recording`) — a designed Graphite hand-off — so `Send` is
+// required. Sharing `&Recording` across threads, however, would let two
+// `Context`s read the same recording concurrently, racing on its internals;
+// this mirrors `Context`/`Recorder`, which are also `!Sync`.
+unsafe impl Send for Recording {}
 
 impl NativeDrop for sb::skgpu_graphite_Recording {
     fn drop(&mut self) {

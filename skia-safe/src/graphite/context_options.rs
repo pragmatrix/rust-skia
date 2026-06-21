@@ -20,10 +20,14 @@ impl Default for ContextOptions {
 impl ContextOptions {
     /// Create new ContextOptions with default settings
     pub fn new() -> Self {
-        let mut inner = unsafe { std::mem::MaybeUninit::zeroed().assume_init() };
-        unsafe {
-            sb::C_ContextOptions_Construct(&mut inner);
-        }
+        // Construct directly into uninitialized memory rather than zeroing first
+        // (zeroing would require a valid all-zero representation, which is not
+        // guaranteed for an arbitrary C++ type).
+        let inner = unsafe {
+            let mut inner = std::mem::MaybeUninit::uninit();
+            sb::C_ContextOptions_Construct(inner.as_mut_ptr());
+            inner.assume_init()
+        };
         Self { inner }
     }
 

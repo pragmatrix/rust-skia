@@ -515,10 +515,19 @@ impl Canvas {
             .and_then(|mut c| c.as_direct_context())
     }
 
-    /// Returns the [`graphite::Recorder`] if this canvas is backed by Graphite.
+    /// Returns the [`graphite::Recorder`] for the GPU surface backing this
+    /// canvas, if it is Graphite-backed.
+    ///
+    /// `SkCanvas::recorder()` returns a *borrowed* pointer — the recorder is
+    /// owned by the surface/canvas — so the result is a
+    /// [`graphite::BorrowedRecorder`] that does not delete the recorder on drop
+    /// and is bound to this canvas's lifetime. Wrapping it in an owning handle
+    /// would double-free the recorder.
     #[cfg(feature = "graphite")]
-    pub fn recorder(&self) -> Option<graphite::Recorder> {
-        graphite::Recorder::from_ptr(unsafe { sb::C_SkCanvas_recorder(self.native()) })
+    pub fn recorder(&self) -> Option<graphite::BorrowedRecorder<'_>> {
+        let recorder =
+            graphite::Recorder::from_ptr(unsafe { sb::C_SkCanvas_recorder(self.native()) })?;
+        Some(mem::ManuallyDrop::new(recorder).borrows(self))
     }
 
     /// Sometimes a canvas is owned by a surface. If it is, [`Self::surface()`] will return a bare

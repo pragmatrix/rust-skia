@@ -102,8 +102,8 @@ fn main() {
                         // // Insert recording into context
                         let insert_info = graphite::InsertRecordingInfo::new(&recording);
                         context.skia.insert_recording(&insert_info);
-
-                        //std::mem::forget(recording); // Prevent recording from being dropped, as it's now owned by the context
+                        // `insert_recording` only borrows the recording (it copies what it
+                        // needs synchronously), so dropping it here at end of scope is correct.
 
                         // Submit work to GPU
                         context.skia.submit(None);

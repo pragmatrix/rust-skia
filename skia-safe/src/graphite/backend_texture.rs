@@ -32,19 +32,24 @@ impl Drop for BackendTexture {
 impl BackendTexture {
     /// Create a new BackendTexture with default settings
     pub fn new() -> Self {
-        let mut inner = unsafe { std::mem::MaybeUninit::zeroed().assume_init() };
-        unsafe {
-            sb::C_BackendTexture_Construct(&mut inner);
-        }
+        // Construct directly into uninitialized memory rather than zeroing first
+        // (zeroing would require a valid all-zero representation, which is not
+        // guaranteed for an arbitrary C++ type).
+        let inner = unsafe {
+            let mut inner = std::mem::MaybeUninit::uninit();
+            sb::C_BackendTexture_Construct(inner.as_mut_ptr());
+            inner.assume_init()
+        };
         Self { inner }
     }
 
     /// Create a BackendTexture by copying from another
     pub fn from_backend_texture(other: &BackendTexture) -> Self {
-        let mut inner = unsafe { std::mem::MaybeUninit::zeroed().assume_init() };
-        unsafe {
-            sb::C_BackendTexture_CopyConstruct(&mut inner, other.native());
-        }
+        let inner = unsafe {
+            let mut inner = std::mem::MaybeUninit::uninit();
+            sb::C_BackendTexture_CopyConstruct(inner.as_mut_ptr(), other.native());
+            inner.assume_init()
+        };
         Self { inner }
     }
 

@@ -16,23 +16,19 @@
 //! ```no_run
 //! use skia_safe::graphite;
 //!
-//! // Context creation would be platform-specific
+//! // Context creation is platform-specific (see `graphite::mtl` / `graphite::vk`).
 //! # let context = None::<graphite::Context>;
 //! # if let Some(context) = context {
 //! // Create a recorder for recording draw operations
-//! let recorder = context.make_recorder(None)?;
+//! let mut recorder = context.make_recorder(None).expect("make_recorder");
 //!
-//! // Get a canvas to draw on
-//! let canvas = recorder.canvas();
-//! // ... perform drawing operations ...
-//!
-//! // Finish recording and submit
-//! let recording = recorder.snap()?;
+//! // Create a Graphite-backed surface from the recorder (see `graphite::surfaces`)
+//! // and draw into its canvas, then finish recording and submit:
+//! let recording = recorder.snap().expect("snap");
 //! let info = graphite::InsertRecordingInfo::new(&recording);
 //! context.insert_recording(&info);
 //! context.submit(None);
 //! # }
-//! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 
 mod backend_texture;
@@ -48,7 +44,7 @@ mod types;
 mod implementation {
     // Core types
     pub use super::context::Context;
-    pub use super::recorder::Recorder;
+    pub use super::recorder::{BorrowedRecorder, Recorder};
     pub use super::recording::Recording;
 
     // Configuration and options
@@ -100,9 +96,10 @@ mod tests {
 
     #[test]
     fn test_graphite_modules_accessible() {
-        // Test that graphite modules can be referenced
-        // This ensures the module structure is correct
+        // Ensure the module structure is correct by naming an item from each
+        // module (a module path itself is not a value, so reference functions).
         use super::{images, surfaces};
-        let _ = (&images, &surfaces);
+        let _ = surfaces::render_target;
+        let _ = images::wrap_texture;
     }
 }

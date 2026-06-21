@@ -8,6 +8,14 @@ use std::fmt;
 // NOT ref-counted, so it must be a `RefHandle` whose drop `delete`s it.
 pub type Recorder = RefHandle<sb::skgpu_graphite_Recorder>;
 
+/// A non-owning, lifetime-bound view of a [`Recorder`] that is owned elsewhere
+/// (for example by a Graphite-backed `Canvas`/surface, via `Canvas::recorder`).
+///
+/// Dropping a `BorrowedRecorder` does **not** `delete` the underlying recorder —
+/// the owner keeps that responsibility — and the lifetime ties the borrow to the
+/// object it was obtained from, so it cannot dangle.
+pub type BorrowedRecorder<'a> = Borrows<'a, std::mem::ManuallyDrop<Recorder>>;
+
 // Deliberately NOT `Send`/`Sync`: Skia documents a Graphite `Recorder` as
 // single-threaded (it and its child objects must be used on one thread), and its
 // `&self`/`&mut self` methods drive C++ with no internal lock. Matches the

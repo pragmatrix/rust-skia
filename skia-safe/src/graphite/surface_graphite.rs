@@ -25,7 +25,7 @@ pub fn render_target(
     surface_props: Option<&SurfaceProps>,
     label: Option<&str>,
 ) -> Option<Surface> {
-    let c_label = label.map(|s| std::ffi::CString::new(s).ok()).flatten();
+    let c_label = label.and_then(|s| std::ffi::CString::new(s).ok());
     let label_ptr = c_label
         .as_ref()
         .map(|s| s.as_ptr())

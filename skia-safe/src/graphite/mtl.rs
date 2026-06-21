@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::graphite::{BackendTexture, Context, ContextOptions};
 use crate::prelude::NativeAccess;
-use crate::prelude::{self, NativeDrop};
+use crate::prelude::{self, NativeDrop, NativeTransmutable};
 use skia_bindings as sb;
 
 /// A handle representing a Metal object (e.g., MTLDevice, MTLCommandQueue)
@@ -36,7 +36,9 @@ impl BackendContext {
     /// - `device` - A pointer to an MTLDevice
     /// - `queue` - A pointer to an MTLCommandQueue
     pub unsafe fn new(device: Handle, queue: Handle) -> Self {
-        BackendContext::construct(|bc| sb::C_MtlBackendContext_Construct(bc, device, queue))
+        BackendContext::construct(|bc| unsafe {
+            sb::C_MtlBackendContext_Construct(bc, device, queue)
+        })
     }
 }
 
@@ -121,14 +123,16 @@ pub unsafe fn make_backend_texture(
     mtl_texture: *mut std::ffi::c_void,
 ) -> BackendTexture {
     let dimensions = dimensions.into();
-    let mut backend_texture = std::mem::MaybeUninit::uninit();
-    sb::C_BackendTextures_MakeMetal(
-        backend_texture.as_mut_ptr(),
-        dimensions.width,
-        dimensions.height,
-        mtl_texture,
-    );
-    std::mem::transmute(backend_texture.assume_init())
+    unsafe {
+        let mut backend_texture = std::mem::MaybeUninit::uninit();
+        sb::C_BackendTextures_MakeMetal(
+            backend_texture.as_mut_ptr(),
+            dimensions.width,
+            dimensions.height,
+            mtl_texture,
+        );
+        BackendTexture::from_native_c(backend_texture.assume_init())
+    }
 }
 
 #[cfg(test)]

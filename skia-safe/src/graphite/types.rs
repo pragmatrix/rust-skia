@@ -117,11 +117,9 @@ impl SubmitInfo {
     /// (`SyncToCpu::kNo`, `MarkFrameBoundary::kNo`, `0`, null procs), so
     /// zero-init is a valid default here.
     pub fn new() -> Self {
-        let inner = unsafe {
-            let mut inner = std::mem::MaybeUninit::uninit();
-            std::ptr::write(&mut inner, std::mem::zeroed());
-            inner.assume_init()
-        };
+        // Every field's zero value equals its C++ default, so a zeroed struct is
+        // a valid default `SubmitInfo`.
+        let inner = unsafe { std::mem::MaybeUninit::zeroed().assume_init() };
         Self { inner }
     }
 
