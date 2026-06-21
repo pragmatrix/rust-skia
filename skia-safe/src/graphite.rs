@@ -71,14 +71,13 @@ pub mod images {
     pub use super::image_graphite::*;
 }
 
+// Backend entry points are kept module-qualified for a symmetric API and to
+// avoid the two backends' `make_context` clashing at the `graphite` root:
+// `graphite::mtl::make_context` / `graphite::vk::make_context` (mirrors the
+// `gpu::mtl` / `gpu::vk` namespacing). `vk` reuses `gpu::vk::BackendContext`.
 #[cfg(feature = "metal")]
 pub mod mtl;
 
-#[cfg(feature = "metal")]
-pub use mtl::{make_backend_texture, make_context, BackendContext, Handle};
-
-// Vulkan: module-qualified (`graphite::vk::make_context`) to avoid clashing with
-// the Metal `make_context` re-exported above. Reuses `gpu::vk::BackendContext`.
 #[cfg(feature = "vulkan")]
 pub mod vk;
 

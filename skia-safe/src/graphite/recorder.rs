@@ -7,7 +7,11 @@ use std::fmt;
 // (Context::makeRecorder) and derives from `SkRecorder`, not `SkRefCnt`. It is
 // NOT ref-counted, so it must be a `RefHandle` whose drop `delete`s it.
 pub type Recorder = RefHandle<sb::skgpu_graphite_Recorder>;
-unsafe_send_sync!(Recorder);
+
+// Deliberately NOT `Send`/`Sync`: Skia documents a Graphite `Recorder` as
+// single-threaded (it and its child objects must be used on one thread), and its
+// `&self`/`&mut self` methods drive C++ with no internal lock. Matches the
+// Ganesh `gpu::RecordingContext`, which is neither `Send` nor `Sync`.
 
 impl NativeDrop for sb::skgpu_graphite_Recorder {
     fn drop(&mut self) {

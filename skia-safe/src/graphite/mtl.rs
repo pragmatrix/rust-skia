@@ -64,12 +64,12 @@ impl BackendContext {
 ///     let context = mtl::make_context(&backend_context, None);
 /// }
 /// ```
-pub fn make_context(
+pub fn make_context<'a>(
     backend_context: &BackendContext,
-    options: Option<&ContextOptions>,
+    options: impl Into<Option<&'a ContextOptions>>,
 ) -> Option<Context> {
     let default_options;
-    let options_ptr = match options {
+    let options_ptr = match options.into() {
         Some(opts) => opts.native() as *const _,
         None => {
             default_options = ContextOptions::default();
@@ -115,7 +115,7 @@ pub fn make_context(
 ///     let backend_texture = mtl::make_backend_texture(dimensions, mtl_texture);
 ///     // Use backend_texture with Graphite functions
 /// }
-
+/// ```
 pub unsafe fn make_backend_texture(
     dimensions: impl Into<crate::ISize>,
     mtl_texture: *mut std::ffi::c_void,

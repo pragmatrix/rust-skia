@@ -21,12 +21,12 @@ use crate::graphite::{Context, ContextOptions};
 /// # Returns
 ///
 /// A new [`Context`] instance, or `None` if creation failed.
-pub fn make_context(
+pub fn make_context<'a>(
     backend_context: &vk::BackendContext,
-    options: Option<&ContextOptions>,
+    options: impl Into<Option<&'a ContextOptions>>,
 ) -> Option<Context> {
     let default_options;
-    let options_ptr = match options {
+    let options_ptr = match options.into() {
         Some(opts) => opts.native() as *const _,
         None => {
             default_options = ContextOptions::default();
@@ -34,10 +34,13 @@ pub fn make_context(
         }
     };
 
+    // SAFETY: `MakeVulkan` queries Vulkan entry points through the backend
+    // context's `GetProc`, which skia-safe routes via a thread-local resolver
+    // that is only active inside the `begin_resolving()` guard (mirrors
+    // `direct_contexts::make_vulkan`). The guard covers the whole FFI call;
+    // `options_ptr` is non-null (a default is materialized above); the returned
+    // raw pointer is owned and null-checked by `Context::from_ptr`.
     unsafe {
-        // `MakeVulkan` queries Vulkan entry points through the backend context's
-        // `GetProc`, which skia-safe routes via a thread-local resolver that is
-        // only active inside this guard (mirrors `direct_contexts::make_vulkan`).
         let end_resolving = backend_context.begin_resolving();
         let context = Context::from_ptr(sb::C_ContextFactory_MakeVulkan(
             backend_context.native.as_ptr() as *const _,

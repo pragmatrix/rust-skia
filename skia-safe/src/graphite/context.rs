@@ -9,7 +9,11 @@ use std::fmt;
 // as an `RCHandle` would call `SkRefCntBase::unref()` on a non-ref-counted
 // object (UB; the real `~Context()` never runs -> leak).
 pub type Context = RefHandle<sb::skgpu_graphite_Context>;
-unsafe_send_sync!(Context);
+
+// Deliberately NOT `Send`/`Sync`: a Graphite `Context` has threading
+// constraints and its `&self` methods funnel into mutating C++ with no internal
+// lock, so sharing `&Context` across threads would be a data race. This matches
+// the Ganesh `gpu::DirectContext`, which is likewise neither `Send` nor `Sync`.
 
 impl NativeDrop for sb::skgpu_graphite_Context {
     fn drop(&mut self) {
@@ -55,7 +59,7 @@ impl Context {
     ///
     /// # Returns
     /// Status indicating success or failure of the insertion
-    pub fn insert_recording(&self, info: &InsertRecordingInfo) -> InsertStatus {
+    pub fn insert_recording(&self, info: &InsertRecordingInfo<'_>) -> InsertStatus {
         let status_int =
             unsafe { sb::C_Context_insertRecording(self.native_mut_force(), info.native()) };
         InsertStatus::from(status_int)
@@ -81,31 +85,24 @@ impl Context {
         unsafe { sb::C_Context_submit(self.native_mut_force(), info_ptr) }
     }
 
-    /// Submit work and wait for completion
+    /// Submit pending work and block until it has completed on the GPU.
     ///
-    /// This is a convenience method that calls `submit()` followed by
-    /// `check_async_work_completion()`.
+    /// Submits with `SyncToCpu::kYes`, so — unlike [`submit`](Self::submit) —
+    /// this returns only after the GPU has finished the submitted work.
     ///
     /// # Returns
-    /// `true` if submission and completion were successful
+    /// `true` if submission succeeded.
     pub fn submit_and_wait(&self) -> bool {
-        self.submit(None) && self.check_async_work_completion()
+        self.submit(Some(&SubmitInfo::with_sync_to_cpu(true)))
     }
 
-    /// Check if any pending asynchronous work has completed
+    /// Pump any already-finished asynchronous work (invoking its finished procs).
     ///
-    /// This method polls for completion of GPU work that was previously submitted.
-    ///
-    /// # Returns
-    /// `true` if all pending work has completed
-    pub fn check_async_work_completion(&self) -> bool {
-        // NOTE: `Context::checkAsyncWorkCompletion()` returns `void` — it only
-        // pumps already-finished async callbacks, it does not report or wait for
-        // completion. The `true` here means "pumped", not "all work done".
-        unsafe {
-            sb::C_Context_checkAsyncWorkCompletion(self.native_mut_force());
-        }
-        true
+    /// This does **not** block or report completion status: the underlying
+    /// `Context::checkAsyncWorkCompletion()` returns `void`. To wait for GPU
+    /// completion, use [`submit_and_wait`](Self::submit_and_wait).
+    pub fn check_async_work_completion(&self) {
+        unsafe { sb::C_Context_checkAsyncWorkCompletion(self.native_mut_force()) }
     }
 
     /// Delete a backend texture that was created through this context

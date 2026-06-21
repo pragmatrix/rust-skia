@@ -141,6 +141,17 @@ extern "C" void C_ContextOptions_Construct(skgpu::graphite::ContextOptions* unin
 // gpu/graphite/Recorder.h
 //
 
+// RecorderOptions has a non-trivial constructor (e.g. fGpuBudgetInBytes defaults
+// to 256 MiB, an sk_sp member, std::optional) and destructor, so it must be
+// placement-constructed and destructed rather than zero-initialized.
+extern "C" void C_RecorderOptions_Construct(skgpu::graphite::RecorderOptions* uninitialized) {
+    new(uninitialized) skgpu::graphite::RecorderOptions();
+}
+
+extern "C" void C_RecorderOptions_destruct(skgpu::graphite::RecorderOptions* self) {
+    self->~RecorderOptions();
+}
+
 extern "C" skgpu::graphite::Recording* C_Recorder_snap(skgpu::graphite::Recorder* self) {
     return self->snap().release();
 }

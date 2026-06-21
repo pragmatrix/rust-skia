@@ -97,6 +97,9 @@ fn main() {
         }
     };
 
+    // SAFETY: `instance`/`pdevice`/`device`/`queue` all live to the end of
+    // `main`, satisfying `BackendContext`'s "handles must outlive it" contract,
+    // and `resolver` outlives every returned `BackendContext`.
     let make_backend = || unsafe {
         gpu::vk::BackendContext::new_with_extensions(
             instance.handle().as_raw() as gpu::vk::Instance,
@@ -182,5 +185,15 @@ fn main() {
         }) {
             println!("[rss] peak VmHWM = {:.1} MB ({kb} kB)", kb as f64 / 1024.0);
         }
+    }
+
+    // Tear down Vulkan in reverse creation order, now that every Skia object
+    // (and thus every reference to the device/queue) has been dropped.
+    // SAFETY: `shared` and all per-iteration Context/Recorder/Surface are dropped
+    // above, so nothing still references `device`/`instance`; `queue` is owned by
+    // `device`. No further Vulkan calls happen after this.
+    unsafe {
+        device.destroy_device(None);
+        instance.destroy_instance(None);
     }
 }

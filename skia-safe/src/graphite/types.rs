@@ -37,14 +37,23 @@ impl Default for RecorderOptions {
     }
 }
 
+impl Drop for RecorderOptions {
+    fn drop(&mut self) {
+        unsafe { sb::C_RecorderOptions_destruct(&mut self.inner) }
+    }
+}
+
 impl RecorderOptions {
-    /// Create new recorder options with default settings
+    /// Create new recorder options with the C++ defaults (e.g. a 256 MiB GPU
+    /// budget). Placement-constructed rather than zero-initialized, because
+    /// `RecorderOptions` has a non-trivial constructor and members (an `sk_sp`,
+    /// a `std::optional`, and a non-zero default budget).
     pub fn new() -> Self {
-        let mut inner = unsafe { std::mem::MaybeUninit::zeroed().assume_init() };
-        // Initialize with default values - the C++ constructor will set appropriate defaults
-        unsafe {
-            std::ptr::write(&mut inner, std::mem::zeroed());
-        }
+        let inner = unsafe {
+            let mut inner = std::mem::MaybeUninit::uninit();
+            sb::C_RecorderOptions_Construct(inner.as_mut_ptr());
+            inner.assume_init()
+        };
         Self { inner }
     }
 
@@ -58,24 +67,30 @@ impl RecorderOptions {
     }
 }
 
-native_transmutable!(sb::skgpu_graphite_RecorderOptions, RecorderOptions);
-
-/// Information for inserting a recording into the context
+/// Information for inserting a recording into the context.
+///
+/// Borrows the [`Recording`](crate::graphite::Recording) it references (it stores
+/// a raw `fRecording` pointer), so the borrow checker keeps the `Recording` alive
+/// for as long as this info — and any `insert_recording` call using it — is in use.
 #[derive(Debug)]
-pub struct InsertRecordingInfo {
+pub struct InsertRecordingInfo<'a> {
     inner: sb::skgpu_graphite_InsertRecordingInfo,
+    _recording: std::marker::PhantomData<&'a crate::graphite::Recording>,
 }
 
-impl InsertRecordingInfo {
-    /// Create insert recording info for a recording
-    pub fn new(recording: &crate::graphite::Recording) -> Self {
+impl<'a> InsertRecordingInfo<'a> {
+    /// Create insert recording info for a recording.
+    pub fn new(recording: &'a crate::graphite::Recording) -> Self {
+        // All `InsertRecordingInfo` fields are plain pointers / POD / `kSuccess`
+        // (== 0) defaults, so zero-init is a valid default; we then point
+        // `fRecording` at the borrowed recording.
         let mut inner: sb::skgpu_graphite_InsertRecordingInfo =
             unsafe { std::mem::MaybeUninit::zeroed().assume_init() };
-        unsafe {
-            std::ptr::write(&mut inner, std::mem::zeroed());
-        }
         inner.fRecording = recording.native() as *const _ as *mut _;
-        Self { inner }
+        Self {
+            inner,
+            _recording: std::marker::PhantomData,
+        }
     }
 
     pub(crate) fn native(&self) -> &sb::skgpu_graphite_InsertRecordingInfo {
@@ -96,7 +111,11 @@ impl Default for SubmitInfo {
 }
 
 impl SubmitInfo {
-    /// Create new submit info with default settings
+    /// Create new submit info with default settings (no CPU sync).
+    ///
+    /// Every `SubmitInfo` field's zero value equals its C++ default
+    /// (`SyncToCpu::kNo`, `MarkFrameBoundary::kNo`, `0`, null procs), so
+    /// zero-init is a valid default here.
     pub fn new() -> Self {
         let inner = unsafe {
             let mut inner = std::mem::MaybeUninit::uninit();
@@ -104,6 +123,18 @@ impl SubmitInfo {
             inner.assume_init()
         };
         Self { inner }
+    }
+
+    /// Submit info whose `fSync` is set so that `Context::submit` blocks until
+    /// the submitted GPU work has completed (`SyncToCpu::kYes` when `sync`).
+    pub fn with_sync_to_cpu(sync: bool) -> Self {
+        let mut info = Self::new();
+        info.inner.fSync = if sync {
+            sb::skgpu_graphite_SyncToCpu::kYes
+        } else {
+            sb::skgpu_graphite_SyncToCpu::kNo
+        };
+        info
     }
 
     pub(crate) fn native(&self) -> &sb::skgpu_graphite_SubmitInfo {
