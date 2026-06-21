@@ -53,7 +53,7 @@ fn main() {
     // In reuse mode, one Context + Recorder live for the whole run.
     let mut shared = if reuse {
         let backend = unsafe { gmtl::BackendContext::new(device_ptr, queue_ptr) };
-        let context = gmtl::make_context(&backend, None).expect("make_context returned None");
+        let mut context = gmtl::make_context(&backend, None).expect("make_context returned None");
         let recorder = context.make_recorder(None).expect("make_recorder returned None");
         Some((backend, context, recorder))
     } else {
@@ -67,7 +67,7 @@ fn main() {
             None
         } else {
             let backend = unsafe { gmtl::BackendContext::new(device_ptr, queue_ptr) };
-            let context = gmtl::make_context(&backend, None).expect("make_context returned None");
+            let mut context = gmtl::make_context(&backend, None).expect("make_context returned None");
             let recorder = context.make_recorder(None).expect("make_recorder returned None");
             Some((backend, context, recorder))
         };

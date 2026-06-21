@@ -118,7 +118,7 @@ fn main() {
     // is only needed to build the Context and is dropped immediately after).
     let mut shared = if reuse {
         let backend = make_backend();
-        let context = gvk::make_context(&backend, None).expect("make_context returned None");
+        let mut context = gvk::make_context(&backend, None).expect("make_context returned None");
         let recorder = context.make_recorder(None).expect("make_recorder returned None");
         Some((context, recorder))
     } else {
@@ -130,7 +130,8 @@ fn main() {
             None
         } else {
             let backend = make_backend();
-            let context = gvk::make_context(&backend, None).expect("make_context returned None");
+            let mut context =
+                gvk::make_context(&backend, None).expect("make_context returned None");
             let recorder = context.make_recorder(None).expect("make_recorder returned None");
             Some((context, recorder))
         };
@@ -163,6 +164,27 @@ fn main() {
         let submitted = context.submit_and_wait();
         if verbose {
             println!("[ok] insert_recording={status:?} submit_and_wait={submitted}");
+
+            // Prove pixel correctness on Vulkan (RADV) by reading the surface
+            // back via the synchronous asyncRescaleAndReadPixels path.
+            let row_bytes = 64 * 4;
+            let mut pixels = vec![0u8; row_bytes * 64];
+            let ok =
+                context.read_pixels(&mut surface, &image_info, &mut pixels, row_bytes, (0, 0));
+            assert!(ok, "Context::read_pixels failed");
+            let px = |x: usize, y: usize| {
+                let o = y * row_bytes + x * 4;
+                [pixels[o], pixels[o + 1], pixels[o + 2], pixels[o + 3]]
+            };
+            let corner = px(0, 0);
+            let center = px(32, 32);
+            let is_white = corner[0] > 200 && corner[1] > 200 && corner[2] > 200;
+            let is_blue = center[2] > 200 && center[0] < 60 && center[1] < 60;
+            assert!(
+                is_white && is_blue,
+                "readback mismatch: corner={corner:?} center={center:?}"
+            );
+            println!("[ok] readback verified: corner(0,0)={corner:?} center(32,32)={center:?}");
         }
 
         drop(recording);

@@ -1,5 +1,6 @@
-use crate::graphite::{types::BackendApi, Recording};
+use crate::graphite::{types::BackendApi, Recording, TextureInfo};
 use crate::prelude::*;
+use crate::{Canvas, ImageInfo};
 use skia_bindings as sb;
 use std::fmt;
 
@@ -55,6 +56,33 @@ impl Recorder {
     // Note: Canvas creation in Graphite is typically done through Surface creation
     // Surface::canvas() is the recommended way to get a canvas for drawing
     // See graphite::surfaces module for surface creation functions
+
+    /// Returns a canvas that records into a proxy surface (instantiated on
+    /// replay), targeting a texture with the given `image_info` / `texture_info`.
+    ///
+    /// The returned canvas is owned by the recorder and borrows it: it is only
+    /// valid until the next [`snap`](Self::snap) — which the borrow checker
+    /// enforces, since `snap` needs `&mut self`. Returns `None` if a deferred
+    /// canvas is already outstanding for the current recording (only one may
+    /// exist per recording, until the next `snap`).
+    pub fn make_deferred_canvas(
+        &mut self,
+        image_info: &ImageInfo,
+        texture_info: &TextureInfo,
+    ) -> Option<&Canvas> {
+        let canvas_ptr = unsafe {
+            sb::C_Recorder_makeDeferredCanvas(
+                self.native_mut(),
+                image_info.native(),
+                texture_info.native(),
+            )
+        };
+        if canvas_ptr.is_null() {
+            None
+        } else {
+            Some(Canvas::borrow_from_native(unsafe { &*canvas_ptr }))
+        }
+    }
 
     /// Get the backend API used by this recorder
     ///

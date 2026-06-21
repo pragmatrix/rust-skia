@@ -1,5 +1,6 @@
 use crate::graphite::{InsertRecordingInfo, InsertStatus, Recorder, RecorderOptions, SubmitInfo};
 use crate::prelude::*;
+use crate::{IPoint, ImageInfo, Surface};
 use skia_bindings as sb;
 use std::fmt;
 
@@ -10,10 +11,13 @@ use std::fmt;
 // object (UB; the real `~Context()` never runs -> leak).
 pub type Context = RefHandle<sb::skgpu_graphite_Context>;
 
-// Deliberately NOT `Send`/`Sync`: a Graphite `Context` has threading
-// constraints and its `&self` methods funnel into mutating C++ with no internal
-// lock, so sharing `&Context` across threads would be a data race. This matches
+// Deliberately NOT `Send`/`Sync`: a Graphite `Context` is thread-affine (it must
+// be used on the thread it was created on) and has no internal lock. This matches
 // the Ganesh `gpu::DirectContext`, which is likewise neither `Send` nor `Sync`.
+//
+// The mutating C++ methods (`makeRecorder`, `insertRecording`, `submit`, …) are
+// non-`const` and so take `&mut self`, mirroring `DirectContext::submit`; only
+// `isDeviceLost() const` keeps `&self`.
 
 impl NativeDrop for sb::skgpu_graphite_Context {
     fn drop(&mut self) {
@@ -37,7 +41,7 @@ impl Context {
     ///
     /// # Returns
     /// A new `Recorder` instance, or `None` if creation failed
-    pub fn make_recorder(&self, options: Option<&RecorderOptions>) -> Option<Recorder> {
+    pub fn make_recorder(&mut self, options: Option<&RecorderOptions>) -> Option<Recorder> {
         let default_options;
         let options_ptr = match options {
             Some(opts) => opts.native() as *const _,
@@ -47,8 +51,7 @@ impl Context {
             }
         };
 
-        let recorder_ptr =
-            unsafe { sb::C_Context_makeRecorder(self.native_mut_force(), options_ptr) };
+        let recorder_ptr = unsafe { sb::C_Context_makeRecorder(self.native_mut(), options_ptr) };
         Recorder::from_ptr(recorder_ptr)
     }
 
@@ -59,9 +62,9 @@ impl Context {
     ///
     /// # Returns
     /// Status indicating success or failure of the insertion
-    pub fn insert_recording(&self, info: &InsertRecordingInfo<'_>) -> InsertStatus {
+    pub fn insert_recording(&mut self, info: &InsertRecordingInfo<'_>) -> InsertStatus {
         let status_int =
-            unsafe { sb::C_Context_insertRecording(self.native_mut_force(), info.native()) };
+            unsafe { sb::C_Context_insertRecording(self.native_mut(), info.native()) };
         InsertStatus::from(status_int)
     }
 
@@ -72,7 +75,7 @@ impl Context {
     ///
     /// # Returns
     /// `true` if submission was successful, `false` otherwise
-    pub fn submit(&self, submit_info: Option<&SubmitInfo>) -> bool {
+    pub fn submit(&mut self, submit_info: Option<&SubmitInfo>) -> bool {
         let default_info;
         let info_ptr = match submit_info {
             Some(info) => info.native() as *const _,
@@ -82,7 +85,7 @@ impl Context {
             }
         };
 
-        unsafe { sb::C_Context_submit(self.native_mut_force(), info_ptr) }
+        unsafe { sb::C_Context_submit(self.native_mut(), info_ptr) }
     }
 
     /// Submit pending work and block until it has completed on the GPU.
@@ -92,7 +95,7 @@ impl Context {
     ///
     /// # Returns
     /// `true` if submission succeeded.
-    pub fn submit_and_wait(&self) -> bool {
+    pub fn submit_and_wait(&mut self) -> bool {
         self.submit(Some(&SubmitInfo::with_sync_to_cpu(true)))
     }
 
@@ -101,17 +104,17 @@ impl Context {
     /// This does **not** block or report completion status: the underlying
     /// `Context::checkAsyncWorkCompletion()` returns `void`. To wait for GPU
     /// completion, use [`submit_and_wait`](Self::submit_and_wait).
-    pub fn check_async_work_completion(&self) {
-        unsafe { sb::C_Context_checkAsyncWorkCompletion(self.native_mut_force()) }
+    pub fn check_async_work_completion(&mut self) {
+        unsafe { sb::C_Context_checkAsyncWorkCompletion(self.native_mut()) }
     }
 
     /// Delete a backend texture that was created through this context
     ///
     /// # Arguments
     /// - `texture` - The backend texture to delete
-    pub fn delete_backend_texture(&self, texture: &crate::graphite::BackendTexture) {
+    pub fn delete_backend_texture(&mut self, texture: &crate::graphite::BackendTexture) {
         unsafe {
-            sb::C_Context_deleteBackendTexture(self.native_mut_force(), texture.native());
+            sb::C_Context_deleteBackendTexture(self.native_mut(), texture.native());
         }
     }
 
@@ -121,6 +124,53 @@ impl Context {
     /// `true` if the device is lost and the context is unusable
     pub fn is_device_lost(&self) -> bool {
         unsafe { sb::C_Context_isDeviceLost(self.native()) }
+    }
+
+    /// Synchronously read pixels from a Graphite-backed `surface`.
+    ///
+    /// Graphite is a deferred backend, so [`Surface::read_pixels`] does not work;
+    /// this drives `Context::asyncRescaleAndReadPixels` to completion with a
+    /// synchronous submit (it blocks until the GPU work and the readback copy
+    /// have finished). This is the supported path for a screenshot / golden-image
+    /// capture.
+    ///
+    /// `dst_pixels` receives `dst_info.height()` rows of `dst_row_bytes` each and
+    /// must be at least `dst_row_bytes * dst_info.height()` bytes; `dst_row_bytes`
+    /// must be at least `dst_info.min_row_bytes()`. `src` is the top-left source
+    /// pixel to start reading from.
+    ///
+    /// # Returns
+    /// `true` if the pixels were read back successfully.
+    ///
+    /// [`Surface::read_pixels`]: crate::Surface::read_pixels
+    pub fn read_pixels(
+        &mut self,
+        surface: &mut Surface,
+        dst_info: &ImageInfo,
+        dst_pixels: &mut [u8],
+        dst_row_bytes: usize,
+        src: impl Into<IPoint>,
+    ) -> bool {
+        let src = src.into();
+        if dst_row_bytes < dst_info.min_row_bytes() {
+            return false;
+        }
+        match dst_row_bytes.checked_mul(dst_info.height() as usize) {
+            Some(required) if dst_pixels.len() >= required => {}
+            _ => return false,
+        }
+
+        unsafe {
+            sb::C_Context_readPixels(
+                self.native_mut(),
+                surface.native_mut(),
+                dst_info.native(),
+                dst_pixels.as_mut_ptr() as *mut std::ffi::c_void,
+                dst_row_bytes,
+                src.x,
+                src.y,
+            )
+        }
     }
 }
 

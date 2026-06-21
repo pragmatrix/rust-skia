@@ -1,13 +1,15 @@
 #include "bindings.h"
 
+#include <algorithm>
+#include <cstring>
+#include <memory>
+
 #include "include/core/SkCanvas.h"
 #include "include/core/SkColorSpace.h"
 #include "include/core/SkImage.h"
 #include "include/core/SkRect.h"
 #include "include/core/SkSize.h"
-#include "include/core/SkSpan.h"
 #include "include/core/SkSurface.h"
-#include "include/core/SkYUVAInfo.h"
 #include "include/gpu/GpuTypes.h"
 #include "include/gpu/graphite/BackendTexture.h"
 #include "include/gpu/graphite/Context.h"
@@ -15,10 +17,8 @@
 #include "include/gpu/graphite/GraphiteTypes.h"
 #include "include/gpu/graphite/Image.h"
 #include "include/gpu/graphite/Recorder.h"
-
 #include "include/gpu/graphite/Surface.h"
 #include "include/gpu/graphite/TextureInfo.h"
-#include "include/gpu/graphite/YUVABackendTextures.h"
 
 #ifdef SK_METAL
 #include "include/gpu/graphite/mtl/MtlBackendContext.h"
@@ -129,6 +129,82 @@ extern "C" void C_Context_delete(skgpu::graphite::Context* self) {
     delete self;
 }
 
+// Synchronous pixel readback for a Graphite-backed surface.
+//
+// Graphite is a deferred backend: SkSurface::readPixels() does not work, so the
+// only supported readback is Context::asyncRescaleAndReadPixels() driven to
+// completion by a synchronous submit. This shim hides the async callback dance
+// behind a blocking call that copies one plane into the caller's buffer, which
+// is what a screenshot / golden-image path needs.
+namespace {
+struct SyncReadContext {
+    bool fCalled = false;
+    bool fSuccess = false;
+    void* fDst = nullptr;
+    size_t fDstRowBytes = 0;
+    size_t fMinRowBytes = 0;
+    int fHeight = 0;
+};
+
+void sync_read_callback(
+    SkImage::ReadPixelsContext context,
+    std::unique_ptr<const SkImage::AsyncReadResult> result) {
+    auto* c = static_cast<SyncReadContext*>(context);
+    c->fCalled = true;
+    if (!result || result->count() != 1) {
+        c->fSuccess = false;
+        return;
+    }
+    const char* src = static_cast<const char*>(result->data(0));
+    size_t srcRowBytes = result->rowBytes(0);
+    size_t copyBytes = std::min(c->fMinRowBytes, c->fDstRowBytes);
+    for (int y = 0; y < c->fHeight; ++y) {
+        memcpy(static_cast<char*>(c->fDst) + static_cast<size_t>(y) * c->fDstRowBytes,
+               src + static_cast<size_t>(y) * srcRowBytes,
+               copyBytes);
+    }
+    c->fSuccess = true;
+}
+}  // namespace
+
+extern "C" bool C_Context_readPixels(
+    skgpu::graphite::Context* self,
+    SkSurface* surface,
+    const SkImageInfo* dstInfo,
+    void* dstPixels,
+    size_t dstRowBytes,
+    int srcX,
+    int srcY) {
+    SyncReadContext ctx;
+    ctx.fDst = dstPixels;
+    ctx.fDstRowBytes = dstRowBytes;
+    ctx.fMinRowBytes = dstInfo->minRowBytes();
+    ctx.fHeight = dstInfo->height();
+
+    SkIRect srcRect = SkIRect::MakeXYWH(srcX, srcY, dstInfo->width(), dstInfo->height());
+    self->asyncRescaleAndReadPixels(
+        surface,
+        *dstInfo,
+        srcRect,
+        SkImage::RescaleGamma::kSrc,
+        SkImage::RescaleMode::kNearest,
+        &sync_read_callback,
+        &ctx);
+
+    // Force submission and block until the GPU work — and therefore the async
+    // readback copy — has completed.
+    self->submit(skgpu::graphite::SubmitInfo(skgpu::graphite::SyncToCpu::kYes));
+
+    // After a synchronous submit the finished procs run, but pump
+    // checkAsyncWorkCompletion() defensively until the callback fires. Bounded so
+    // an unsupported / failed readback returns false instead of hanging.
+    int guard = 0;
+    while (!ctx.fCalled && guard++ < 10000) {
+        self->checkAsyncWorkCompletion();
+    }
+    return ctx.fSuccess;
+}
+
 //
 // gpu/graphite/ContextOptions.h
 //
@@ -179,34 +255,6 @@ extern "C" void C_Recorder_delete(skgpu::graphite::Recorder* self) {
 
 extern "C" void C_Recording_delete(const skgpu::graphite::Recording* self) {
     delete self;
-}
-
-//
-// gpu/graphite/YUVABackendTextures.h
-//
-
-extern "C" void C_YUVABackendTextures_construct(
-    skgpu::graphite::YUVABackendTextures* uninitialized,
-    const SkYUVAInfo& yuvaInfo,
-    const skgpu::graphite::BackendTexture* const *backend_textures
-) {
-    skgpu::graphite::BackendTexture textures[SkYUVAInfo::kMaxPlanes];
-    for (int i = 0; i < SkYUVAInfo::kMaxPlanes; ++i) {
-        textures[i] = *backend_textures[i];
-    }
-    new(uninitialized) skgpu::graphite::YUVABackendTextures(yuvaInfo, SkSpan<const skgpu::graphite::BackendTexture>(textures, SkYUVAInfo::kMaxPlanes));
-}
-
-extern "C" void C_YUVABackendTextures_destruct(skgpu::graphite::YUVABackendTextures* self) {
-    self->~YUVABackendTextures();
-}
-
-extern "C" const SkYUVAInfo* C_YUVABackendTextures_yuvaInfo(const skgpu::graphite::YUVABackendTextures* self) {
-    return &self->yuvaInfo();
-}
-
-extern "C" void C_YUVABackendTextures_planeTexture(const skgpu::graphite::YUVABackendTextures* self, int index, skgpu::graphite::BackendTexture* result) {
-    *result = self->planeTexture(index);
 }
 
 //
@@ -297,16 +345,6 @@ extern "C" SkImage* C_SkImages_SubsetTextureFromGraphite(
             recorder,
             image,
             *subset).release();
-}
-
-extern "C" SkImage* C_SkImages_TextureFromYUVATexturesGraphite(
-    skgpu::graphite::Recorder* recorder,
-    const skgpu::graphite::YUVABackendTextures* yuvaTextures,
-    SkColorSpace* imageColorSpace) {
-    return SkImages::TextureFromYUVATextures(
-            recorder,
-            *yuvaTextures,
-            sp(imageColorSpace)).release();
 }
 
 //

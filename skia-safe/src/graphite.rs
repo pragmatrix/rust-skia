@@ -100,6 +100,8 @@ mod tests {
         // module (a module path itself is not a value, so reference functions).
         use super::{images, surfaces};
         let _ = surfaces::render_target;
-        let _ = images::wrap_texture;
+        // `wrap_texture` is generic over the color space argument; reference a
+        // non-generic item so the module path can be named without turbofish.
+        let _ = images::texture_from_image;
     }
 }

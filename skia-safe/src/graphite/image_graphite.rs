@@ -23,11 +23,13 @@ pub fn wrap_texture(
     backend_texture: &BackendTexture,
     color_type: ColorType,
     alpha_type: AlphaType,
-    color_space: Option<&ColorSpace>,
+    color_space: impl Into<Option<ColorSpace>>,
 ) -> Option<Image> {
-    let color_space_ptr = color_space
-        .map(|cs| unsafe { cs.native_mut_force() as *mut _ })
-        .unwrap_or(std::ptr::null_mut());
+    // `C_SkImages_WrapTextureGraphite` adopts the color space (the shim wraps the
+    // raw pointer in an `sk_sp` *without* adding a ref), so transfer an owned
+    // reference via `into_ptr_or_null`. A borrowed pointer would let Skia release
+    // a ref it never retained — a refcount underflow / use-after-free.
+    let color_space_ptr = color_space.into().into_ptr_or_null();
 
     let image_ptr = unsafe {
         sb::C_SkImages_WrapTextureGraphite(
@@ -101,7 +103,7 @@ mod tests {
                 &BackendTexture,
                 ColorType,
                 AlphaType,
-                Option<&ColorSpace>,
+                Option<ColorSpace>,
             ) -> Option<Image>;
 
         let _f2 = texture_from_image as fn(&mut Recorder, &Image) -> Option<Image>;
