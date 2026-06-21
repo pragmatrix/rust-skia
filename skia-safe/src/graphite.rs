@@ -77,6 +77,11 @@ pub mod mtl;
 #[cfg(feature = "metal")]
 pub use mtl::{make_backend_texture, make_context, BackendContext, Handle};
 
+// Vulkan: module-qualified (`graphite::vk::make_context`) to avoid clashing with
+// the Metal `make_context` re-exported above. Reuses `gpu::vk::BackendContext`.
+#[cfg(feature = "vulkan")]
+pub mod vk;
+
 pub use implementation::*;
 
 #[cfg(test)]

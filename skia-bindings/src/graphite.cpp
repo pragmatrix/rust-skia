@@ -25,6 +25,11 @@
 #include "include/gpu/graphite/mtl/MtlGraphiteTypes_cpp.h"
 #endif
 
+#ifdef SK_VULKAN
+#include "include/gpu/vk/VulkanBackendContext.h"
+#include "include/gpu/graphite/vk/VulkanGraphiteContext.h"
+#endif
+
 // Forward declaration to avoid including Recording.h which exposes std::unordered_set
 namespace skgpu::graphite {
     class Recording;
@@ -327,5 +332,19 @@ extern "C" void C_BackendTextures_MakeMetal(
             static_cast<CFTypeRef>(const_cast<void*>(mtlTexture))
         )
     );
+}
+#endif
+
+#ifdef SK_VULKAN
+// skgpu::VulkanBackendContext is the backend-context type shared with Ganesh
+// (already wrapped by skia_safe::gpu::vk::BackendContext). The graphite Vulkan
+// context factory lives in the skgpu::graphite::ContextFactory namespace,
+// mirroring MakeMetal above. The backend context is passed as an opaque pointer
+// to match the existing gpu::vk binding, which keeps it as a heap void*.
+extern "C" skgpu::graphite::Context* C_ContextFactory_MakeVulkan(
+    const void* backendContext,
+    const skgpu::graphite::ContextOptions* options) {
+    return skgpu::graphite::ContextFactory::MakeVulkan(
+        *static_cast<const skgpu::VulkanBackendContext*>(backendContext), *options).release();
 }
 #endif
