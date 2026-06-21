@@ -3,11 +3,18 @@ use crate::prelude::*;
 use skia_bindings as sb;
 use std::fmt;
 
-pub type Context = RCHandle<sb::skgpu_graphite_Context>;
+// `skgpu::graphite::Context` is `final` with no base class and is handed out as
+// `std::unique_ptr<Context>` (Context::MakeMetal etc.). It is NOT ref-counted,
+// so it must be modeled as a `RefHandle` whose drop `delete`s it — modeling it
+// as an `RCHandle` would call `SkRefCntBase::unref()` on a non-ref-counted
+// object (UB; the real `~Context()` never runs -> leak).
+pub type Context = RefHandle<sb::skgpu_graphite_Context>;
 unsafe_send_sync!(Context);
 
-impl NativeRefCountedBase for sb::skgpu_graphite_Context {
-    type Base = sb::SkRefCntBase;
+impl NativeDrop for sb::skgpu_graphite_Context {
+    fn drop(&mut self) {
+        unsafe { sb::C_Context_delete(self) }
+    }
 }
 
 impl fmt::Debug for Context {
@@ -92,6 +99,9 @@ impl Context {
     /// # Returns
     /// `true` if all pending work has completed
     pub fn check_async_work_completion(&self) -> bool {
+        // NOTE: `Context::checkAsyncWorkCompletion()` returns `void` — it only
+        // pumps already-finished async callbacks, it does not report or wait for
+        // completion. The `true` here means "pumped", not "all work done".
         unsafe {
             sb::C_Context_checkAsyncWorkCompletion(self.native_mut_force());
         }

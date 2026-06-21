@@ -117,6 +117,13 @@ extern "C" bool C_Context_isDeviceLost(const skgpu::graphite::Context* self) {
     return self->isDeviceLost();
 }
 
+// skgpu::graphite::Context is owned via std::unique_ptr (Context::MakeMetal etc.
+// return unique_ptr and the shim releases it). It is NOT ref-counted, so the
+// Rust wrapper must `delete` it rather than unref a (non-existent) SkRefCntBase.
+extern "C" void C_Context_delete(skgpu::graphite::Context* self) {
+    delete self;
+}
+
 //
 // gpu/graphite/ContextOptions.h
 //
@@ -141,6 +148,13 @@ extern "C" SkCanvas* C_Recorder_makeDeferredCanvas(skgpu::graphite::Recorder* se
 
 extern "C" skgpu::BackendApi C_Recorder_backend(const skgpu::graphite::Recorder* self) {
     return self->backend();
+}
+
+// skgpu::graphite::Recorder is owned via std::unique_ptr (Context::makeRecorder
+// returns unique_ptr and the shim releases it). It is NOT ref-counted, so the
+// Rust wrapper must `delete` it.
+extern "C" void C_Recorder_delete(skgpu::graphite::Recorder* self) {
+    delete self;
 }
 
 //

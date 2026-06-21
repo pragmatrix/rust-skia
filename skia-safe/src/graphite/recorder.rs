@@ -3,11 +3,16 @@ use crate::prelude::*;
 use skia_bindings as sb;
 use std::fmt;
 
-pub type Recorder = RCHandle<sb::skgpu_graphite_Recorder>;
+// `skgpu::graphite::Recorder` is handed out as `std::unique_ptr<Recorder>`
+// (Context::makeRecorder) and derives from `SkRecorder`, not `SkRefCnt`. It is
+// NOT ref-counted, so it must be a `RefHandle` whose drop `delete`s it.
+pub type Recorder = RefHandle<sb::skgpu_graphite_Recorder>;
 unsafe_send_sync!(Recorder);
 
-impl NativeRefCountedBase for sb::skgpu_graphite_Recorder {
-    type Base = sb::SkRefCntBase;
+impl NativeDrop for sb::skgpu_graphite_Recorder {
+    fn drop(&mut self) {
+        unsafe { sb::C_Recorder_delete(self) }
+    }
 }
 
 impl fmt::Debug for Recorder {
