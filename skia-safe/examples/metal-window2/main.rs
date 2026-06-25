@@ -10,16 +10,21 @@ fn main() {
     println!("To run this example, invoke cargo with --features \"metal\".")
 }
 
-#[cfg(all(target_os = "macos", not(feature = "graphite")))]
+#[cfg(all(target_os = "macos", feature = "metal", not(feature = "graphite")))]
 fn main() {
     println!("To run this example, invoke cargo with --features \"graphite\".")
 }
 
 #[cfg(all(target_os = "macos", feature = "metal", feature = "graphite"))]
 fn main() {
-    use core_graphics_types::geometry::CGSize;
-    use foreign_types_shared::ForeignTypeRef;
-    use objc::rc::autoreleasepool;
+    use objc2::{
+        rc::{Retained, autoreleasepool},
+        runtime::ProtocolObject,
+    };
+    use objc2_core_foundation::CGSize;
+    use objc2_metal::{MTLCommandBuffer, MTLCommandQueue};
+    use objc2_quartz_core::CAMetalDrawable;
+
     use winit::{
         application::ApplicationHandler,
         event::WindowEvent,
@@ -28,8 +33,8 @@ fn main() {
     };
 
     use skia_safe::{
-        graphite::{self, mtl as graphite_mtl},
         ColorType,
+        graphite::{self, mtl as graphite_mtl},
     };
 
     let event_loop = EventLoop::new().expect("Failed to create event loop");
@@ -58,13 +63,13 @@ fn main() {
                 WindowEvent::Resized(size) => {
                     context
                         .metal_layer
-                        .set_drawable_size(CGSize::new(size.width as f64, size.height as f64));
+                        .setDrawableSize(CGSize::new(size.width as f64, size.height as f64));
                     context.window.request_redraw()
                 }
                 WindowEvent::RedrawRequested => {
-                    if let Some(drawable) = context.metal_layer.next_drawable() {
+                    if let Some(drawable) = context.metal_layer.nextDrawable() {
                         let (drawable_width, drawable_height) = {
-                            let size = context.metal_layer.drawable_size();
+                            let size = context.metal_layer.drawableSize();
                             (size.width as i32, size.height as i32)
                         };
 
@@ -79,7 +84,7 @@ fn main() {
                         let backend_texture = unsafe {
                             graphite_mtl::make_backend_texture(
                                 (drawable_width, drawable_height),
-                                drawable.texture().as_ptr() as graphite_mtl::Handle,
+                                Retained::as_ptr(&drawable.texture()) as graphite_mtl::Handle,
                             )
                         };
 
@@ -99,7 +104,7 @@ fn main() {
                         // Finish recording
                         let recording = recorder.snap().expect("Failed to snap recording");
 
-                        // // Insert recording into context
+                        // Insert recording into context
                         let insert_info = graphite::InsertRecordingInfo::new(&recording);
                         context.skia.insert_recording(&insert_info);
                         // `insert_recording` only borrows the recording (it copies what it
@@ -109,8 +114,13 @@ fn main() {
                         context.skia.submit(None);
 
                         // Present drawable
-                        let command_buffer = context.command_queue.new_command_buffer();
-                        command_buffer.present_drawable(drawable);
+                        let command_buffer = context
+                            .command_queue
+                            .commandBuffer()
+                            .expect("unable to get command buffer");
+                        let drawable: Retained<ProtocolObject<dyn objc2_metal::MTLDrawable>> =
+                            (&drawable).into();
+                        command_buffer.presentDrawable(&drawable);
                         command_buffer.commit();
                     }
 
@@ -122,21 +132,21 @@ fn main() {
         }
     }
 
-    autoreleasepool(|| {
+    autoreleasepool(|_| {
         event_loop.run_app(&mut application).expect("run() failed");
     })
 }
 
 #[cfg(all(target_os = "macos", feature = "metal", feature = "graphite"))]
 mod window {
-    use cocoa::{appkit::NSView, base::id as cocoa_id};
-    use core_graphics_types::geometry::CGSize;
-    use foreign_types_shared::ForeignType;
-    use metal_rs::{CommandQueue, Device, MTLPixelFormat, MetalLayer};
-    use objc::runtime::YES;
+    use objc2::{rc::Retained, runtime::ProtocolObject};
+    use objc2_app_kit::NSView;
+    use objc2_core_foundation::CGSize;
+    use objc2_metal::{MTLCommandQueue, MTLCreateSystemDefaultDevice, MTLDevice};
+    use objc2_quartz_core::CAMetalLayer;
     use skia_safe::{
-        graphite::{self, mtl as graphite_mtl, Context as GraphiteContext},
         Canvas, Color4f, Paint, Point, Rect,
+        graphite::{self, Context as GraphiteContext, mtl as graphite_mtl},
     };
     use winit::{
         dpi::{LogicalSize, Size},
@@ -147,8 +157,8 @@ mod window {
 
     pub struct Context {
         pub window: Window,
-        pub metal_layer: MetalLayer,
-        pub command_queue: CommandQueue,
+        pub metal_layer: Retained<CAMetalLayer>,
+        pub command_queue: Retained<ProtocolObject<dyn MTLCommandQueue>>,
         pub skia: GraphiteContext,
     }
 
@@ -163,46 +173,41 @@ mod window {
                 .create_window(window_attributes)
                 .expect("Failed to create Window");
 
-            let window_handle = window
-                .window_handle()
-                .expect("Failed to retrieve a window handle");
-
-            let raw_window_handle = window_handle.as_raw();
-
-            let device = Device::system_default().expect("no device found");
+            let device = MTLCreateSystemDefaultDevice().expect("no device found");
 
             let metal_layer = {
-                let draw_size = window.inner_size();
-                let layer = MetalLayer::new();
-                layer.set_device(&device);
-                layer.set_pixel_format(MTLPixelFormat::BGRA8Unorm);
-                layer.set_presents_with_transaction(false);
-                layer.set_framebuffer_only(false);
+                let layer = CAMetalLayer::new();
+                layer.setDevice(Some(&device));
+                layer.setPixelFormat(objc2_metal::MTLPixelFormat::BGRA8Unorm);
+                layer.setPresentsWithTransaction(false);
+                // Disabling this option allows Skia's Blend Mode to work.
+                // More about: https://developer.apple.com/documentation/quartzcore/cametallayer/1478168-framebufferonly
+                layer.setFramebufferOnly(false);
+                layer.setDrawableSize(CGSize::new(size.width as f64, size.height as f64));
 
-                unsafe {
-                    let view = match raw_window_handle {
-                        raw_window_handle::RawWindowHandle::AppKit(appkit) => {
-                            appkit.ns_view.as_ptr()
-                        }
-                        _ => panic!("Wrong window handle type"),
-                    } as cocoa_id;
-                    view.setWantsLayer(YES);
-                    view.setLayer(layer.as_ref() as *const _ as _);
-                }
-                layer.set_drawable_size(CGSize::new(
-                    draw_size.width as f64,
-                    draw_size.height as f64,
-                ));
+                let view_ptr = match window.window_handle().unwrap().as_raw() {
+                    raw_window_handle::RawWindowHandle::AppKit(appkit) => {
+                        appkit.ns_view.as_ptr() as *mut NSView
+                    }
+                    _ => panic!("Wrong window handle type"),
+                };
+                let view = unsafe { view_ptr.as_ref().unwrap() };
+
+                view.setWantsLayer(true);
+                view.setLayer(Some(&layer.clone().into_super()));
+
                 layer
             };
 
-            let command_queue = device.new_command_queue();
+            let command_queue = device
+                .newCommandQueue()
+                .expect("unable to get command queue");
 
             // Create Graphite Metal backend context
             let backend = unsafe {
                 graphite_mtl::BackendContext::new(
-                    device.as_ptr() as graphite_mtl::Handle,
-                    command_queue.as_ptr() as graphite_mtl::Handle,
+                    Retained::as_ptr(&device) as graphite_mtl::Handle,
+                    Retained::as_ptr(&command_queue) as graphite_mtl::Handle,
                 )
             };
 
