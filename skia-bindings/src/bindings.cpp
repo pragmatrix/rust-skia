@@ -1925,6 +1925,16 @@ extern "C" void C_SkStrikeRef_getWidths(
     self->getWidths(SkSpan(glyphs, glyphCount), SkSpan(widths, widthCount));
 }
 
+extern "C" void C_SkStrikeRef_getWidthsStrided(
+    const SkStrikeRef* self,
+    unsigned count,
+    const uint32_t* firstGlyph,
+    unsigned glyphStride32,
+    SkScalar* firstAdvance,
+    unsigned advanceStride32) {
+    self->getWidthsStrided(count, firstGlyph, glyphStride32, firstAdvance, advanceStride32);
+}
+
 extern "C" SkScalar C_SkStrikeRef_getWidth(const SkStrikeRef* self, SkGlyphID glyph) {
     return self->getWidth(glyph);
 }

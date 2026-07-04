@@ -43,6 +43,37 @@ impl StrikeRef {
         }
     }
 
+    pub fn get_widths_strided(
+        &self,
+        count: usize,
+        glyphs: &[u32],
+        glyph_stride_32: usize,
+        advances: &mut [scalar],
+        advance_stride_32: usize,
+    ) {
+        if count == 0 {
+            return;
+        }
+
+        assert!(glyph_stride_32 > 0);
+        assert!(advance_stride_32 > 0);
+        let glyph_len = 1 + (count - 1) * glyph_stride_32;
+        let advance_len = 1 + (count - 1) * advance_stride_32;
+        assert!(glyphs.len() >= glyph_len);
+        assert!(advances.len() >= advance_len);
+
+        unsafe {
+            sb::C_SkStrikeRef_getWidthsStrided(
+                self.native(),
+                count.try_into().unwrap(),
+                glyphs.as_ptr(),
+                glyph_stride_32.try_into().unwrap(),
+                advances.as_mut_ptr(),
+                advance_stride_32.try_into().unwrap(),
+            )
+        }
+    }
+
     pub fn get_widths_bounds(
         &self,
         glyphs: &[GlyphId],
@@ -103,6 +134,11 @@ mod tests {
 
         assert_eq!(strike_widths, font_widths);
         assert_eq!(strike_ref.get_width(glyphs[0]), font_widths[0]);
+
+        let glyphs_32: Vec<u32> = glyphs.iter().map(|glyph| (*glyph).into()).collect();
+        let mut strided_widths = vec![0.0; glyphs_32.len()];
+        strike_ref.get_widths_strided(glyphs_32.len(), &glyphs_32, 1, &mut strided_widths, 1);
+        assert_eq!(strided_widths, font_widths);
 
         let mut font_bounds = vec![Default::default(); glyphs.len()];
         let mut strike_bounds = vec![Default::default(); glyphs.len()];
