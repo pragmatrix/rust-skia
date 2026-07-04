@@ -79,9 +79,7 @@ fn main() -> Result<(), io::Error> {
                 skia_debug,
                 true,
             );
-            let definitions = skia_bindgen::definitions::from_ninja_features(
-                &features,
-                final_build_configuration.use_system_libraries,
+            let definitions = skia_bindgen::definitions::from_file(
                 &binaries_config.output_directory,
             );
             generate_bindings(
@@ -127,9 +125,7 @@ fn main() -> Result<(), io::Error> {
                 skia_debug,
                 false,
             );
-            let definitions = skia_bindgen::definitions::from_ninja_features(
-                &features,
-                final_build_configuration.use_system_libraries,
+            let definitions = skia_bindgen::definitions::from_file(
                 &binaries_config.output_directory,
             );
             generate_bindings(
@@ -173,8 +169,7 @@ fn build_from_source(
     skia::build(
         &final_configuration,
         binaries_config,
-        skia::env::ninja_command(),
-        skia::env::gn_command(),
+        skia::env::bazel_command(),
         offline,
     );
 
