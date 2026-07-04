@@ -215,6 +215,14 @@ pub fn generate_bindings(
     bindgen_args.push(format!("-I{}", include_path.display()));
     cc_build.include(include_path);
 
+    // SkUserConfig.h is found by SkLoadUserConfig.h via `#include "SkUserConfig.h"`.
+    // In the Bazel build it comes from the @skia_user_config module; for the
+    // wrapper compilation (which uses the system compiler, not Bazel) we point
+    // at the upstream default in include/config/.
+    let user_config_path = include_path.join("include").join("config");
+    bindgen_args.push(format!("-I{}", user_config_path.display()));
+    cc_build.include(&user_config_path);
+
     for (name, value) in &build.definitions {
         match value {
             Some(value) => {
@@ -870,6 +878,20 @@ pub(crate) mod definitions {
         let env_string =
             env::skia_lib_definitions().expect("must include library definition environment");
         from_defines_str(&env_string)
+    }
+
+    /// Load definitions from the `skia-defines.txt` file written by the Bazel
+    /// build step (`build_support::skia::build`). Replaces `from_ninja_features`
+    /// for the Bazel backend.
+    pub fn from_file(output_directory: &Path) -> Definitions {
+        let path = output_directory.join("skia-defines.txt");
+        let contents = fs::read_to_string(&path).unwrap_or_else(|err| {
+            panic!(
+                "Failed to read skia-defines.txt: `{}`: {err}",
+                path.display()
+            )
+        });
+        from_defines_str(&contents)
     }
 
     pub fn save_definitions(

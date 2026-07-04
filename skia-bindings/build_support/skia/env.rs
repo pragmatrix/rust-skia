@@ -8,12 +8,9 @@ pub fn use_system_libraries() -> bool {
     cargo::env_var("SKIA_USE_SYSTEM_LIBRARIES").is_some()
 }
 
-/// The full path of the ninja command to run.
-pub fn ninja_command() -> Option<PathBuf> {
-    cargo::env_var("SKIA_NINJA_COMMAND").map(PathBuf::from)
-}
-
-/// The full path of the gn command to run.
-pub fn gn_command() -> Option<PathBuf> {
-    cargo::env_var("SKIA_GN_COMMAND").map(PathBuf::from)
+/// The full path of the Bazel launcher to run. Defaults to `bazelisk` (which
+/// honors the `.bazelversion` pinned by the Skia submodule) with a `bazel`
+/// fallback. Override with `SKIA_BAZEL_COMMAND`.
+pub fn bazel_command() -> Option<PathBuf> {
+    cargo::env_var("SKIA_BAZEL_COMMAND").map(PathBuf::from)
 }
