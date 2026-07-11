@@ -331,7 +331,7 @@ pub fn configure_skia(
         .map(|p| p.to_owned())
         .unwrap_or_else(|| build.skia_source_dir.join("bin").join("gn"));
 
-    println!("Skia args: {}", &gn_args);
+    println!("Skia args: {gn_args}");
 
     let output = Command::new(gn_command)
         .args([
