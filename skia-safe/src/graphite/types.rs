@@ -6,24 +6,19 @@ pub use sb::skgpu_BackendApi as BackendApi;
 pub use sb::skgpu_Budgeted as Budgeted;
 pub use sb::skgpu_Mipmapped as Mipmapped;
 
-/// Status of recording insertion
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-#[repr(i32)]
-pub enum InsertStatus {
-    /// Recording was successfully inserted
-    Success = 0,
-    /// Recording failed to insert
-    Failure = 1,
-}
-
-impl From<i32> for InsertStatus {
-    fn from(value: i32) -> Self {
-        match value {
-            0 => InsertStatus::Success,
-            _ => InsertStatus::Failure,
-        }
-    }
-}
+/// Status of recording insertion (`skgpu::graphite::InsertStatus::V`).
+///
+/// [`Success`](InsertStatus::Success) is the only success value; every other
+/// variant describes why the insertion failed (see the Skia documentation —
+/// `AddCommandsFailed` and `AsyncShaderCompilesFailed` leave the context in an
+/// unrecoverable state).
+pub use sb::skgpu_graphite_InsertStatus_V as InsertStatus;
+variant_name!(InsertStatus::Success);
+variant_name!(InsertStatus::InvalidRecording);
+variant_name!(InsertStatus::PromiseImageInstantiationFailed);
+variant_name!(InsertStatus::AddCommandsFailed);
+variant_name!(InsertStatus::AsyncShaderCompilesFailed);
+variant_name!(InsertStatus::OutOfOrderRecording);
 
 /// Configuration for recorder creation
 #[derive(Debug)]
@@ -74,19 +69,31 @@ impl RecorderOptions {
 /// for as long as this info — and any `insert_recording` call using it — is in use.
 #[derive(Debug)]
 pub struct InsertRecordingInfo<'a> {
-    inner: sb::skgpu_graphite_InsertRecordingInfo,
-    _recording: std::marker::PhantomData<&'a crate::graphite::Recording>,
+    inner: std::ptr::NonNull<sb::skgpu_graphite_InsertRecordingInfo>,
+    _recording: std::marker::PhantomData<&'a mut crate::graphite::Recording>,
+}
+
+impl Drop for InsertRecordingInfo<'_> {
+    fn drop(&mut self) {
+        unsafe { sb::C_InsertRecordingInfo_delete(self.inner.as_ptr()) }
+    }
 }
 
 impl<'a> InsertRecordingInfo<'a> {
     /// Create insert recording info for a recording.
-    pub fn new(recording: &'a crate::graphite::Recording) -> Self {
-        // All `InsertRecordingInfo` fields are plain pointers / POD / `kSuccess`
-        // (== 0) defaults, so zero-init is a valid default; we then point
-        // `fRecording` at the borrowed recording.
-        let mut inner: sb::skgpu_graphite_InsertRecordingInfo =
-            unsafe { std::mem::MaybeUninit::zeroed().assume_init() };
-        inner.fRecording = recording.native() as *const _ as *mut _;
+    ///
+    /// Takes the recording as `&mut` because `Context::insert_recording`
+    /// mutates it through the stored pointer (it sets failure results for
+    /// finished procs and deinstantiates volatile lazy proxies).
+    pub fn new(recording: &'a mut crate::graphite::Recording) -> Self {
+        // `InsertRecordingInfo` is not POD — `fSimulatedStatus` is an
+        // `InsertStatus` holding a `std::string` — and a libstdc++
+        // `std::string` in SSO state points into itself, so the struct cannot
+        // live in (and be moved with) Rust-owned storage. It is kept at a
+        // stable heap address instead (`new`/`delete` on the C++ side).
+        let inner = std::ptr::NonNull::new(unsafe { sb::C_InsertRecordingInfo_new() })
+            .expect("C_InsertRecordingInfo_new returned null");
+        unsafe { (*inner.as_ptr()).fRecording = recording.native_mut() };
         Self {
             inner,
             _recording: std::marker::PhantomData,
@@ -94,7 +101,7 @@ impl<'a> InsertRecordingInfo<'a> {
     }
 
     pub(crate) fn native(&self) -> &sb::skgpu_graphite_InsertRecordingInfo {
-        &self.inner
+        unsafe { self.inner.as_ref() }
     }
 }
 
@@ -151,11 +158,7 @@ pub enum SyncToCpu {
 
 impl From<bool> for SyncToCpu {
     fn from(sync: bool) -> Self {
-        if sync {
-            SyncToCpu::Yes
-        } else {
-            SyncToCpu::No
-        }
+        if sync { SyncToCpu::Yes } else { SyncToCpu::No }
     }
 }
 
@@ -171,13 +174,6 @@ impl From<SyncToCpu> for bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_insert_status_conversion() {
-        assert_eq!(InsertStatus::from(0), InsertStatus::Success);
-        assert_eq!(InsertStatus::from(1), InsertStatus::Failure);
-        assert_eq!(InsertStatus::from(999), InsertStatus::Failure);
-    }
 
     #[test]
     fn test_sync_to_cpu_conversion() {

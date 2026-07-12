@@ -22,8 +22,8 @@ fn main() {
     use objc2_metal::{MTLCreateSystemDefaultDevice, MTLDevice};
 
     use skia_safe::{
-        graphite::{self, mtl as gmtl},
         AlphaType, Color4f, ColorType, ImageInfo, Paint, Rect,
+        graphite::{self, mtl as gmtl},
     };
 
     const W: i32 = 64;
@@ -38,7 +38,9 @@ fn main() {
 
     let backend = unsafe { gmtl::BackendContext::new(device_ptr, queue_ptr) };
     let mut context = gmtl::make_context(&backend, None).expect("make_context returned None");
-    let mut recorder = context.make_recorder(None).expect("make_recorder returned None");
+    let mut recorder = context
+        .make_recorder(None)
+        .expect("make_recorder returned None");
 
     let image_info = ImageInfo::new((W, H), ColorType::RGBA8888, AlphaType::Premul, None);
     let mut surface = graphite::surfaces::render_target(
@@ -58,9 +60,8 @@ fn main() {
         &Paint::new(Color4f::new(0.0, 0.0, 1.0, 1.0), None),
     );
 
-    let recording = recorder.snap().expect("recorder.snap() returned None");
-    let info = graphite::InsertRecordingInfo::new(&recording);
-    let inserted = context.insert_recording(&info);
+    let mut recording = recorder.snap().expect("recorder.snap() returned None");
+    let inserted = context.insert_recording(&graphite::InsertRecordingInfo::new(&mut recording));
     let submitted = context.submit_and_wait();
     println!("insert={inserted:?} submit_and_wait={submitted}");
 

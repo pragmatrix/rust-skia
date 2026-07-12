@@ -27,8 +27,8 @@ fn main() {
     use objc2_metal::{MTLCreateSystemDefaultDevice, MTLDevice};
 
     use skia_safe::{
-        graphite::{self, mtl as gmtl},
         AlphaType, Color4f, ColorType, ImageInfo, Paint, Rect,
+        graphite::{self, mtl as gmtl},
     };
 
     let iters: usize = std::env::args()
@@ -54,7 +54,9 @@ fn main() {
     let mut shared = if reuse {
         let backend = unsafe { gmtl::BackendContext::new(device_ptr, queue_ptr) };
         let mut context = gmtl::make_context(&backend, None).expect("make_context returned None");
-        let recorder = context.make_recorder(None).expect("make_recorder returned None");
+        let recorder = context
+            .make_recorder(None)
+            .expect("make_recorder returned None");
         Some((backend, context, recorder))
     } else {
         None
@@ -67,8 +69,11 @@ fn main() {
             None
         } else {
             let backend = unsafe { gmtl::BackendContext::new(device_ptr, queue_ptr) };
-            let mut context = gmtl::make_context(&backend, None).expect("make_context returned None");
-            let recorder = context.make_recorder(None).expect("make_recorder returned None");
+            let mut context =
+                gmtl::make_context(&backend, None).expect("make_context returned None");
+            let recorder = context
+                .make_recorder(None)
+                .expect("make_recorder returned None");
             Some((backend, context, recorder))
         };
 
@@ -94,9 +99,8 @@ fn main() {
             &Paint::new(Color4f::new(0.0, 0.0, 1.0, 1.0), None),
         );
 
-        let recording = recorder.snap().expect("recorder.snap() returned None");
-        let info = graphite::InsertRecordingInfo::new(&recording);
-        let status = context.insert_recording(&info);
+        let mut recording = recorder.snap().expect("recorder.snap() returned None");
+        let status = context.insert_recording(&graphite::InsertRecordingInfo::new(&mut recording));
         let submitted = context.submit_and_wait();
         if verbose {
             println!(

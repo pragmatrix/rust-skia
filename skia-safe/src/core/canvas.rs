@@ -527,7 +527,7 @@ impl Canvas {
     pub fn recorder(&self) -> Option<graphite::BorrowedRecorder<'_>> {
         let recorder =
             graphite::Recorder::from_ptr(unsafe { sb::C_SkCanvas_recorder(self.native()) })?;
-        Some(mem::ManuallyDrop::new(recorder).borrows(self))
+        Some(graphite::BorrowedRecorder::from_canvas(recorder, self))
     }
 
     /// Sometimes a canvas is owned by a surface. If it is, [`Self::surface()`] will return a bare

@@ -101,9 +101,8 @@ extern "C" skgpu::graphite::Recorder* C_Context_makeRecorder(skgpu::graphite::Co
     return self->makeRecorder(*options).release();
 }
 
-extern "C" int C_Context_insertRecording(skgpu::graphite::Context* self, const skgpu::graphite::InsertRecordingInfo* info) {
-    auto status = self->insertRecording(*info);
-    return static_cast<int>(static_cast<skgpu::graphite::InsertStatus::V>(status));
+extern "C" skgpu::graphite::InsertStatus::V C_Context_insertRecording(skgpu::graphite::Context* self, const skgpu::graphite::InsertRecordingInfo* info) {
+    return self->insertRecording(*info);
 }
 
 extern "C" bool C_Context_submit(skgpu::graphite::Context* self, const skgpu::graphite::SubmitInfo* submitInfo) {
@@ -203,6 +202,24 @@ extern "C" bool C_Context_readPixels(
         self->checkAsyncWorkCompletion();
     }
     return ctx.fSuccess;
+}
+
+//
+// gpu/graphite/GraphiteTypes.h
+//
+
+// InsertRecordingInfo is not POD: fSimulatedStatus is an InsertStatus, which
+// holds a std::string. It must be heap-allocated (new/delete) rather than
+// zero-initialized or placement-constructed into Rust-owned storage: a
+// libstdc++ std::string in SSO state points into itself, so Rust moving the
+// struct by value would leave that pointer dangling and the destructor would
+// free() an invalid pointer. The heap object never moves.
+extern "C" skgpu::graphite::InsertRecordingInfo* C_InsertRecordingInfo_new() {
+    return new skgpu::graphite::InsertRecordingInfo();
+}
+
+extern "C" void C_InsertRecordingInfo_delete(skgpu::graphite::InsertRecordingInfo* self) {
+    delete self;
 }
 
 //

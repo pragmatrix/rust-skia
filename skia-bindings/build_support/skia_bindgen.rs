@@ -782,6 +782,9 @@ const ENUM_REWRITES: &[EnumEntry] = &[
     ("CompressionLevel", rewrite::k_opt_xxx),
     // m148: SkShapers::CT::LineBreakMode
     ("LineBreakMode", rewrite::k_xxx),
+    // graphite: skgpu::graphite::InsertStatus::V (the class-enum migration
+    // shim for Context::insertRecording's status)
+    ("V", rewrite::k_xxx),
 ];
 
 pub(crate) mod rewrite {

@@ -18,9 +18,8 @@ fn main() {
     use ash::vk::{self, Handle};
 
     use skia_safe::{
-        gpu,
+        AlphaType, Color4f, ColorType, ImageInfo, Paint, Rect, gpu,
         graphite::{self, vk as gvk},
-        AlphaType, Color4f, ColorType, ImageInfo, Paint, Rect,
     };
 
     let iters: usize = std::env::args()
@@ -119,7 +118,9 @@ fn main() {
     let mut shared = if reuse {
         let backend = make_backend();
         let mut context = gvk::make_context(&backend, None).expect("make_context returned None");
-        let recorder = context.make_recorder(None).expect("make_recorder returned None");
+        let recorder = context
+            .make_recorder(None)
+            .expect("make_recorder returned None");
         Some((context, recorder))
     } else {
         None
@@ -132,7 +133,9 @@ fn main() {
             let backend = make_backend();
             let mut context =
                 gvk::make_context(&backend, None).expect("make_context returned None");
-            let recorder = context.make_recorder(None).expect("make_recorder returned None");
+            let recorder = context
+                .make_recorder(None)
+                .expect("make_recorder returned None");
             Some((context, recorder))
         };
 
@@ -158,9 +161,8 @@ fn main() {
             &Paint::new(Color4f::new(0.0, 0.0, 1.0, 1.0), None),
         );
 
-        let recording = recorder.snap().expect("recorder.snap() returned None");
-        let info = graphite::InsertRecordingInfo::new(&recording);
-        let status = context.insert_recording(&info);
+        let mut recording = recorder.snap().expect("recorder.snap() returned None");
+        let status = context.insert_recording(&graphite::InsertRecordingInfo::new(&mut recording));
         let submitted = context.submit_and_wait();
         if verbose {
             println!("[ok] insert_recording={status:?} submit_and_wait={submitted}");
@@ -169,8 +171,7 @@ fn main() {
             // back via the synchronous asyncRescaleAndReadPixels path.
             let row_bytes = 64 * 4;
             let mut pixels = vec![0u8; row_bytes * 64];
-            let ok =
-                context.read_pixels(&mut surface, &image_info, &mut pixels, row_bytes, (0, 0));
+            let ok = context.read_pixels(&mut surface, &image_info, &mut pixels, row_bytes, (0, 0));
             assert!(ok, "Context::read_pixels failed");
             let px = |x: usize, y: usize| {
                 let o = y * row_bytes + x * 4;

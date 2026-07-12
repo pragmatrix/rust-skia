@@ -18,14 +18,14 @@
 //!
 //! // Context creation is platform-specific (see `graphite::mtl` / `graphite::vk`).
 //! # let context = None::<graphite::Context>;
-//! # if let Some(context) = context {
+//! # if let Some(mut context) = context {
 //! // Create a recorder for recording draw operations
 //! let mut recorder = context.make_recorder(None).expect("make_recorder");
 //!
 //! // Create a Graphite-backed surface from the recorder (see `graphite::surfaces`)
 //! // and draw into its canvas, then finish recording and submit:
-//! let recording = recorder.snap().expect("snap");
-//! let info = graphite::InsertRecordingInfo::new(&recording);
+//! let mut recording = recorder.snap().expect("snap");
+//! let info = graphite::InsertRecordingInfo::new(&mut recording);
 //! context.insert_recording(&info);
 //! context.submit(None);
 //! # }

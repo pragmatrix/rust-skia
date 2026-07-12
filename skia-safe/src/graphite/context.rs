@@ -61,11 +61,10 @@ impl Context {
     /// - `info` - Information about the recording to insert
     ///
     /// # Returns
-    /// Status indicating success or failure of the insertion
+    /// [`InsertStatus::Success`], or the specific failure reason (see the
+    /// [`InsertStatus`] variants).
     pub fn insert_recording(&mut self, info: &InsertRecordingInfo<'_>) -> InsertStatus {
-        let status_int =
-            unsafe { sb::C_Context_insertRecording(self.native_mut(), info.native()) };
-        InsertStatus::from(status_int)
+        unsafe { sb::C_Context_insertRecording(self.native_mut(), info.native()) }
     }
 
     /// Submit pending work to the GPU
@@ -133,6 +132,24 @@ impl Context {
     /// synchronous submit (it blocks until the GPU work and the readback copy
     /// have finished). This is the supported path for a screenshot / golden-image
     /// capture.
+    ///
+    /// Draw operations still pending on the surface's `Recorder` are **not**
+    /// flushed by this call — the readback path never consults the recorder, so
+    /// unsnapped work silently yields stale (typically blank) pixels. Snap and
+    /// insert the recording first:
+    ///
+    /// ```no_run
+    /// # use skia_safe::graphite;
+    /// # fn f(context: &mut graphite::Context, recorder: &mut graphite::Recorder,
+    /// #      surface: &mut skia_safe::Surface) {
+    /// // ... draw to surface.canvas() ...
+    /// let mut recording = recorder.snap().expect("snap");
+    /// context.insert_recording(&graphite::InsertRecordingInfo::new(&mut recording));
+    /// let info = surface.image_info();
+    /// let mut pixels = vec![0u8; info.min_row_bytes() * info.height() as usize];
+    /// let ok = context.read_pixels(surface, &info, &mut pixels, info.min_row_bytes(), (0, 0));
+    /// # }
+    /// ```
     ///
     /// `dst_pixels` receives `dst_info.height()` rows of `dst_row_bytes` each and
     /// must be at least `dst_row_bytes * dst_info.height()` bytes; `dst_row_bytes`

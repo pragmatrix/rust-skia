@@ -102,10 +102,10 @@ fn main() {
                         window::draw(surface.canvas());
 
                         // Finish recording
-                        let recording = recorder.snap().expect("Failed to snap recording");
+                        let mut recording = recorder.snap().expect("Failed to snap recording");
 
                         // Insert recording into context
-                        let insert_info = graphite::InsertRecordingInfo::new(&recording);
+                        let insert_info = graphite::InsertRecordingInfo::new(&mut recording);
                         context.skia.insert_recording(&insert_info);
                         // `insert_recording` only borrows the recording (it copies what it
                         // needs synchronously), so dropping it here at end of scope is correct.

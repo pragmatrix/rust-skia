@@ -1,4 +1,4 @@
-use crate::graphite::{types::BackendApi, TextureInfo};
+use crate::graphite::{TextureInfo, types::BackendApi};
 use crate::prelude::*;
 use skia_bindings as sb;
 use std::fmt;

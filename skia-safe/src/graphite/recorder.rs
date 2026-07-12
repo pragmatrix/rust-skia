@@ -1,4 +1,4 @@
-use crate::graphite::{types::BackendApi, Recording, TextureInfo};
+use crate::graphite::{Recording, TextureInfo, types::BackendApi};
 use crate::prelude::*;
 use crate::{Canvas, ImageInfo};
 use skia_bindings as sb;
@@ -15,7 +15,48 @@ pub type Recorder = RefHandle<sb::skgpu_graphite_Recorder>;
 /// Dropping a `BorrowedRecorder` does **not** `delete` the underlying recorder —
 /// the owner keeps that responsibility — and the lifetime ties the borrow to the
 /// object it was obtained from, so it cannot dangle.
-pub type BorrowedRecorder<'a> = Borrows<'a, std::mem::ManuallyDrop<Recorder>>;
+///
+/// Only shared access to the underlying [`Recorder`] is exposed (via `Deref`);
+/// the mutating operations are forwarded as inherent methods. Handing out
+/// `&mut Recorder` would be unsound: safe code could `mem::replace` a recorder
+/// created by `Context::make_recorder` into it and end up owning (and later
+/// dropping, i.e. `delete`ing) a recorder the surface still owns.
+#[derive(Debug)]
+pub struct BorrowedRecorder<'a> {
+    recorder: std::mem::ManuallyDrop<Recorder>,
+    _owner: std::marker::PhantomData<&'a Canvas>,
+}
+
+impl std::ops::Deref for BorrowedRecorder<'_> {
+    type Target = Recorder;
+
+    fn deref(&self) -> &Recorder {
+        &self.recorder
+    }
+}
+
+impl<'a> BorrowedRecorder<'a> {
+    pub(crate) fn from_canvas(recorder: Recorder, _canvas: &'a Canvas) -> Self {
+        Self {
+            recorder: std::mem::ManuallyDrop::new(recorder),
+            _owner: std::marker::PhantomData,
+        }
+    }
+
+    /// See [`Recorder::snap`].
+    pub fn snap(&mut self) -> Option<Recording> {
+        self.recorder.snap()
+    }
+
+    /// See [`Recorder::make_deferred_canvas`].
+    pub fn make_deferred_canvas(
+        &mut self,
+        image_info: &ImageInfo,
+        texture_info: &TextureInfo,
+    ) -> Option<&Canvas> {
+        self.recorder.make_deferred_canvas(image_info, texture_info)
+    }
+}
 
 // Deliberately NOT `Send`/`Sync`: Skia documents a Graphite `Recorder` as
 // single-threaded (it and its child objects must be used on one thread), and its
