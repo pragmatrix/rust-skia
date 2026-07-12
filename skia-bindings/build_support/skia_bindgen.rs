@@ -785,6 +785,8 @@ const ENUM_REWRITES: &[EnumEntry] = &[
     // graphite: skgpu::graphite::InsertStatus::V (the class-enum migration
     // shim for Context::insertRecording's status)
     ("V", rewrite::k_xxx),
+    // graphite: skgpu::graphite::SyncToCpu
+    ("SyncToCpu", rewrite::k_xxx),
 ];
 
 pub(crate) mod rewrite {

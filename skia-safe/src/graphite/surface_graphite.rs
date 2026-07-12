@@ -100,7 +100,7 @@ pub fn wrap_backend_texture(
 ///
 /// # Returns
 /// An `Image` representing the surface contents, or `None` if conversion failed
-pub fn as_image(surface: &mut Surface) -> Option<crate::Image> {
+pub fn as_image(surface: &Surface) -> Option<crate::Image> {
     // `SkSurfaces::AsImage` takes an owning `sk_sp<const SkSurface>` (the shim
     // adopts the pointer) while the caller keeps using `surface`, so transfer a
     // *fresh* reference: `clone` bumps the refcount and `into_ptr` hands that ref
@@ -123,7 +123,7 @@ pub fn as_image(surface: &mut Surface) -> Option<crate::Image> {
 /// # Returns
 /// An `Image` containing a copy of the surface region, or `None` if copying failed
 pub fn as_image_copy(
-    surface: &mut Surface,
+    surface: &Surface,
     subset: Option<&IRect>,
     mipmapped: Mipmapped,
 ) -> Option<crate::Image> {
@@ -166,9 +166,8 @@ mod tests {
                 Option<&SurfaceProps>,
             ) -> Option<Surface>;
 
-        let _f3 = as_image as fn(&mut Surface) -> Option<crate::Image>;
+        let _f3 = as_image as fn(&Surface) -> Option<crate::Image>;
 
-        let _f4 =
-            as_image_copy as fn(&mut Surface, Option<&IRect>, Mipmapped) -> Option<crate::Image>;
+        let _f4 = as_image_copy as fn(&Surface, Option<&IRect>, Mipmapped) -> Option<crate::Image>;
     }
 }

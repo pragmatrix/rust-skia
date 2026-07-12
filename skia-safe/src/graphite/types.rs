@@ -1,10 +1,11 @@
 use crate::prelude::*;
 use skia_bindings as sb;
 
-// Re-export backend types from skia_bindings
-pub use sb::skgpu_BackendApi as BackendApi;
-pub use sb::skgpu_Budgeted as Budgeted;
-pub use sb::skgpu_Mipmapped as Mipmapped;
+// Re-export the shared `skgpu` types through `gpu` rather than aliasing the
+// raw bindings again: `BackendApi` / `Mipmapped` are the same native types, and
+// `Budgeted` gets `gpu`'s bool-newtype wrapper instead of a second, name-clashing
+// incompatible type.
+pub use crate::gpu::{BackendApi, Budgeted, Mipmapped};
 
 /// Status of recording insertion (`skgpu::graphite::InsertStatus::V`).
 ///
@@ -121,7 +122,7 @@ impl SubmitInfo {
     /// Create new submit info with default settings (no CPU sync).
     ///
     /// Every `SubmitInfo` field's zero value equals its C++ default
-    /// (`SyncToCpu::kNo`, `MarkFrameBoundary::kNo`, `0`, null procs), so
+    /// (`SyncToCpu::No`, `MarkFrameBoundary::kNo`, `0`, null procs), so
     /// zero-init is a valid default here.
     pub fn new() -> Self {
         // Every field's zero value equals its C++ default, so a zeroed struct is
@@ -131,14 +132,10 @@ impl SubmitInfo {
     }
 
     /// Submit info whose `fSync` is set so that `Context::submit` blocks until
-    /// the submitted GPU work has completed (`SyncToCpu::kYes` when `sync`).
+    /// the submitted GPU work has completed (`SyncToCpu::Yes` when `sync`).
     pub fn with_sync_to_cpu(sync: bool) -> Self {
         let mut info = Self::new();
-        info.inner.fSync = if sync {
-            sb::skgpu_graphite_SyncToCpu::kYes
-        } else {
-            sb::skgpu_graphite_SyncToCpu::kNo
-        };
+        info.inner.fSync = if sync { SyncToCpu::Yes } else { SyncToCpu::No };
         info
     }
 
@@ -148,40 +145,12 @@ impl SubmitInfo {
 }
 
 /// Synchronization mode for GPU operations
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub enum SyncToCpu {
-    /// Don't wait for GPU completion
-    No = 0,
-    /// Wait for GPU operations to complete
-    Yes = 1,
-}
-
-impl From<bool> for SyncToCpu {
-    fn from(sync: bool) -> Self {
-        if sync { SyncToCpu::Yes } else { SyncToCpu::No }
-    }
-}
-
-impl From<SyncToCpu> for bool {
-    fn from(sync: SyncToCpu) -> bool {
-        match sync {
-            SyncToCpu::Yes => true,
-            SyncToCpu::No => false,
-        }
-    }
-}
+pub use sb::skgpu_graphite_SyncToCpu as SyncToCpu;
+variant_name!(SyncToCpu::Yes);
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_sync_to_cpu_conversion() {
-        assert_eq!(SyncToCpu::from(true), SyncToCpu::Yes);
-        assert_eq!(SyncToCpu::from(false), SyncToCpu::No);
-        assert!(bool::from(SyncToCpu::Yes));
-        assert!(!bool::from(SyncToCpu::No));
-    }
 
     #[test]
     fn test_recorder_options_creation() {

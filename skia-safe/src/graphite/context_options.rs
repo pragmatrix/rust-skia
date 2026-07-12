@@ -1,6 +1,9 @@
 use skia_bindings as sb;
 use std::fmt;
 
+// `repr(transparent)` guarantees the layout the `native_transmutable!` below
+// relies on (a repr(Rust) single-field struct only matches de facto).
+#[repr(transparent)]
 pub struct ContextOptions {
     inner: sb::skgpu_graphite_ContextOptions,
 }

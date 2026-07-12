@@ -91,7 +91,7 @@ fn main() {
     // the surface refcount, freeing it out from under us -> crash / UAF.
     for _ in 0..200 {
         assert!(
-            graphite::surfaces::as_image(&mut surface).is_some(),
+            graphite::surfaces::as_image(&surface).is_some(),
             "as_image returned None"
         );
     }
