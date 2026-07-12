@@ -79,6 +79,7 @@ impl DrawingDriver for Vulkan {
     }
 }
 
+#[allow(unused)]
 pub struct AshGraphics {
     pub entry: Entry,
     pub instance: Instance,
