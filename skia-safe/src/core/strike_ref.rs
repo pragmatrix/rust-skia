@@ -26,10 +26,6 @@ impl fmt::Debug for StrikeRef {
 }
 
 impl StrikeRef {
-    pub fn get_width(&self, glyph: GlyphId) -> scalar {
-        unsafe { sb::C_SkStrikeRef_getWidth(self.native(), glyph) }
-    }
-
     pub fn get_widths(&self, glyphs: &[GlyphId], widths: &mut [scalar]) {
         assert_eq!(glyphs.len(), widths.len());
         unsafe {
@@ -43,6 +39,20 @@ impl StrikeRef {
         }
     }
 
+    pub fn get_width(&self, glyph: GlyphId) -> scalar {
+        unsafe { sb::C_SkStrikeRef_getWidth(self.native(), glyph) }
+    }
+
+    /// Retrieves advance widths while handling arbitrary strides for both glyphs and advances.
+    ///
+    /// Glyph IDs use 32 bits in preparation for large glyph IDs. A zero stride repeatedly reads or
+    /// writes the first element.
+    ///
+    /// - `count`: number of glyphs to measure
+    /// - `glyphs`: slice containing the first glyph and every strided glyph after it
+    /// - `glyph_stride_32`: stride in 32-bit words between input glyph IDs
+    /// - `advances`: slice containing the first advance and every strided advance after it
+    /// - `advance_stride_32`: stride in 32-bit words between output advances
     pub fn get_widths_strided(
         &self,
         count: usize,
@@ -55,21 +65,33 @@ impl StrikeRef {
             return;
         }
 
-        assert!(glyph_stride_32 > 0);
-        assert!(advance_stride_32 > 0);
-        let glyph_len = 1 + (count - 1) * glyph_stride_32;
-        let advance_len = 1 + (count - 1) * advance_stride_32;
-        assert!(glyphs.len() >= glyph_len);
-        assert!(advances.len() >= advance_len);
+        let native_count = count.try_into().expect("count exceeds unsigned range");
+        let native_glyph_stride = glyph_stride_32
+            .try_into()
+            .expect("glyph_stride_32 exceeds unsigned range");
+        let native_advance_stride = advance_stride_32
+            .try_into()
+            .expect("advance_stride_32 exceeds unsigned range");
+
+        let glyph_len = (count - 1)
+            .checked_mul(glyph_stride_32)
+            .and_then(|len| len.checked_add(1))
+            .expect("glyph stride length overflow");
+        let advance_len = (count - 1)
+            .checked_mul(advance_stride_32)
+            .and_then(|len| len.checked_add(1))
+            .expect("advance stride length overflow");
+        assert!(glyphs.len() >= glyph_len, "glyph slice is too short");
+        assert!(advances.len() >= advance_len, "advance slice is too short");
 
         unsafe {
             sb::C_SkStrikeRef_getWidthsStrided(
                 self.native(),
-                count.try_into().unwrap(),
+                native_count,
                 glyphs.as_ptr(),
-                glyph_stride_32.try_into().unwrap(),
+                native_glyph_stride,
                 advances.as_mut_ptr(),
-                advance_stride_32.try_into().unwrap(),
+                native_advance_stride,
             )
         }
     }
@@ -136,9 +158,31 @@ mod tests {
         assert_eq!(strike_ref.get_width(glyphs[0]), font_widths[0]);
 
         let glyphs_32: Vec<u32> = glyphs.iter().map(|glyph| (*glyph).into()).collect();
-        let mut strided_widths = vec![0.0; glyphs_32.len()];
-        strike_ref.get_widths_strided(glyphs_32.len(), &glyphs_32, 1, &mut strided_widths, 1);
-        assert_eq!(strided_widths, font_widths);
+        let strided_glyphs: Vec<u32> = glyphs_32
+            .iter()
+            .flat_map(|glyph| [*glyph, u32::MAX])
+            .collect();
+        let mut strided_widths = vec![f32::NAN; strided_glyphs.len()];
+        strike_ref.get_widths_strided(glyphs_32.len(), &strided_glyphs, 2, &mut strided_widths, 2);
+        assert_eq!(
+            strided_widths
+                .iter()
+                .step_by(2)
+                .copied()
+                .collect::<Vec<_>>(),
+            font_widths
+        );
+        assert!(
+            strided_widths
+                .iter()
+                .skip(1)
+                .step_by(2)
+                .all(|width| width.is_nan())
+        );
+
+        let mut repeated_width = [0.0];
+        strike_ref.get_widths_strided(2, &glyphs_32[..1], 0, &mut repeated_width, 0);
+        assert_eq!(repeated_width[0], font_widths[0]);
 
         let mut font_bounds = vec![Default::default(); glyphs.len()];
         let mut strike_bounds = vec![Default::default(); glyphs.len()];
