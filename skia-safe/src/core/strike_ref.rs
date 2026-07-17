@@ -4,6 +4,18 @@ use skia_bindings as sb;
 
 use crate::{GlyphId, Rect, prelude::*, scalar};
 
+/// `StrikeRef` is a lightweight, thread-safe handle to a resolved font strike.
+///
+/// It caches the result of looking up an `SkStrike` for a particular [`crate::Font`] configuration,
+/// allowing repeated glyph metric queries (advances, bounds) without the overhead of descriptor
+/// construction, hashing, and global cache lookup on each call.
+///
+/// Obtain an `StrikeRef` from [`crate::Font::make_strike_ref()`]. The returned object remains valid
+/// as long as it is held; the underlying `SkStrike` is atomically reference counted.
+///
+/// `StrikeRef` does not track changes to the [`crate::Font`] it was created from. If the
+/// [`crate::Font`]'s properties change (size, typeface, hinting, etc.), a new `StrikeRef` must be
+/// obtained.
 pub type StrikeRef = Handle<sb::SkStrikeRef>;
 unsafe_send_sync!(StrikeRef);
 
@@ -26,6 +38,12 @@ impl fmt::Debug for StrikeRef {
 }
 
 impl StrikeRef {
+    /// Retrieves the advance widths for each glyph.
+    ///
+    /// `widths` receives `min(widths.len(), glyphs.len())` values.
+    ///
+    /// - `glyphs`: array of glyph indices to be measured
+    /// - `widths`: returns text advances for each glyph, in font units
     pub fn get_widths(&self, glyphs: &[GlyphId], widths: &mut [scalar]) {
         assert_eq!(glyphs.len(), widths.len());
         unsafe {
@@ -39,19 +57,23 @@ impl StrikeRef {
         }
     }
 
+    /// Retrieves the advance width for a single glyph.
+    ///
+    /// - `glyph`: glyph index to be measured
+    ///
+    /// Returns advance width in font units.
     pub fn get_width(&self, glyph: GlyphId) -> scalar {
         unsafe { sb::C_SkStrikeRef_getWidth(self.native(), glyph) }
     }
 
-    /// Retrieves advance widths while handling arbitrary strides for both glyphs and advances.
-    ///
-    /// Glyph IDs use 32 bits in preparation for large glyph IDs. A zero stride repeatedly reads or
-    /// writes the first element.
+    /// Retrieves the advance widths for each glyph, handling arbitrary strides for both input
+    /// glyphs and output advances.
     ///
     /// - `count`: number of glyphs to measure
-    /// - `glyphs`: slice containing the first glyph and every strided glyph after it
+    /// - `glyphs`: slice containing the first glyph ID, glyph is 32-bit, instead of [`GlyphId`], in
+    ///   preparation for large glyph ids.
     /// - `glyph_stride_32`: stride in 32-bit words between input glyph IDs
-    /// - `advances`: slice containing the first advance and every strided advance after it
+    /// - `advances`: slice containing the first output advance
     /// - `advance_stride_32`: stride in 32-bit words between output advances
     pub fn get_widths_strided(
         &self,
@@ -96,6 +118,14 @@ impl StrikeRef {
         }
     }
 
+    /// Retrieves the advance widths and bounds for each glyph.
+    ///
+    /// `widths` receives `min(widths.len(), glyphs.len())` values.
+    /// `bounds` receives `min(bounds.len(), glyphs.len())` values.
+    ///
+    /// - `glyphs`: array of glyph indices to be measured
+    /// - `widths`: returns text advances for each glyph
+    /// - `bounds`: returns bounds for each glyph relative to `(0, 0)`
     pub fn get_widths_bounds(
         &self,
         glyphs: &[GlyphId],
