@@ -1,6 +1,6 @@
 ---
 name: skia-milestone-update
-description: Perform a Skia milestone update for rust-skia (align rust-skia with a new Skia chrome/mXX branch). Use when the user asks to "continue the milestone update", "update to milestone mXX", or references the milestone update process. Covers README update, build org diff, header diff accounting, wrapper updates, version bump, API diff review, and final checks.
+description: Perform a Skia milestone update for rust-skia or refresh the current milestone from its upstream chrome/mXX branch. Use when the user asks to "continue the milestone update", "update to milestone mXX", "update Skia from upstream", or references the milestone update process. Covers the Skia fork rebase and tag sequence, README update, build org diff, header diff accounting, wrapper updates, version bump, API diff review, and final checks.
 ---
 
 # Skia Milestone Update
@@ -19,6 +19,73 @@ wiki page; follow every item there. Project-specific conventions and the
 
 Determine these from `skia-bindings/Cargo.toml` (`[package.metadata] skia = "..."`)
 and `git -C skia-bindings/skia describe --tags` / `git -C skia-bindings/skia tag --list 'm1*'`.
+
+## Refresh the current milestone from upstream
+
+Use this sequence when `upstream/chrome/mXX` advances after the initial milestone
+tag. Preserve the rust-skia patch stack by rebasing it; do not merge upstream into
+the fork tag.
+
+1. Refresh both repositories and inspect the new upstream commits:
+
+   ```sh
+   git fetch --all --prune
+   git -C skia-bindings/skia fetch --all --prune
+   git -C skia-bindings/skia rev-list --left-right --count OLD_TAG...upstream/chrome/mXX
+   git -C skia-bindings/skia log --oneline OLD_TAG..upstream/chrome/mXX
+   ```
+
+2. Review the upstream diff. If it changes public headers, complete the full header
+   accounting below before updating wrappers. Record internal-only changes as requiring
+   no binding update.
+
+3. Find the old upstream base, create a temporary branch at `OLD_TAG`, and rebase the
+   complete rust-skia patch stack onto the refreshed branch:
+
+   ```sh
+   git -C skia-bindings/skia merge-base OLD_TAG upstream/chrome/mXX
+   git -C skia-bindings/skia switch -c codex/NEW_TAG OLD_TAG
+   git -C skia-bindings/skia rebase --onto upstream/chrome/mXX OLD_BASE
+   ```
+
+   If the temporary branch already exists, switch to it instead of recreating it.
+
+4. Verify that every downstream patch is unchanged and that the result is based on the
+   refreshed upstream tip:
+
+   ```sh
+   git -C skia-bindings/skia range-diff OLD_BASE..OLD_TAG upstream/chrome/mXX..HEAD
+   git -C skia-bindings/skia rev-list --left-right --count upstream/chrome/mXX...HEAD
+   ```
+
+   Require every `range-diff` entry to be `=` and the second command to report `0 N`,
+   where `N` is the number of rust-skia patches.
+
+5. Increment the patch component of the Skia fork tag (for example,
+   `m151-0.99.0` -> `m151-0.99.1`) and tag the rebased tip. Do not bump the Rust crate
+   versions for a same-milestone upstream refresh.
+
+6. Update `[package.metadata].skia`, the README comparison links, and the parent
+   repository's submodule gitlink. Stage all three before running Cargo or another
+   build job:
+
+   ```sh
+   git add README.md skia-bindings/Cargo.toml skia-bindings/skia
+   ```
+
+   This ordering is required because the build script may run `git submodule update`.
+   An unstaged gitlink still points at the old commit and can reset the submodule
+   checkout. If that happens, switch back to the temporary branch, verify its tip,
+   repair only a local unpushed tag if needed, and stage the gitlink before retrying.
+   Never rewrite a tag that is already published.
+
+7. Run `make diff-skia`, `cargo check -p skia-bindings`,
+   `cargo check -p skia-safe`, and the platform tests appropriate to the change.
+   Reconfirm after the builds that the checkout, tag, and staged gitlink all point at
+   the rebased tip.
+
+8. Push the new Skia tag only with explicit user authorization, then verify the remote
+   tag points at the expected commit. Pushing the temporary branch is not required.
 
 ## Notes that go beyond the wiki checklist
 
