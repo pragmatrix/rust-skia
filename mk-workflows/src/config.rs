@@ -286,5 +286,9 @@ fn android_targets() -> Vec<TargetConf> {
 pub fn wasm_targets() -> Vec<TargetConf> {
     // Compiling ureq-proto v0.3.0
     //   error[E0277]: the trait bound `SystemRandom: ring::rand::SecureRandom` is not satisfied
-    [TargetConf::new("wasm32-unknown-emscripten", "").disable("ureq,x11,wayland,vulkan")].into()
+    [
+        TargetConf::new("wasm32-unknown-emscripten", "").disable("ureq,x11,wayland,vulkan"),
+        TargetConf::new("wasm32-unknown-unknown", "").disable("ureq,x11,wayland,vulkan"),
+    ]
+    .into()
 }

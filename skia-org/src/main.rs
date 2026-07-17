@@ -1,8 +1,18 @@
+#![cfg_attr(
+    all(target_arch = "wasm32", feature = "gl"),
+    allow(dead_code, unused_imports, unused_extern_crates)
+)]
+
+#[cfg(all(target_arch = "wasm32", feature = "gl"))]
+fn main() {
+    panic!("skia-org with the `gl` feature is not supported on wasm32 targets");
+}
+
 use crate::drivers::DrawingDriver;
 use clap::Parser;
 use std::path::{Path, PathBuf};
 
-#[cfg(feature = "gl")]
+#[cfg(all(not(target_arch = "wasm32"), feature = "gl"))]
 use offscreen_gl_context::{GLContext, GLVersion, NativeGLContext};
 
 #[cfg(feature = "vulkan")]
@@ -32,6 +42,7 @@ struct Arguments {
     driver: Vec<Driver>,
 }
 
+#[cfg(not(all(target_arch = "wasm32", feature = "gl")))]
 fn main() {
     let args = Arguments::parse();
 
@@ -63,7 +74,7 @@ fn main() {
         }
     }
 
-    #[cfg(feature = "gl")]
+    #[cfg(all(feature = "gl", not(target_arch = "wasm32")))]
     {
         use drivers::gl::*;
         if drivers.contains(&Driver::Gl) {

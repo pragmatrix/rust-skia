@@ -30,3 +30,5 @@ check-skia-submodule-tag:
 
     echo "OK: skia submodule tag matches metadata tag ($expected_tag)"
 
+code-wasm-unknown:
+    code .vscode/rust-skia-wasm-unknown.code-workspace
