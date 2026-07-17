@@ -99,10 +99,13 @@ the fork tag.
 - **Account for every changed public header** before editing wrappers. Start from the
   full list of changed public headers (`git -C skia-bindings/skia diff --name-only
   OLD_TAG..NEW_TAG -- 'include/**/*.h' 'modules/*/include/**/*.h'`) and the complete
-  diff of all of them, then walk through every file before making any edits. Include
-  changes that look trivial (include moves, comments, friend declarations, build-file
-  public header lists). Common include-path-only moves (e.g. `include/private/base/*`
-  -> `include/private/*`) need no binding/wrapper update — record them as `no change`.
+  diff of all of them, then walk through every file before making any edits. Review
+  inline function and method implementations as carefully as declarations: they are
+  compiled into consumers and can change behavior without changing the API signature.
+  Include changes that look trivial (include moves, comments, friend declarations,
+  build-file public header lists). Common include-path-only moves (e.g.
+  `include/private/base/*` -> `include/private/*`) need no binding/wrapper update —
+  record them as `no change`.
 
   Do not cherry-pick a subset of the changed headers (for example, only the ones with
   the largest diffs). Process every header deterministically:
@@ -114,7 +117,10 @@ the fork tag.
      - **no binding exists, no wrapper exists** — usually no action unless it is a newly
        exposed public API that should be wrapped;
      - **binding exists, wrapper exists** — diff the header and update the C wrapper in
-       `skia-bindings/src/*.cpp` and the Rust wrapper in `skia-safe/src/...` to match;
+       `skia-bindings/src/*.cpp` and the Rust wrapper in `skia-safe/src/...` to match.
+       For changed inline implementations, determine whether the C wrapper calls or
+       relies on the affected behavior, and record that review even when no source edit
+       is needed;
      - **new public header** — decide whether to add a binding + wrapper, and record
        the decision.
   3. Keep a written accounting (in a scratch file like `/tmp/mXX_accounting.md`) of
