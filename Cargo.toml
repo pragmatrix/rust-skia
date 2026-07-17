@@ -1,5 +1,5 @@
 [workspace]
-resolver = "2"
+resolver = "3"
 members = [
     "skia-safe",
     "skia-svg-macros",
@@ -11,6 +11,7 @@ members = [
 ]
 
 [workspace.package]
+edition = "2024"
 rust-version = "1.85"
 
 [profile.release]

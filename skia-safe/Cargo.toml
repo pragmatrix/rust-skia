@@ -4,7 +4,7 @@ name = "skia-safe"
 description = "Safe Skia Bindings for Rust"
 homepage = "https://github.com/rust-skia/rust-skia"
 repository = "https://github.com/rust-skia/rust-skia"
-documentation = "https://rust-skia.github.io/doc/skia_safe"
+documentation = "https://docs.rs/skia-safe"
 readme = "README.md"
 # 5 max
 keywords = ["skia", "rust-bindings", "vulkan", "opengl", "pdf"]
@@ -18,9 +18,9 @@ categories = [
 ]
 license = "MIT"
 
-version = "0.97.0"
+version = "0.99.0"
 authors = ["Armin Sander <armin@replicator.org>"]
-edition = "2021"
+edition.workspace = true
 rust-version.workspace = true
 
 [lib]
@@ -61,7 +61,7 @@ gpu = []
 
 [dependencies]
 bitflags = "2.0"
-skia-bindings = { version = "=0.97.0", path = "../skia-bindings", default-features = false }
+skia-bindings = { version = "=0.99.0", path = "../skia-bindings", default-features = false }
 
 # D3D types & ComPtr
 windows = { version = "0.62.0", features = [

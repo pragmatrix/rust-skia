@@ -102,7 +102,7 @@ unsafe extern "C" fn gl_get_proc_fn_wrapper<F>(
 where
     F: FnMut(&str) -> *const c_void,
 {
-    (*(ctx as *mut F))(std::ffi::CStr::from_ptr(name).to_str().unwrap())
+    unsafe { (*(ctx as *mut F))(std::ffi::CStr::from_ptr(name).to_str().unwrap()) }
 }
 
 unsafe extern "C" fn gl_get_proc_fn_wrapper_cstr<F>(
@@ -112,5 +112,5 @@ unsafe extern "C" fn gl_get_proc_fn_wrapper_cstr<F>(
 where
     F: FnMut(&std::ffi::CStr) -> *const c_void,
 {
-    (*(ctx as *mut F))(std::ffi::CStr::from_ptr(name))
+    unsafe { (*(ctx as *mut F))(std::ffi::CStr::from_ptr(name)) }
 }
