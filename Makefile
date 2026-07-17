@@ -125,6 +125,13 @@ update-doc:
 doc:
 	cargo doc --no-deps --features ${doc-features-mac}
 
+# Runs all tests that can be run on macOS with the full macOS feature set.
+.PHONY: test-macos
+test-macos:
+	cargo test -p skia-safe --features "all-macos,ureq" --lib
+	cargo test -p skia-safe --features "all-macos,ureq" --tests
+	cargo build -p skia-safe --features "all-macos,ureq" --examples
+
 build-flags-win=--release --features "gl,vulkan,d3d,textlayout,webp"
 
 .PHONY: github-build-win
