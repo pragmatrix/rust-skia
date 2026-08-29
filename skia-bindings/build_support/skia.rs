@@ -1,5 +1,5 @@
-mod config;
+mod bazel;
 pub mod env;
 
 #[allow(unused)]
-pub use config::{BuildConfiguration, FinalBuildConfiguration, build};
+pub use bazel::{BuildConfiguration, FinalBuildConfiguration, build};
