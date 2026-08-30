@@ -59,6 +59,10 @@ pub fn add_link_search(dir: impl AsRef<str>) {
     println!("cargo:rustc-link-search={}", dir.as_ref());
 }
 
+pub fn add_native_link_search(dir: impl AsRef<str>) {
+    println!("cargo:rustc-link-search=native={}", dir.as_ref());
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Target {
     pub architecture: String,

@@ -65,6 +65,12 @@ pub fn link_libraries(features: &Features, target: &Target) -> Vec<String> {
     details(target).link_libraries(features)
 }
 
+pub fn add_compiler_runtime(target: &Target) {
+    if target.vendor == "apple" {
+        apple::add_compiler_runtime(target);
+    }
+}
+
 pub fn filter_features(
     target: &Target,
     use_system_libraries: bool,

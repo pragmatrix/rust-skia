@@ -128,13 +128,13 @@ impl BinariesConfiguration {
     /// can be used as dependencies.
     pub fn commit_to_cargo(&self) {
         cargo::add_link_search(self.output_directory.to_str().unwrap());
-
         let target = cargo::target();
 
         // On Linux, the order is significant, first the static libraries we built, and then
         // the system libraries.
         cargo::add_static_link_libs(&target, self.built_libraries(true));
         cargo::add_link_libs(&self.link_libraries);
+        platform::add_compiler_runtime(&target);
     }
 
     pub fn copy_emscripten_ninja_archives_for_linking(&self) {
