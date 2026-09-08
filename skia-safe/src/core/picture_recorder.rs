@@ -1,3 +1,5 @@
+//! Records drawing commands into a [`crate::Picture`] via a [`crate::Canvas`].
+
 use crate::{Canvas, Drawable, Picture, Rect, prelude::*};
 use skia_bindings::{self as sb, SkPictureRecorder, SkRect};
 use std::{fmt, ptr};

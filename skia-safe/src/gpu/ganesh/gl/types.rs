@@ -1,3 +1,6 @@
+//! GL types for interacting with resources created externally to Skia, including
+//! [`TextureInfo`], [`Format`], and [`Standard`].
+
 use crate::{gpu, prelude::*};
 use skia_bindings::{self as sb, GrGLFramebufferInfo, GrGLSurfaceInfo, GrGLTextureInfo};
 

@@ -284,6 +284,8 @@ impl Point {
     /// Scales so that [`Self::length()`] returns one, while preserving the ratio of `x` to `y`,
     /// if possible. If the prior length is nearly zero, sets the vector to (0, 0) and returns
     /// false; otherwise returns true.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Point_normalize_2>
     pub fn normalize(&mut self) -> bool {
         unsafe { self.native_mut().normalize() }
     }
@@ -294,6 +296,8 @@ impl Point {
     ///
     /// - `x` proportional value for `x`
     /// - `y` proportional value for `y`
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Point_setNormalize>
     pub fn set_normalize(&mut self, x: scalar, y: scalar) -> bool {
         unsafe { self.native_mut().setNormalize(x, y) }
     }
@@ -303,6 +307,8 @@ impl Point {
     /// returns true.
     ///
     /// - `length` straight-line distance to origin
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Point_setLength>
     pub fn set_length(&mut self, length: scalar) -> bool {
         unsafe { self.native_mut().setLength(length) }
     }
@@ -313,6 +319,8 @@ impl Point {
     /// - `x` proportional value for `x`
     /// - `y` proportional value for `y`
     /// - `length` straight-line distance to origin
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Point_setLength_2>
     pub fn set_length_xy(&mut self, x: scalar, y: scalar, length: scalar) -> bool {
         unsafe { self.native_mut().setLength1(x, y, length) }
     }
@@ -320,6 +328,8 @@ impl Point {
     /// Returns the point times `scale`.
     ///
     /// - `scale` factor to multiply the point by
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Point_scale>
     #[must_use]
     pub fn scaled(self, scale: scalar) -> Self {
         let mut p = Point::default();
@@ -356,6 +366,8 @@ impl Point {
     ///
     /// - `x` component of length
     /// - `y` component of length
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Point_Length>
     pub fn length_xy(x: scalar, y: scalar) -> scalar {
         unsafe { SkPoint::Length(x, y) }
     }
@@ -369,6 +381,8 @@ impl Point {
     /// Note that [`Self::normalize()`] is faster if the prior length is not required.
     ///
     /// - `v` normalized to unit length
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Point_Normalize>
     pub fn normalize_vector(v: &mut Vector) -> scalar {
         unsafe { SkPoint::Normalize(v.native_mut()) }
     }

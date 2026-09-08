@@ -1,3 +1,6 @@
+//! Describes the typeface and style of a font; a [`Typeface`] is used by [`crate::Font`] to draw
+//! text.
+
 use std::{fmt, io, ptr};
 
 use skia_bindings::{self as sb, SkRefCntBase, SkTypeface, SkTypeface_LocalizedStrings};

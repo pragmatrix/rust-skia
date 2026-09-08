@@ -1,3 +1,6 @@
+//! A [`crate::PathEffect`] that dashes a path by copying it with the specified intervals.
+//! Only affects stroked paths.
+
 use skia_bindings as sb;
 
 use crate::{PathEffect, scalar};

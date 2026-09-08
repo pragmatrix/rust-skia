@@ -1,3 +1,6 @@
+//! Gradient specifications and shader factory functions for linear, radial, and two-point
+//! conical gradients.
+
 use crate::{Color4f, ColorSpace, TileMode, scalar};
 use skia_bindings as sb;
 
@@ -16,6 +19,9 @@ pub struct Interpolation {
 native_transmutable!(sb::SkGradient_Interpolation, Interpolation);
 
 pub mod interpolation {
+    //! Types that specify how colors are interpolated in a gradient, including the
+    //! interpolation color space, premultiplication mode, and hue method.
+
     use skia_bindings as sb;
 
     /// Whether to interpolate colors in premultiplied alpha space.

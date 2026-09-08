@@ -1,7 +1,12 @@
+//! A [`crate::ColorFilter`] that improves contrast for users with low vision, see
+//! [`crate::HighContrastConfig`].
+
 use crate::{ColorFilter, high_contrast_config::InvertStyle, prelude::*, scalar};
 use skia_bindings::{self as sb, SkHighContrastConfig};
 
 pub mod high_contrast_config {
+    //! Types used by [`crate::HighContrastConfig`], e.g. the [`InvertStyle`] enum.
+
     /// Whether to invert brightness, lightness, or neither.
     pub use skia_bindings::SkHighContrastConfig_InvertStyle as InvertStyle;
     #[test]

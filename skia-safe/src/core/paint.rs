@@ -54,6 +54,11 @@ impl NativeDrop for SkPaint {
 }
 
 impl NativeClone for SkPaint {
+    /// Makes a shallow copy of [`Paint`]. [`PathEffect`], [`Shader`], [`MaskFilter`],
+    /// [`ColorFilter`], and [`ImageFilter`] are shared between the original paint and the copy.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Paint_copy_const_SkPaint>
+    /// Example (C++): <https://fiddle.skia.org/c/@Paint_copy_operator>
     fn clone(&self) -> Self {
         unsafe { SkPaint::new2(self) }
     }
@@ -66,6 +71,9 @@ impl NativePartialEq for SkPaint {
 }
 
 impl Default for Handle<SkPaint> {
+    /// Constructs a [`Paint`] with default values.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Paint_empty_constructor>
     fn default() -> Self {
         Paint::from_native_c(unsafe { SkPaint::new() })
     }
@@ -116,6 +124,8 @@ impl Paint {
 
     /// Sets all [`Paint`] contents to their initial values. This is equivalent to replacing
     /// [`Paint`] with the result of `Paint::default()`.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Paint_reset>
     pub fn reset(&mut self) -> &mut Self {
         unsafe { self.native_mut().reset() }
         self
@@ -169,6 +179,9 @@ impl Paint {
 
     /// Sets whether the geometry is filled, stroked, or filled and stroked.
     /// Has no effect if `style` is not a legal [`Style`] value.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Paint_setStyle>
+    /// Example (C++): <https://fiddle.skia.org/c/@Stroke_Width>
     pub fn set_style(&mut self, style: Style) -> &mut Self {
         unsafe { self.native_mut().setStyle(style) }
         self
@@ -199,6 +212,8 @@ impl Paint {
     /// unpremultiplied, packing 8-bit components for alpha, red, blue, and green.
     ///
     /// - `color` unpremultiplied ARGB
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Paint_setColor>
     pub fn set_color(&mut self, color: impl Into<Color>) -> &mut Self {
         let color = color.into();
         unsafe { self.native_mut().setColor(color.into_native()) }
@@ -265,6 +280,8 @@ impl Paint {
     /// - `r` amount of red, from no red (0) to full red (255)
     /// - `g` amount of green, from no green (0) to full green (255)
     /// - `b` amount of blue, from no blue (0) to full blue (255)
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Paint_setARGB>
     pub fn set_argb(&mut self, a: u8, r: u8, g: u8, b: u8) -> &mut Self {
         unsafe {
             self.native_mut()
@@ -287,6 +304,9 @@ impl Paint {
     /// Negative stroke-widths are invalid; setting a negative width will have no effect.
     ///
     /// - `width` zero thickness for hairline; greater than zero for pen thickness
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Miter_Limit>
+    /// Example (C++): <https://fiddle.skia.org/c/@Paint_setStrokeWidth>
     pub fn set_stroke_width(&mut self, width: scalar) -> &mut Self {
         unsafe { self.native_mut().setStrokeWidth(width) }
         self
@@ -307,6 +327,8 @@ impl Paint {
     /// Values less than one will be treated as bevel.
     ///
     /// - `miter_limit` zero and greater miter limit
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Paint_setStrokeMiter>
     pub fn set_stroke_miter(&mut self, miter_limit: scalar) -> &mut Self {
         unsafe { self.native_mut().setStrokeMiter(miter_limit) }
         self
@@ -318,6 +340,9 @@ impl Paint {
     }
 
     /// Sets the geometry drawn at the beginning and end of strokes.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Paint_setStrokeCap_a>
+    /// Example (C++): <https://fiddle.skia.org/c/@Paint_setStrokeCap_b>
     pub fn set_stroke_cap(&mut self, cap: Cap) -> &mut Self {
         unsafe { self.native_mut().setStrokeCap(cap) }
         self
@@ -329,6 +354,8 @@ impl Paint {
     }
 
     /// Sets the geometry drawn at the corners of strokes.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Paint_setStrokeJoin>
     pub fn set_stroke_join(&mut self, join: Join) -> &mut Self {
         unsafe { self.native_mut().setStrokeJoin(join) }
         self
@@ -339,6 +366,8 @@ impl Paint {
     /// Does not alter [`Shader`] SkRefCnt.
     ///
     /// Returns [`Shader`] if previously set, `None` otherwise.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Paint_refShader>
     pub fn shader(&self) -> Option<Shader> {
         Shader::from_unshared_ptr(self.native().fShader.fPtr)
     }
@@ -349,6 +378,9 @@ impl Paint {
     /// Increments `shader` SkRefCnt by one.
     ///
     /// - `shader` how geometry is filled with color; if `None`, color is used instead
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Color_Filter_Methods>
+    /// Example (C++): <https://fiddle.skia.org/c/@Paint_setShader>
     pub fn set_shader(&mut self, shader: impl Into<Option<Shader>>) -> &mut Self {
         unsafe { sb::C_SkPaint_setShader(self.native_mut(), shader.into().into_ptr_or_null()) }
         self
@@ -358,6 +390,8 @@ impl Paint {
     /// Does not alter [`ColorFilter`] SkRefCnt.
     ///
     /// Returns [`ColorFilter`] if previously set, `None` otherwise.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Paint_refColorFilter>
     pub fn color_filter(&self) -> Option<ColorFilter> {
         ColorFilter::from_unshared_ptr(self.native().fColorFilter.fPtr)
     }
@@ -368,6 +402,9 @@ impl Paint {
     /// Increments `color_filter` SkRefCnt by one.
     ///
     /// - `color_filter` [`ColorFilter`] to apply to subsequent draw
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Blend_Mode_Methods>
+    /// Example (C++): <https://fiddle.skia.org/c/@Paint_setColorFilter>
     pub fn set_color_filter(&mut self, color_filter: impl Into<Option<ColorFilter>>) -> &mut Self {
         unsafe {
             sb::C_SkPaint_setColorFilter(self.native_mut(), color_filter.into().into_ptr_or_null())
@@ -440,6 +477,8 @@ impl Paint {
     /// Does not alter [`PathEffect`] SkRefCnt.
     ///
     /// Returns [`PathEffect`] if previously set, `None` otherwise.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Paint_refPathEffect>
     pub fn path_effect(&self) -> Option<PathEffect> {
         PathEffect::from_unshared_ptr(self.native().fPathEffect.fPtr)
     }
@@ -450,6 +489,9 @@ impl Paint {
     /// Increments `path_effect` SkRefCnt by one.
     ///
     /// - `path_effect` replace [`crate::Path`] with a modification when drawn
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Mask_Filter_Methods>
+    /// Example (C++): <https://fiddle.skia.org/c/@Paint_setPathEffect>
     pub fn set_path_effect(&mut self, path_effect: impl Into<Option<PathEffect>>) -> &mut Self {
         unsafe {
             sb::C_SkPaint_setPathEffect(self.native_mut(), path_effect.into().into_ptr_or_null())
@@ -461,6 +503,8 @@ impl Paint {
     /// Does not alter [`MaskFilter`] SkRefCnt.
     ///
     /// Returns [`MaskFilter`] if previously set, `None` otherwise.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Paint_refMaskFilter>
     pub fn mask_filter(&self) -> Option<MaskFilter> {
         MaskFilter::from_unshared_ptr(self.native().fMaskFilter.fPtr)
     }
@@ -472,6 +516,9 @@ impl Paint {
     /// Increments `mask_filter` SkRefCnt by one.
     ///
     /// - `mask_filter` modifies clipping mask generated from drawn geometry
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Paint_setMaskFilter>
+    /// Example (C++): <https://fiddle.skia.org/c/@Typeface_Methods>
     pub fn set_mask_filter(&mut self, mask_filter: impl Into<Option<MaskFilter>>) -> &mut Self {
         unsafe {
             sb::C_SkPaint_setMaskFilter(self.native_mut(), mask_filter.into().into_ptr_or_null())
@@ -483,6 +530,8 @@ impl Paint {
     /// Does not alter [`ImageFilter`] SkRefCnt.
     ///
     /// Returns [`ImageFilter`] if previously set, `None` otherwise.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Paint_refImageFilter>
     pub fn image_filter(&self) -> Option<ImageFilter> {
         ImageFilter::from_unshared_ptr(self.native().fImageFilter.fPtr)
     }
@@ -494,6 +543,8 @@ impl Paint {
     /// Increments `image_filter` SkRefCnt by one.
     ///
     /// - `image_filter` how [`crate::Image`] is sampled when transformed
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Paint_setImageFilter>
     pub fn set_image_filter(&mut self, image_filter: impl Into<Option<ImageFilter>>) -> &mut Self {
         unsafe {
             sb::C_SkPaint_setImageFilter(self.native_mut(), image_filter.into().into_ptr_or_null())
@@ -508,6 +559,8 @@ impl Paint {
     /// new alpha of zero.
     ///
     /// Returns `true` if [`Paint`] prevents all drawing.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Paint_nothingToDraw>
     pub fn nothing_to_draw(&self) -> bool {
         unsafe { self.native().nothingToDraw() }
     }

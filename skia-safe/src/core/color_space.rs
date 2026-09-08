@@ -185,6 +185,7 @@ pub mod named_primaries {
 
 // TODO: Make the binding generator provide all these constants.
 pub mod named_transfer_fn {
+    //! Named [`crate::ColorSpaceTransferFn`] constants for common transfer functions.
     use crate::ColorSpaceTransferFn;
     use skia_bindings::SkNamedTransferFn_CicpId;
 

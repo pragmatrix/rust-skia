@@ -1,3 +1,5 @@
+//! Types for animated image codecs, such as GIF, describing how frames are blended and disposed.
+
 use skia_bindings as sb;
 
 /// How to blend the current frame.

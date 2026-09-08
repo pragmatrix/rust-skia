@@ -1,3 +1,6 @@
+//! Base class for objects in a [`crate::Paint`] that affect the geometry of a drawing primitive
+//! before it is transformed by the canvas' matrix and drawn.
+
 use crate::{Matrix, NativeFlattenable, Path, PathBuilder, Rect, StrokeRec, prelude::*};
 use sb::SkPathEffect_INHERITED;
 use skia_bindings::{self as sb, SkFlattenable, SkPathEffect, SkRefCntBase};

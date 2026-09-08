@@ -1,3 +1,5 @@
+//! Encoding of images into the PNG format, with configurable filtering and compression.
+
 use std::io;
 
 use crate::{Pixmap, encode, interop::RustWStream, prelude::*};

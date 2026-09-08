@@ -1,3 +1,6 @@
+//! Factory functions for creating [`crate::Blender`]s, e.g. the arithmetic blender
+//! `k1 * src * dst + k2 * src + k3 * dst + k4`.
+
 use crate::Blender;
 use skia_bindings as sb;
 

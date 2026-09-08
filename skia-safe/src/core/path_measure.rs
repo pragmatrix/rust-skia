@@ -1,3 +1,6 @@
+//! Measures a [`crate::Path`]: computes its length and the position and tangent at a given
+//! distance.
+
 use crate::{ContourMeasure, Matrix, Path, PathBuilder, Point, Vector, prelude::*, scalar};
 use skia_bindings::{self as sb, SkPathMeasure};
 use std::fmt;

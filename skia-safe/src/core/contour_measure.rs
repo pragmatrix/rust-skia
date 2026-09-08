@@ -1,3 +1,6 @@
+//! Measures the length of a [`crate::Path`] contour and computes position and tangent matrices
+//! along it.
+
 use std::fmt;
 use std::marker::PhantomData;
 

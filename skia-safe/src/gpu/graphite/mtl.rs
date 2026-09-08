@@ -1,3 +1,5 @@
+//! Metal backend support for Graphite.
+
 mod backend_context;
 mod graphite_types;
 

@@ -1,3 +1,6 @@
+//! Factory functions for creating [`crate::ImageFilter`]s. For filters that take an input
+//! filter, `None` means the dynamic source image is used.
+
 use std::ptr;
 
 use skia_bindings::{self as sb, SkImageFilter, SkRect};

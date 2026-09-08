@@ -1,3 +1,5 @@
+//! Options for configuring a Ganesh [`crate::gpu::DirectContext`].
+
 use std::os::raw;
 
 use skia_bindings::{self as sb, GrContextOptions};

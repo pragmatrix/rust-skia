@@ -1,3 +1,6 @@
+//! Base-class for objects that draw into a [`crate::Canvas`]. The object has a generation ID,
+//! which is guaranteed to be unique across all drawables.
+
 use std::fmt;
 
 use skia_bindings::{self as sb, SkDrawable, SkFlattenable, SkRefCntBase};
@@ -131,6 +134,8 @@ pub use gpu_draw_handler::*;
 
 #[cfg(feature = "ganesh")]
 pub mod gpu_draw_handler {
+    //! GPU backend support for drawables: a [`GPUDrawHandler`] lets a drawable execute using the
+    //! underlying 3D API rather than the [`crate::Canvas`] API.
     use std::fmt;
 
     use skia_bindings::{self as sb, SkDrawable_GpuDrawHandler};

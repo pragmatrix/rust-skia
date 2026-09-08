@@ -19,6 +19,8 @@ impl PathEffect {
 }
 
 pub mod path_1d_path_effect {
+    //! Dash a path by replicating the specified path along it.
+
     use crate::{Path, PathEffect, prelude::*, scalar};
     use skia_bindings::C_SkPath1DPathEffect_Make;
 

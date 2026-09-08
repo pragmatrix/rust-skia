@@ -1,3 +1,6 @@
+//! The OpenGL function-pointer interface used by
+//! [`crate::gpu::ganesh::DirectContext`] to make all OpenGL calls.
+
 use crate::{gpu::gl::Extensions, prelude::*};
 use skia_bindings::{self as sb, GrGLInterface, SkRefCntBase};
 use std::{ffi::c_void, fmt, os::raw};

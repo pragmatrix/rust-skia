@@ -1,3 +1,6 @@
+//! A [`crate::PathEffect`] that returns a subset of a path, given start and stop `t` values
+//! between 0 and 1.
+
 use crate::{PathEffect, scalar};
 use skia_bindings as sb;
 

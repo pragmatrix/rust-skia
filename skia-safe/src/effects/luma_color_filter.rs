@@ -1,3 +1,6 @@
+//! A [`crate::ColorFilter`] that multiplies the luma of its input into the alpha channel and
+//! sets the color channels to zero.
+
 use crate::ColorFilter;
 use skia_bindings as sb;
 

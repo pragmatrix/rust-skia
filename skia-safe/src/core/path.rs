@@ -1,3 +1,6 @@
+//! Describes geometry as a set of contours, each beginning with a move verb and followed by lines,
+//! quadratic beziers, conics, and cubic beziers.
+
 use std::{fmt, marker::PhantomData, mem::forget, ptr};
 
 use skia_bindings::{self as sb, SkPath, SkPath_Iter, SkPath_RawIter};
@@ -29,6 +32,7 @@ unsafe impl Send for Path {}
 impl NativeDrop for SkPath {
     /// Releases ownership of any shared data and deletes data if [`Path`] is sole owner.
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Path_destructor>
     fn drop(&mut self) {
         unsafe { sb::C_SkPath_destruct(self) }
     }
@@ -48,6 +52,8 @@ impl NativeClone for SkPath {
     ///
     /// Returns: copy of [`Path`]
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Path_copy_const_SkPath>
+    /// Example (C++): <https://fiddle.skia.org/c/@Path_copy_operator>
     fn clone(&self) -> Self {
         unsafe { SkPath::new1(self) }
     }
@@ -320,6 +326,7 @@ impl Path {
     ///
     /// Returns: `true` if [`Path`] verb array and weights are equivalent
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Path_isInterpolatable>
     pub fn is_interpolatable(&self, compare: &Path) -> bool {
         unsafe { self.native().isInterpolatable(compare.native()) }
     }
@@ -343,6 +350,7 @@ impl Path {
     ///
     /// Returns: [`Path`] replaced by interpolated averages
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Path_interpolate>
     pub fn interpolate(&self, ending: &Path, weight: scalar) -> Option<Self> {
         let mut out = Path::default();
         self.interpolate_inplace(ending, weight, &mut out)
@@ -369,6 +377,7 @@ impl Path {
     ///
     /// Returns: `true` if [`Path`] contain same number of [`Point`]
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Path_interpolate>
     pub fn interpolate_inplace(&self, ending: &Path, weight: scalar, out: &mut Path) -> bool {
         unsafe {
             self.native()
@@ -419,6 +428,7 @@ impl Path {
     ///
     /// Returns: `true` if [`Path`] is recognized as an oval or circle
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Path_isOval>
     pub fn is_oval(&self) -> Option<Rect> {
         let mut bounds = Rect::default();
         unsafe { self.native().isOval(bounds.native_mut()) }.then_some(bounds)
@@ -429,6 +439,7 @@ impl Path {
     ///
     /// Returns: [`RRect`] if [`Path`] contains only [`RRect`]
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Path_isRRect>
     pub fn is_rrect(&self) -> Option<RRect> {
         let mut rrect = RRect::default();
         unsafe { self.native().isRRect(rrect.native_mut()) }.then_some(rrect)
@@ -449,6 +460,7 @@ impl Path {
     ///
     /// Returns: `true` if the last contour ends with a [`Verb::Close`]
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Path_isLastContourClosed>
     pub fn is_last_contour_closed(&self) -> bool {
         unsafe { self.native().isLastContourClosed() }
     }
@@ -505,6 +517,7 @@ impl Path {
     ///
     /// Returns: `true` if line is degenerate; its length is effectively zero
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Path_IsLineDegenerate>
     pub fn is_line_degenerate(p1: impl Into<Point>, p2: impl Into<Point>, exact: bool) -> bool {
         unsafe { SkPath::IsLineDegenerate(p1.into().native(), p2.into().native(), exact) }
     }
@@ -576,6 +589,7 @@ impl Path {
     ///
     /// Returns: `true` if [`Path`] contains exactly one line
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Path_isLine>
     pub fn is_line(&self) -> Option<(Point, Point)> {
         let mut line = [Point::default(); 2];
         #[allow(clippy::tuple_array_conversions)]
@@ -622,6 +636,7 @@ impl Path {
     ///
     /// Returns: The last if the path contains one or more [`Point`], else returns `None`
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Path_getLastPt>
     pub fn last_pt(&self) -> Option<Point> {
         let mut p = Point::default();
         unsafe { sb::C_SkPath_getLastPt(self.native(), p.native_mut()) }.then_some(p)
@@ -676,6 +691,7 @@ impl Path {
     ///
     /// Returns: the number of verbs in the path
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Path_getVerbs>
     #[deprecated(since = "0.91.0")]
     pub fn get_verbs(&self, verbs: &mut [u8]) -> usize {
         unsafe { sb::C_SkPath_getVerbs(self.native(), verbs.as_mut_ptr(), verbs.len()) }
@@ -728,6 +744,7 @@ impl Path {
     ///
     /// Returns: tight bounds of curves in [`Path`]
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Path_computeTightBounds>
     pub fn compute_tight_bounds(&self) -> Rect {
         Rect::construct(|r| unsafe { sb::C_SkPath_computeTightBounds(self.native(), r) })
     }
@@ -744,6 +761,7 @@ impl Path {
     ///
     /// Returns: `true` if rect is contained
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Path_conservativelyContainsRect>
     pub fn conservatively_contains_rect(&self, rect: impl AsRef<Rect>) -> bool {
         unsafe {
             self.native()
@@ -821,6 +839,7 @@ impl Path {
     /// * `is_closed` - set to `true` if [`Path`] is closed
     /// * `direction` - to [`Rect`] direction
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Path_isRect>
     pub fn is_rect(&self) -> Option<(Rect, bool, PathDirection)> {
         let mut rect = Rect::default();
         let mut is_closed = Default::default();
@@ -972,6 +991,7 @@ impl Path {
     ///
     /// * `other` - [`Path`] exchanged by value
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Path_swap>
     pub fn swap(&mut self, other: &mut Path) -> &mut Self {
         unsafe { self.native_mut().swap(other.native_mut()) }
         self
@@ -998,6 +1018,7 @@ impl Path {
     ///
     /// Returns: reference to [`Path`]
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Path_reset>
     pub fn reset(&mut self) -> &mut Self {
         unsafe { self.native_mut().reset() };
         self
@@ -1049,6 +1070,7 @@ impl Default for Iter<'_> {
     ///
     /// Returns: [`Iter`] of empty [`Path`]
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Path_Iter_Iter>
     fn default() -> Self {
         Iter(unsafe { SkPath_Iter::new() }, PhantomData)
     }
@@ -1074,6 +1096,7 @@ impl Iter<'_> {
     ///
     /// Returns: [`Iter`] of path
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Path_Iter_const_SkPath>
     pub fn new(path: &Path, force_close: bool) -> Self {
         Self(
             unsafe { SkPath_Iter::new1(path.native(), force_close) },
@@ -1088,6 +1111,7 @@ impl Iter<'_> {
     /// * `path` - [`Path`] to iterate
     /// * `force_close` - `true` if open contours generate [`Verb::Close`]
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Path_Iter_setPath>
     pub fn set_path(&mut self, path: &Path, force_close: bool) {
         unsafe {
             self.0.setPath(path.native(), force_close);
@@ -1126,6 +1150,7 @@ impl Iter<'_> {
     ///
     /// Returns: `true` if contour is closed
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Path_Iter_isClosedContour>
     pub fn is_closed_contour(&self) -> bool {
         unsafe { self.native().isClosedContour() }
     }
@@ -1143,6 +1168,7 @@ impl Iterator for Iter<'_> {
     ///
     /// Returns: next [`Verb`] from verb array
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Path_RawIter_next>
     fn next(&mut self) -> Option<Self::Item> {
         let mut points = [Point::default(); Verb::MAX_POINTS];
         let verb = unsafe { self.native_mut().next(points.native_mut().as_mut_ptr()) };
@@ -1243,6 +1269,7 @@ impl Path {
     ///
     /// * `dump_as_hex` - `true` if scalar values are written as hexadecimal
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Path_dump>
     pub fn dump_as_data(&self, dump_as_hex: bool) -> Data {
         let mut stream = DynamicMemoryWStream::new();
         unsafe {
@@ -1274,6 +1301,7 @@ impl Path {
     ///
     /// Returns: [`Path`] data wrapped in [`Data`] buffer
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Path_serialize>
     pub fn serialize(&self) -> Data {
         Data::from_ptr(unsafe { sb::C_SkPath_serialize(self.native()) }).unwrap()
     }
@@ -1298,6 +1326,7 @@ impl Path {
     ///
     /// Returns: non-zero, globally unique value
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Path_getGenerationID>
     pub fn generation_id(&self) -> u32 {
         unsafe { self.native().getGenerationID() }
     }

@@ -60,6 +60,9 @@ impl crate::Image {
 }
 
 pub mod encode {
+    //! Free functions to encode images into bytes, dispatching to the appropriate encoder
+    //! (JPEG, PNG, WebP) based on the requested [`crate::EncodedImageFormat`].
+
     #[cfg(feature = "jpeg")]
     use super::jpeg_encoder;
     use super::png_encoder;

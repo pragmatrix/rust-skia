@@ -1,3 +1,5 @@
+//! Encoding of images into the WebP format, with lossy or lossless compression.
+
 use crate::{Pixmap, interop::RustWStream, prelude::*};
 use skia_bindings::SkWebpEncoder_Compression;
 use std::io;

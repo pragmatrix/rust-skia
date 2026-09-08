@@ -1,3 +1,5 @@
+//! Helpers for querying and caching the current GL context's extensions.
+
 use crate::prelude::*;
 use skia_bindings::{self as sb, GrGLExtensions};
 use std::{ffi::CString, fmt};

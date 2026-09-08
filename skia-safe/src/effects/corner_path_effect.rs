@@ -1,3 +1,6 @@
+//! A [`crate::PathEffect`] that turns sharp corners into various treatments (e.g. rounded
+//! corners).
+
 use crate::{PathEffect, scalar};
 use skia_bindings as sb;
 

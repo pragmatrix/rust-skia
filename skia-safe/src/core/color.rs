@@ -451,6 +451,7 @@ impl Color4f {
 }
 
 pub mod colors {
+    //! Named [`crate::Color4f`] constants for common colors.
     use crate::Color4f;
 
     pub const TRANSPARENT: Color4f = Color4f::new(0.0, 0.0, 0.0, 0.0);

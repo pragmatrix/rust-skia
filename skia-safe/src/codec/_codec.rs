@@ -769,6 +769,11 @@ impl Codec<'_> {
 }
 
 pub mod codecs {
+    //! The registry of decoder implementations for the image formats that Skia supports natively.
+    //!
+    //! A [`Decoder`] can be passed to [`Codec::from_stream`] or [`Codec::from_data_with_decoders`]
+    //! to decode a specific format.
+
     use std::{fmt, io, ptr, result, str};
 
     use skia_bindings::{self as sb, SkCodecs_Decoder};

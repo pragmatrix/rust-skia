@@ -5,6 +5,8 @@
 //! [`decode_stream()`] function that decodes a stream directly.
 
 pub mod bmp_decoder {
+    //! Decoding of BMP images.
+
     use std::{io, result};
 
     use crate::{Codec, codec::Result, codec::codecs::Decoder};
@@ -24,6 +26,8 @@ pub mod bmp_decoder {
 }
 
 pub mod gif_decoder {
+    //! Decoding of GIF images.
+
     use std::{io, result};
 
     use crate::{Codec, codec::Result, codec::codecs::Decoder};
@@ -43,6 +47,8 @@ pub mod gif_decoder {
 }
 
 pub mod ico_decoder {
+    //! Decoding of ICO images.
+
     use std::{io, result};
 
     use crate::{Codec, codec::Result, codec::codecs::Decoder};
@@ -63,6 +69,8 @@ pub mod ico_decoder {
 
 #[cfg(feature = "jpeg")]
 pub mod jpeg_decoder {
+    //! Decoding of JPEG images.
+
     use std::{io, result};
 
     use crate::{Codec, codec::Result, codec::codecs::Decoder};
@@ -82,6 +90,8 @@ pub mod jpeg_decoder {
 }
 
 pub mod png_decoder {
+    //! Decoding of PNG images.
+
     use std::{io, result};
 
     use crate::{Codec, codec::Result, codec::codecs::Decoder};
@@ -102,6 +112,8 @@ pub mod png_decoder {
 
 #[cfg(any())]
 pub mod png_rust_decoder {
+    //! Decoding of PNG images with the Rust decoder.
+
     use std::{io, result};
 
     use crate::{Codec, codec::Result, codec::codecs::Decoder};
@@ -121,6 +133,8 @@ pub mod png_rust_decoder {
 }
 
 pub mod wbmp_decoder {
+    //! Decoding of WBMP images.
+
     use std::{io, result};
 
     use crate::{Codec, codec::Result, codec::codecs::Decoder};
@@ -141,6 +155,8 @@ pub mod wbmp_decoder {
 
 #[cfg(feature = "webp-decode")]
 pub mod webp_decoder {
+    //! Decoding of WebP images.
+
     use std::{io, result};
 
     use crate::{Codec, codec::Result, codec::codecs::Decoder};

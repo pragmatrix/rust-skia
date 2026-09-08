@@ -1,3 +1,6 @@
+//! A [`crate::PathEffect`] that chops a path into discrete segments and randomly displaces
+//! them.
+
 use crate::{PathEffect, scalar};
 use skia_bindings as sb;
 

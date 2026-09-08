@@ -1,3 +1,6 @@
+//! Describes a two dimensional array of pixels to draw. An [`Image`] is an immutable, thread-safe
+//! container for pixel data.
+
 use crate::{
     AlphaType, Bitmap, ColorSpace, ColorType, Data, EncodedImageFormat, IPoint, IRect, ISize,
     ImageFilter, ImageGenerator, ImageInfo, Matrix, Paint, Picture, Pixmap, Recorder,
@@ -15,6 +18,8 @@ pub use crate::TextureCompressionType as CompressionType;
 pub use images::BitDepth;
 
 pub mod images {
+    //! Factory functions for creating [`crate::Image`]s, e.g. from a [`crate::Bitmap`], compressed
+    //! data, or a [`crate::Picture`].
     use std::{mem, ptr};
 
     use skia_bindings as sb;
@@ -87,6 +92,7 @@ pub mod images {
     ///
     /// Returns: created [`Image`], or `None`
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_DeferredFromEncodedData>
     pub fn deferred_from_encoded_data(
         data: impl Into<Data>,
         alpha_type: impl Into<Option<AlphaType>>,
@@ -384,6 +390,7 @@ impl Image {
     ///
     /// Returns: created [`Image`], or `None`
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_DeferredFromEncodedData>
     pub fn from_encoded_with_alpha_type(
         data: impl Into<Data>,
         alpha_type: impl Into<Option<AlphaType>>,
@@ -573,6 +580,7 @@ impl Image {
     ///
     /// Returns: [`AlphaType`] in [`Image`]
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_alphaType>
     pub fn alpha_type(&self) -> AlphaType {
         unsafe { self.native().alphaType() }
     }
@@ -581,6 +589,7 @@ impl Image {
     ///
     /// Returns: [`ColorType`] of [`Image`]
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_colorType>
     pub fn color_type(&self) -> ColorType {
         ColorType::from_native_c(unsafe { self.native().colorType() })
     }
@@ -597,6 +606,8 @@ impl Image {
     ///
     /// Returns: [`ColorSpace`] in [`Image`], or `None`, wrapped in a smart pointer
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_colorSpace>
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_refColorSpace>
     pub fn color_space(&self) -> Option<ColorSpace> {
         ColorSpace::from_unshared_ptr(unsafe { self.native().colorSpace() })
     }
@@ -606,6 +617,7 @@ impl Image {
     ///
     /// Returns: `true` if pixels represent a transparency mask
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_isAlphaOnly>
     pub fn is_alpha_only(&self) -> bool {
         unsafe { self.native().isAlphaOnly() }
     }
@@ -681,6 +693,7 @@ impl Image {
     ///
     /// Returns: `true` if [`Image`] has direct access to pixels
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_peekPixels>
     pub fn peek_pixels(&self) -> Option<Pixmap> {
         let mut pixmap = Pixmap::default();
         unsafe { self.native().peekPixels(pixmap.native_mut()) }.then_some(pixmap)
@@ -691,6 +704,7 @@ impl Image {
     ///
     /// Returns: `true` if [`Image`] is a GPU texture
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_isTextureBacked>
     pub fn is_texture_backed(&self) -> bool {
         unsafe { sb::C_SkImage_isTextureBacked(self.native()) }
     }
@@ -713,6 +727,7 @@ impl Image {
     ///
     /// Returns: `true` if [`Image`] can be drawn
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_isValid>
     pub fn is_valid(&self, recorder: Option<&mut dyn Recorder>) -> bool {
         unsafe {
             sb::C_SkImage_isValid(
@@ -1001,6 +1016,7 @@ impl Image {
     ///
     /// Returns: encoded [`Image`], or `None`
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_refEncodedData>
     pub fn encoded_data(&self) -> Option<Data> {
         Data::from_ptr_const(unsafe { sb::C_SkImage_refEncodedData(self.native()) })
     }
@@ -1115,6 +1131,7 @@ impl Image {
     ///
     /// Returns: raster image, lazy image, or `None`
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_makeNonTextureImage>
     pub fn make_non_texture_image<'a>(
         &self,
         context: impl Into<Option<&'a mut gpu::DirectContext>>,
@@ -1157,6 +1174,7 @@ impl Image {
     ///
     /// Returns: raster image, or `None`
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_makeRasterImage>
     pub fn make_raster_image<'a>(
         &self,
         context: impl Into<Option<&'a mut gpu::DirectContext>>,
@@ -1214,6 +1232,8 @@ impl Image {
     ///
     /// Returns: `true` if [`Image`] is created as needed
     ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_isLazyGenerated_a>
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_isLazyGenerated_b>
     pub fn is_lazy_generated(&self) -> bool {
         unsafe { sb::C_SkImage_isLazyGenerated(self.native()) }
     }

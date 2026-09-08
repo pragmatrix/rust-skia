@@ -1,3 +1,6 @@
+//! Deprecated factory functions for Perlin noise shaders, use [`crate::shaders::fractal_noise()`]
+//! and [`crate::shaders::turbulence()`] instead.
+
 use crate::{ISize, Shader, scalar, shaders};
 
 /// Creates fractal Perlin noise, see [`shaders::fractal_noise()`] for details.

@@ -16,18 +16,33 @@ pub type Region = Handle<SkRegion>;
 unsafe_send_sync!(Region);
 
 impl NativeDrop for SkRegion {
+    /// Releases ownership of any shared data and deletes data if the region is sole owner.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_destructor>
     fn drop(&mut self) {
         unsafe { sb::C_SkRegion_destruct(self) }
     }
 }
 
 impl NativeClone for SkRegion {
+    /// Constructs a copy of an existing region. Makes two regions identical by value. Internally,
+    /// the region and the returned result share pointer values. The underlying rectangle array is
+    /// copied when modified.
+    ///
+    /// Creating a region copy is very efficient and never allocates memory. Regions are always
+    /// copied by value from the interface; the underlying shared pointers are not exposed.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_copy_const_SkRegion>
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_copy_operator>
     fn clone(&self) -> Self {
         unsafe { SkRegion::new1(self) }
     }
 }
 
 impl NativePartialEq for SkRegion {
+    /// Compares the region and `rhs`; returns true if they enclose exactly the same area.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_equal1_operator>
     fn eq(&self, rhs: &Self) -> bool {
         unsafe { sb::C_SkRegion_Equals(self, rhs) }
     }
@@ -51,6 +66,8 @@ variant_name!(RegionOp::ReverseDifference);
 impl Region {
     /// Constructs an empty region. The region is set to empty bounds at (0, 0) with zero width and
     /// height.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_empty_constructor>
     pub fn new() -> Region {
         Self::from_native_c(unsafe { SkRegion::new() })
     }
@@ -58,6 +75,8 @@ impl Region {
     /// Constructs a rectangular region matching the bounds of `rect`.
     ///
     /// - `rect` bounds of the constructed region
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_copy_const_SkIRect>
     pub fn from_rect(rect: impl AsRef<IRect>) -> Region {
         Self::from_native_c(unsafe { SkRegion::new2(rect.as_ref().native()) })
     }
@@ -81,6 +100,8 @@ impl Region {
     /// assignment until they are written to, making assignment as efficient as `swap`.
     ///
     /// - `other` region to swap with
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_swap>
     pub fn swap(&mut self, other: &mut Region) {
         unsafe { self.native_mut().swap(other.native_mut()) }
     }
@@ -116,6 +137,8 @@ impl Region {
     /// value greater than one indicating that the region is complex.
     ///
     /// Call to compare regions for relative complexity.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_computeRegionComplexity>
     pub fn compute_region_complexity(&self) -> usize {
         unsafe { self.native().computeRegionComplexity().try_into().unwrap() }
     }
@@ -124,6 +147,8 @@ impl Region {
     /// empty; otherwise, returns false, and leaves the path unmodified.
     ///
     /// - `path` path to append to
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_getBoundaryPath>
     pub fn add_boundary_path(&self, path: &mut PathBuilder) -> bool {
         unsafe { self.native().addBoundaryPath(path.native_mut()) }
     }
@@ -143,6 +168,8 @@ impl Region {
 
     /// Constructs an empty region. The region is set to empty bounds at (0, 0) with zero width and
     /// height. Always returns false.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_setEmpty>
     pub fn set_empty(&mut self) -> bool {
         unsafe { self.native_mut().setEmpty() }
     }
@@ -151,6 +178,8 @@ impl Region {
     /// constructs an empty region and returns false.
     ///
     /// - `rect` bounds of the constructed region
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_setRect>
     pub fn set_rect(&mut self, rect: impl AsRef<IRect>) -> bool {
         unsafe { self.native_mut().setRect(rect.as_ref().native()) }
     }
@@ -161,6 +190,8 @@ impl Region {
     /// May be faster than repeated calls to `op`.
     ///
     /// - `rects` array of rectangles
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_setRects>
     pub fn set_rects(&mut self, rects: &[IRect]) -> bool {
         unsafe {
             sb::C_SkRegion_setRects(
@@ -176,6 +207,8 @@ impl Region {
     /// shared pointers are not exposed.
     ///
     /// - `region` region to copy by value
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_setRegion>
     pub fn set_region(&mut self, region: &Region) -> bool {
         unsafe { self.native_mut().setRegion(region.native()) }
     }
@@ -188,6 +221,8 @@ impl Region {
     ///
     /// - `path` path providing outline
     /// - `clip` region containing path
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_setPath>
     pub fn set_path(&mut self, path: &Path, clip: &Region) -> bool {
         unsafe { self.native_mut().setPath(path.native(), clip.native()) }
     }
@@ -198,6 +233,8 @@ impl Region {
     /// is empty, or they do not intersect.
     ///
     /// - `rect` rectangle to intersect
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_intersects>
     pub fn intersects_rect(&self, rect: impl AsRef<IRect>) -> bool {
         unsafe { self.native().intersects(rect.as_ref().native()) }
     }
@@ -206,6 +243,8 @@ impl Region {
     /// is empty, or they do not intersect.
     ///
     /// - `other` region to intersect
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_intersects_2>
     pub fn intersects_region(&self, other: &Region) -> bool {
         unsafe { self.native().intersects1(other.native()) }
     }
@@ -216,6 +255,8 @@ impl Region {
     /// region is empty.
     ///
     /// - `point` test point
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_contains>
     pub fn contains_point(&self, point: IPoint) -> bool {
         unsafe { self.native().contains(point.x, point.y) }
     }
@@ -224,6 +265,8 @@ impl Region {
     /// `rect` is empty.
     ///
     /// - `rect` rectangle to contain
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_contains_2>
     pub fn contains_rect(&self, rect: impl AsRef<IRect>) -> bool {
         unsafe { self.native().contains1(rect.as_ref().native()) }
     }
@@ -232,6 +275,8 @@ impl Region {
     /// `other` is empty.
     ///
     /// - `other` region to contain
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_contains_3>
     pub fn contains_region(&self, other: &Region) -> bool {
         unsafe { self.native().contains2(other.native()) }
     }
@@ -267,6 +312,8 @@ impl Region {
     /// Offsets the region by the vector (`d.x`, `d.y`). Has no effect if the region is empty.
     ///
     /// - `d` offset vector
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_translate_2>
     pub fn translate(&mut self, d: impl Into<IVector>) {
         let d = d.into();
         let self_ptr = self.native_mut() as *mut _;
@@ -298,6 +345,8 @@ impl Region {
     ///
     /// - `region` region operand
     /// - `op` logical operation
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_op_6>
     pub fn op_region(&mut self, region: &Region, op: RegionOp) -> bool {
         let self_ptr = self.native_mut() as *const _;
         unsafe { self.native_mut().op2(self_ptr, region.native(), op) }
@@ -309,6 +358,8 @@ impl Region {
     /// - `rect` rectangle operand
     /// - `region` region operand
     /// - `op` logical operation
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_op_4>
     pub fn op_rect_region(
         &mut self,
         rect: impl AsRef<IRect>,
@@ -327,6 +378,8 @@ impl Region {
     /// - `region` region operand
     /// - `rect` rectangle operand
     /// - `op` logical operation
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_op_5>
     pub fn op_region_rect(
         &mut self,
         region: &Region,
@@ -342,6 +395,8 @@ impl Region {
     /// Writes the region to `buf`, and returns the number of bytes written.
     ///
     /// - `buf` storage for binary data
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_writeToMemory>
     pub fn write_to_memory(&self, buf: &mut Vec<u8>) {
         unsafe {
             let size = self.native().writeToMemory(ptr::null_mut());
@@ -355,6 +410,8 @@ impl Region {
     /// value will be a multiple of four or zero if the length was too small.
     ///
     /// - `buf` storage for binary data
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_readFromMemory>
     pub fn read_from_memory(&mut self, buf: &[u8]) -> usize {
         unsafe {
             self.native_mut()
@@ -507,12 +564,16 @@ impl<'a> Iterator<'a> {
     /// Sets the iterator to return elements of the region's rectangle array.
     ///
     /// - `region` region to iterate
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_Iterator_copy_const_SkRegion>
     pub fn new(region: &'a Region) -> Iterator<'a> {
         Iterator::from_native_c(unsafe { SkRegion_Iterator::new(region.native()) })
     }
 
     /// Moves the iterator to the start of the region. Returns true if the region was set;
     /// otherwise, returns false.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_Iterator_rewind>
     pub fn rewind(&mut self) -> bool {
         unsafe { self.native_mut().rewind() }
     }
@@ -520,6 +581,8 @@ impl<'a> Iterator<'a> {
     /// Resets the iterator, using the new region.
     ///
     /// - `region` region to iterate
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_Iterator_reset>
     pub fn reset(mut self, region: &Region) -> Iterator {
         unsafe {
             self.native_mut().reset(region.native());
@@ -536,6 +599,8 @@ impl<'a> Iterator<'a> {
     /// the next rectangle to the right within the current horizontal strip. If the end of the strip
     /// is reached, it automatically advances to the first rectangle in the next strip, skipping any
     /// vertical gaps.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_Iterator_next>
     pub fn next(&mut self) {
         unsafe {
             self.native_mut().next();
@@ -610,6 +675,8 @@ impl<'a> Cliperator<'a> {
     ///
     /// - `region` region to iterate
     /// - `clip` bounds of iteration
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_Cliperator_const_SkRegion_const_SkIRect>
     pub fn new(region: &'a Region, clip: impl AsRef<IRect>) -> Cliperator<'a> {
         Cliperator::from_native_c(unsafe {
             SkRegion_Cliperator::new(region.native(), clip.as_ref().native())
@@ -622,6 +689,8 @@ impl<'a> Cliperator<'a> {
     }
 
     /// Advances the iterator to the next rectangle in the region contained by the clip.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_Cliperator_next>
     pub fn next(&mut self) {
         unsafe { self.native_mut().next() }
     }
@@ -671,6 +740,8 @@ impl<'a> Spanerator<'a> {
     /// - `y` horizontal line to intersect
     /// - `left` bounds of iteration
     /// - `right` bounds of iteration
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_Spanerator_const_SkRegion_int_int_int>
     pub fn new(region: &'a Region, y: i32, left: i32, right: i32) -> Spanerator<'a> {
         Spanerator::from_native_c(unsafe {
             SkRegion_Spanerator::new(region.native(), y, left, right)
@@ -683,6 +754,8 @@ impl iter::Iterator for Spanerator<'_> {
 
     /// Advances the iterator to the next span intersecting the region within the line segment
     /// provided in the constructor. Returns the `(left, right)` span if an interval was found.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Region_Spanerator_next>
     fn next(&mut self) -> Option<Self::Item> {
         unsafe {
             let mut left = 0;

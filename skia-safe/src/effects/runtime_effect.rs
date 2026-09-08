@@ -1,3 +1,6 @@
+//! Support for creating custom [`crate::Shader`]s and [`crate::ColorFilter`]s from Skia's SkSL
+//! shading language. This API is experimental and subject to change.
+
 use crate::{
     Blender, ColorFilter, Data, Matrix, Shader,
     interop::{self, AsStr},
@@ -75,6 +78,9 @@ impl Uniform {
 }
 
 pub mod uniform {
+    //! Types that describe the uniforms of a [`crate::RuntimeEffect`], e.g. [`Type`] and
+    //! [`Flags`].
+
     use skia_bindings as sb;
 
     pub use sb::SkRuntimeEffect_Uniform_Type as Type;

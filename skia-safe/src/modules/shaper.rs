@@ -1,3 +1,4 @@
+//! Script-aware text shaping via Skia's `SkShaper`, producing [`crate::TextBlob`]s (see [`crate::Shaper`]).
 use std::{
     ffi::{CStr, CString},
     fmt,
@@ -341,6 +342,7 @@ impl Shaper {
 }
 
 pub mod run_handler {
+    //! Callback interface that receives shaped runs (glyphs, positions, and advances) as text is shaped.
     use std::{ffi::CStr, ops::Range, slice};
 
     use skia_bindings::{SkShaper_RunHandler_Buffer, SkShaper_RunHandler_RunInfo};
@@ -776,6 +778,7 @@ pub(crate) mod shapers {
     }
 
     pub mod primitive {
+        //! A trivial text shaper and run iterators that do not depend on external shaping libraries.
         use skia_bindings as sb;
 
         use crate::shaper::{BiDiRunIterator, ScriptRunIterator, Shaper};
@@ -801,6 +804,7 @@ pub(crate) mod shapers {
 }
 
 pub mod icu {
+    //! Initialization support for International Components for Unicode (ICU), required by some text shapers.
     /// On Windows, and if the default feature "embed-icudtl" is _not_ set, this function writes the
     /// file `icudtl.dat` into the current executable's directory making sure that it's available
     /// when text shaping is used in Skia.

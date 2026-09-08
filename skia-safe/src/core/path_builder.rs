@@ -1,3 +1,6 @@
+//! Helper to build a [`crate::Path`] incrementally by adding verbs, with a more convenient API
+//! than [`crate::Path`] itself.
+
 use std::fmt;
 
 use crate::{

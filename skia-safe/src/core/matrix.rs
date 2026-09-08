@@ -5,6 +5,8 @@
 //!
 //! [`Matrix`] includes a hidden variable that classifies the type of matrix to improve
 //! performance. [`Matrix`] is not thread safe unless [`Matrix::get_type()`] is called first.
+//!
+//! Example (C++): <https://fiddle.skia.org/c/@Matrix_063>
 
 use std::{
     ops::{Index, IndexMut, Mul},
@@ -376,6 +378,8 @@ impl Matrix {
     /// Euclidean space, or a similarity transformation.
     ///
     /// Preserves right angles, keeping the arms of the angle equal lengths.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Matrix_isSimilarity>
     pub fn is_similarity(&self) -> bool {
         unsafe { self.native().isSimilarity(scalar::NEARLY_ZERO) }
     }
@@ -386,6 +390,8 @@ impl Matrix {
     ///
     /// Preserves right angles, but does not require that the arms of the angle retain equal
     /// lengths.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Matrix_preservesRightAngles>
     pub fn preserves_right_angles(&self) -> bool {
         unsafe { self.native().preservesRightAngles(scalar::NEARLY_ZERO) }
     }
@@ -685,6 +691,8 @@ impl Matrix {
     /// translated by (`rsxform.tx`, `rsxform.ty`).
     ///
     /// - `rsxform` compressed [`RSXform`] matrix
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Matrix_setRSXform>
     pub fn set_rsxform(&mut self, rsxform: &RSXform) -> &mut Self {
         unsafe {
             self.native_mut().setRSXform(rsxform.native());
@@ -1164,6 +1172,8 @@ impl Matrix {
     ///
     /// - `src` source polygon points
     /// - `dst` destination polygon points
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Matrix_setPolyToPoly>
     pub fn poly_to_poly(src: &[Point], dst: &[Point]) -> Option<Matrix> {
         let mut m = Matrix::new();
         m.set_poly_to_poly(src, dst).then_some(m)
@@ -1218,6 +1228,8 @@ impl Matrix {
     /// Affine 3 by 2 matrices in column major order are used by OpenGL and XPS.
     ///
     /// - `affine` storage for the 3 by 2 affine matrix
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Matrix_SetAffineIdentity>
     pub fn set_affine_identity(affine: &mut [scalar; 6]) {
         unsafe { SkMatrix::SetAffineIdentity(affine.as_mut_ptr()) }
     }
@@ -1319,6 +1331,8 @@ impl Matrix {
     ///
     /// - `dst` storage where the transformed points are written
     /// - `src` storage where the points are read from
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Matrix_mapPoints>
     pub fn map_points(&self, dst: &mut [Point], src: &[Point]) {
         assert!(dst.len() >= src.len());
 
@@ -1374,6 +1388,8 @@ impl Matrix {
     ///
     /// - `dst` storage where the transformed points are written
     /// - `src` storage where the points are read from
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Matrix_mapHomogeneousPoints>
     pub fn map_homogeneous_points(&self, dst: &mut [Point3], src: &[Point3]) {
         assert!(dst.len() >= src.len());
 
@@ -1515,6 +1531,8 @@ impl Matrix {
     ///
     /// - `dst` storage where the transformed vectors are written
     /// - `src` storage where the vectors are read from
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Matrix_mapVectors>
     pub fn map_vectors(&self, dst: &mut [Vector], src: &[Vector]) {
         assert!(dst.len() >= src.len());
         unsafe {
@@ -1565,6 +1583,8 @@ impl Matrix {
     /// The returned value is the same as calling [`Self::rect_stays_rect()`].
     ///
     /// - `src` rectangle to map
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Matrix_mapRect>
     pub fn map_rect(&self, src: impl AsRef<Rect>) -> (Rect, bool) {
         let mut dst = Rect::default();
         let rect_stays_rect = unsafe {
@@ -1596,6 +1616,8 @@ impl Matrix {
     /// defined; otherwise, results are undefined).
     ///
     /// - `src` rectangle to map
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Matrix_mapRectScaleTranslate>
     pub fn map_rect_scale_translate(&self, src: impl AsRef<Rect>) -> Option<Rect> {
         if self.is_scale_translate() {
             let mut rect = Rect::default();
@@ -1616,6 +1638,8 @@ impl Matrix {
     /// The result is not meaningful if the matrix contains perspective elements.
     ///
     /// - `radius` circle size to map
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Matrix_mapRadius>
     pub fn map_radius(&self, radius: scalar) -> Option<scalar> {
         if !self.has_perspective() {
             Some(unsafe { self.native().mapRadius(radius) })
@@ -1642,6 +1666,8 @@ impl Matrix {
     /// Writes a text representation of the matrix to standard output. Floating point values are
     /// written with limited precision; it may not be possible to reconstruct the original matrix
     /// from the output.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Matrix_dump>
     pub fn dump(&self) {
         unsafe { self.native().dump() }
     }
@@ -1650,6 +1676,8 @@ impl Matrix {
     /// elements.
     ///
     /// Returns -1 if the scale factor overflows or the matrix contains perspective.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Matrix_getMinScale>
     pub fn min_scale(&self) -> scalar {
         unsafe { self.native().getMinScale() }
     }
@@ -1658,6 +1686,8 @@ impl Matrix {
     /// elements.
     ///
     /// Returns -1 if the scale factor overflows or the matrix contains perspective.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Matrix_getMaxScale>
     pub fn max_scale(&self) -> scalar {
         unsafe { self.native().getMaxScale() }
     }
@@ -1689,6 +1719,8 @@ impl Matrix {
     /// On success: `Matrix = remaining * scale`.
     ///
     /// - `remaining` matrix without scaling; may be `None`
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Matrix_decomposeScale>
     pub fn decompose_scale(&self, mut remaining: Option<&mut Matrix>) -> Option<Size> {
         let mut size = Size::default();
         unsafe {
@@ -1705,6 +1737,8 @@ impl Matrix {
     /// | 0 1 0 |
     /// | 0 0 1 |
     /// ```
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Matrix_I>
     pub fn i() -> &'static Matrix {
         &IDENTITY
     }
@@ -1716,6 +1750,8 @@ impl Matrix {
     /// | SK_ScalarMax SK_ScalarMax SK_ScalarMax |
     /// | SK_ScalarMax SK_ScalarMax SK_ScalarMax |
     /// ```
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Matrix_InvalidMatrix>
     pub fn invalid_matrix() -> &'static Matrix {
         Self::from_native_ref(unsafe { &*sb::C_SkMatrix_InvalidMatrix() })
     }

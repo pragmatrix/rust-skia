@@ -24,7 +24,7 @@ native_transmutable!(SkTextEncoding, TextEncoding);
 /// Trait representing encoded text.
 ///
 /// Functions that expect `EncodedText` may be passed `String`, `&String``, `&str` representing
-/// UTF-8 encoded text. In addition to that, &[u16], [u16], or &[GlyphId], [GlyphId], are
+/// UTF-8 encoded text. In addition to that, `&[u16]`, `[u16]`, or `&[GlyphId]`, `[GlyphId]`, are
 /// interpreted as `GlyphId` slices.
 ///
 /// To use UTF16 or UTF32 encodings, use [`as_utf16_unchecked`] or

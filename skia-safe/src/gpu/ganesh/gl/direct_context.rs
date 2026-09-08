@@ -1,4 +1,5 @@
 pub mod direct_contexts {
+    //! Creates a GL-backed [`crate::gpu::DirectContext`].
     use skia_bindings as sb;
 
     use crate::{
@@ -21,6 +22,7 @@ pub mod direct_contexts {
 }
 
 pub mod contexts {
+    //! Creates a [`crate::Context`] wrapping a Ganesh GPU backend with OpenGL.
     use skia_bindings as sb;
 
     use crate::{Context, ContextOptions, gpu::gl, prelude::*};

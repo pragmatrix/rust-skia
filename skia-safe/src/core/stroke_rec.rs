@@ -1,3 +1,5 @@
+//! Describes how a [`crate::Path`] is stroked: style, width, miter, cap, and join.
+
 use crate::PathBuilder;
 use crate::{Paint, Path, paint, prelude::*, scalar};
 use skia_bindings::{self as sb, SkStrokeRec};

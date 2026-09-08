@@ -1,3 +1,6 @@
+//! Represents a set of actual arguments for a font, including a variation position and a color
+//! palette.
+
 use std::{fmt, marker::PhantomData, mem};
 
 use skia_bindings::{
@@ -26,6 +29,7 @@ pub struct VariationPosition<'a> {
 }
 
 pub mod variation_position {
+    //! A single axis/value pair in a [`crate::font_arguments::VariationPosition`].
     use crate::FourByteTag;
     use skia_bindings::SkFontArguments_VariationPosition_Coordinate;
 
@@ -63,6 +67,7 @@ pub struct Palette<'a> {
 }
 
 pub mod palette {
+    //! Palette entry overrides for [`crate::font_arguments::Palette`].
     use crate::Color;
     use skia_bindings::SkFontArguments_Palette_Override;
 

@@ -25,6 +25,7 @@ pub use backend_surface::*;
 pub use direct_context::*;
 pub use driver_bug_workarounds::*;
 pub mod images {
+    //! Image creation and utilities for the Ganesh backend.
     pub use super::image_ganesh::*;
 }
 pub use recording_context::*;

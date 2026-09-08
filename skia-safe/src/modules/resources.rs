@@ -1,3 +1,4 @@
+//! Resource provider interfaces for loading images, fonts, and other assets used by animation and vector modules (Skia's `skresources` module).
 use std::{borrow::Cow, ffi::CStr, mem, os::raw, ptr};
 
 use helpers::ResourceKind;

@@ -1,3 +1,5 @@
+//! An immutable set of vertex data that can be used with [`crate::Canvas::draw_vertices()`].
+
 use crate::{Color, Point, Rect, prelude::*};
 use sb::SkNVRefCnt;
 use skia_bindings::{self as sb, SkPoint, SkVertices, SkVertices_Builder};

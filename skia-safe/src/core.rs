@@ -192,6 +192,8 @@ pub trait QuickReject<T> {
 }
 
 pub mod shaders {
+    //! Shader factory functions and [`Shader`] convenience constructors, re-exported from
+    //! [`crate::shader::shaders`].
     pub use super::shader::shaders::*;
     use crate::{ISize, Shader, prelude::*, scalar};
     use skia_bindings as sb;

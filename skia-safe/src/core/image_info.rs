@@ -517,7 +517,7 @@ impl ImageInfo {
         self
     }
 
-    /// Returns `true` if the `row_bytes` are valid for [ImageInfo] _and_ an image would fit into
+    /// Returns `true` if the `row_bytes` are valid for [`ImageInfo`] _and_ an image would fit into
     /// `pixels`.
     pub(crate) fn valid_pixels<P>(&self, row_bytes: usize, pixels: &[P]) -> bool {
         self.valid_row_bytes(row_bytes)

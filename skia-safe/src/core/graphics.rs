@@ -1,3 +1,5 @@
+//! Global Skia graphics state: initialization and font cache configuration.
+
 use skia_bindings::SkGraphics;
 
 /// Call this at process initialization time if your environment does not permit static global

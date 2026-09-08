@@ -1,4 +1,5 @@
 pub mod direct_contexts {
+    //! Creates a Metal-backed [`crate::gpu::DirectContext`].
 
     use skia_bindings as sb;
 
@@ -23,6 +24,7 @@ pub mod direct_contexts {
 }
 
 pub mod contexts {
+    //! Creates a [`crate::Context`] wrapping a Ganesh GPU backend with Metal.
     use skia_bindings as sb;
 
     use crate::{Context, ContextOptions, gpu::mtl, prelude::*};

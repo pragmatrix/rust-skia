@@ -1,6 +1,10 @@
+//! Parameters of a variation font: [`VariationAxis`] describes a single axis of a variable font.
+
 pub use variation::Axis as VariationAxis;
 
 pub mod variation {
+    //! The [`Axis`] of a variation font: a four character tag with minimum, default, and maximum
+    //! values.
     use crate::{FourByteTag, prelude::*};
     use skia_bindings::{self as sb, SkFontParameters_Variation_Axis};
 

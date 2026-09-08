@@ -11,6 +11,7 @@ use crate::{
 };
 
 pub mod request {
+    //! Helpers for matching fonts by character and variation model, used for font fallback.
     use skia_bindings::{self as sb, SkFontMgr_Request_CMapEntry};
 
     use crate::{FontStyle, Unichar, font_arguments, prelude::*};

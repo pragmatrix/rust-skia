@@ -1,3 +1,6 @@
+//! A [`crate::ColorFilter`] that uses the value in the source alpha channel to set the
+//! destination pixel, useful for visualizing overdraw.
+
 use crate::{Color, ColorFilter, prelude::*};
 use skia_bindings as sb;
 

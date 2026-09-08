@@ -62,6 +62,8 @@ impl<'pixels> Pixmap<'pixels> {
     /// - `info` width, height, alpha type, color type of the image info
     /// - `pixels` pointer to pixels allocated by the caller
     /// - `row_bytes` size of one row of pixels; width times pixel size, or larger
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Pixmap_reset_2>
     pub fn new(info: &ImageInfo, pixels: &'pixels mut [u8], row_bytes: usize) -> Option<Self> {
         if row_bytes < info.min_row_bytes() {
             return None;
@@ -81,6 +83,8 @@ impl<'pixels> Pixmap<'pixels> {
     /// [`ColorType::Unknown`]; and alpha type to [`AlphaType::Unknown`].
     ///
     /// The prior pixels are unaffected; it is up to the caller to release pixels memory if desired.
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Pixmap_reset>
     pub fn reset(&mut self) -> &mut Self {
         unsafe { self.native_mut().reset() }
         self
@@ -93,6 +97,8 @@ impl<'pixels> Pixmap<'pixels> {
     /// reference count is incremented.
     ///
     /// - `color_space` color space moved to the image info
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Pixmap_setColorSpace>
     pub fn set_color_space(&mut self, color_space: impl Into<Option<ColorSpace>>) -> &mut Self {
         unsafe {
             sb::C_SkPixmap_setColorSpace(self.native_mut(), color_space.into().into_ptr_or_null())
@@ -217,6 +223,8 @@ impl<'pixels> Pixmap<'pixels> {
     /// greater.
     ///
     /// Returns false for [`ColorType::Unknown`].
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Pixmap_computeIsOpaque>
     pub fn compute_is_opaque(&self) -> bool {
         unsafe { self.native().computeIsOpaque() }
     }
@@ -232,6 +240,8 @@ impl<'pixels> Pixmap<'pixels> {
     /// conversion to unpremultiplied color; original pixel data may have additional precision.
     ///
     /// - `p` pixel position
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Pixmap_getColor>
     pub fn get_color(&self, p: impl Into<IPoint>) -> Color {
         let p = p.into();
         self.assert_pixel_exists(p);
@@ -441,6 +451,8 @@ impl<'pixels> Pixmap<'pixels> {
     ///
     /// - `dst` image info and pixel address to write to
     /// - `sampling` sampling options
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Pixmap_scalePixels>
     pub fn scale_pixels(&self, dst: &mut Pixmap, sampling: impl Into<SamplingOptions>) -> bool {
         let sampling = sampling.into();
         unsafe { self.native().scalePixels(dst.native(), sampling.native()) }
@@ -452,6 +464,8 @@ impl<'pixels> Pixmap<'pixels> {
     ///
     /// - `color` sRGB unpremultiplied color to write
     /// - `subset` bounding integer rectangle of pixels to write
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Pixmap_erase>
     pub fn erase(&mut self, color: impl Into<Color>, subset: Option<&IRect>) -> bool {
         let color = color.into().into_native();
         unsafe {

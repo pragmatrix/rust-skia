@@ -1,3 +1,6 @@
+//! Encoding of images into the JPEG format, with configurable quality, downsampling, and alpha
+//! handling.
+
 use crate::{
     ColorSpace, Data, EncodedOrigin, Pixmap, YUVAPixmaps, interop::RustWStream, prelude::*,
 };

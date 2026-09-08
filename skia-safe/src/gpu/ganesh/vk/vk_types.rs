@@ -1,3 +1,6 @@
+//! Low-level Vulkan types used by the Ganesh Vulkan backend, for interacting with resources
+//! created externally to Skia.
+
 use std::ptr;
 
 use skia_bindings::{GrVkDrawableInfo, GrVkImageInfo, GrVkSurfaceInfo};

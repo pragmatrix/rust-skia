@@ -1,6 +1,8 @@
 use crate::{Canvas, Data, Point, Rect};
 
 pub mod annotate {
+    //! Annotates a [`crate::Canvas`] with URLs, named destinations, and links to destinations,
+    //! for backends that support annotations, such as PDF.
     use crate::prelude::*;
     use crate::{Canvas, Data, Point, Rect};
     use skia_bindings::{
