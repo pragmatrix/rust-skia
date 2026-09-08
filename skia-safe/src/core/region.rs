@@ -42,18 +42,32 @@ pub use skia_bindings::SkRegion_Op as RegionOp;
 variant_name!(RegionOp::ReverseDifference);
 
 impl Region {
+    /// Constructs an empty region. The region is set to empty bounds at (0, 0) with zero width and
+    /// height.
     pub fn new() -> Region {
         Self::from_native_c(unsafe { SkRegion::new() })
     }
 
+    /// Constructs a rectangular region matching the bounds of `rect`.
+    ///
+    /// - `rect` bounds of the constructed region
     pub fn from_rect(rect: impl AsRef<IRect>) -> Region {
         Self::from_native_c(unsafe { SkRegion::new2(rect.as_ref().native()) })
     }
 
+    /// Sets the region to `src`, and returns true if `src` bounds is not empty. This makes the
+    /// region and `src` identical by value. Internally, the region and `src` share pointer values.
+    /// The underlying rectangle array is copied when modified.
+    ///
+    /// - `src` region to copy
     pub fn set(&mut self, src: &Region) -> bool {
         unsafe { sb::C_SkRegion_set(self.native_mut(), src.native()) }
     }
 
+    /// Exchanges the rectangle array of the region and `other`. `swap` internally exchanges
+    /// pointers, so it is lightweight and does not allocate memory.
+    ///
+    /// - `other` region to swap with
     pub fn swap(&mut self, other: &mut Region) {
         unsafe { self.native_mut().swap(other.native_mut()) }
     }
@@ -61,22 +75,33 @@ impl Region {
     const EMPTY_RUN_HEAD_PTR: *mut SkRegion_RunHead = -1 as _;
     const RECT_RUN_HEAD_PTR: *mut SkRegion_RunHead = ptr::null_mut();
 
+    /// Returns true if the region is empty. An empty region has bounds width or height less than
+    /// or equal to zero.
     pub fn is_empty(&self) -> bool {
         ptr::eq(self.native().fRunHead, Self::EMPTY_RUN_HEAD_PTR)
     }
 
+    /// Returns true if the region is one [`IRect`] with positive dimensions.
     pub fn is_rect(&self) -> bool {
         ptr::eq(self.native().fRunHead, Self::RECT_RUN_HEAD_PTR)
     }
 
+    /// Returns true if the region is described by more than one rectangle.
     pub fn is_complex(&self) -> bool {
         !self.is_empty() && !self.is_rect()
     }
 
+    /// Returns the minimum and maximum axes values of the rectangle array. Returns (0, 0, 0, 0) if
+    /// the region is empty.
     pub fn bounds(&self) -> &IRect {
         IRect::from_native_ref(&self.native().fBounds)
     }
 
+    /// Returns a value that increases with the number of elements in the region. Returns zero if
+    /// the region is empty. Returns one if the region equals an [`IRect`]; otherwise, returns a
+    /// value greater than one indicating that the region is complex.
+    ///
+    /// Call to compare regions for relative complexity.
     pub fn compute_region_complexity(&self) -> usize {
         unsafe { self.native().computeRegionComplexity().try_into().unwrap() }
     }
