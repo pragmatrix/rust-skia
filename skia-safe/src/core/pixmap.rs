@@ -47,6 +47,21 @@ impl fmt::Debug for Pixmap<'_> {
 }
 
 impl<'pixels> Pixmap<'pixels> {
+    /// Creates a [`Pixmap`] from `info` width, height, alpha type, and color type. `pixels` points
+    /// to pixels. `row_bytes` should be `info.width()` times `info.bytes_per_pixel()`, or larger.
+    ///
+    /// No parameter checking is performed; it is up to the caller to ensure that `pixels` and
+    /// `row_bytes` agree with `info`.
+    ///
+    /// The memory lifetime of pixels is managed by the caller. When the [`Pixmap`] goes out of
+    /// scope, the pixel address is unaffected.
+    ///
+    /// The [`Pixmap`] may be later modified by [`Self::reset()`] to change its size, pixel type, or
+    /// storage.
+    ///
+    /// - `info` width, height, alpha type, color type of the image info
+    /// - `pixels` pointer to pixels allocated by the caller
+    /// - `row_bytes` size of one row of pixels; width times pixel size, or larger
     pub fn new(info: &ImageInfo, pixels: &'pixels mut [u8], row_bytes: usize) -> Option<Self> {
         if row_bytes < info.min_row_bytes() {
             return None;
@@ -62,6 +77,10 @@ impl<'pixels> Pixmap<'pixels> {
         }))
     }
 
+    /// Sets width, height, row bytes to zero; pixel address to null; color type to
+    /// [`ColorType::Unknown`]; and alpha type to [`AlphaType::Unknown`].
+    ///
+    /// The prior pixels are unaffected; it is up to the caller to release pixels memory if desired.
     pub fn reset(&mut self) -> &mut Self {
         unsafe { self.native_mut().reset() }
         self
@@ -69,6 +88,11 @@ impl<'pixels> Pixmap<'pixels> {
 
     // TODO: reset() function that re-borrows pixels?
 
+    /// Changes the [`ColorSpace`] in the [`ImageInfo`]; preserves width, height, alpha type, and
+    /// color type, and leaves the pixel address and row bytes unchanged. The [`ColorSpace`]
+    /// reference count is incremented.
+    ///
+    /// - `color_space` color space moved to the image info
     pub fn set_color_space(&mut self, color_space: impl Into<Option<ColorSpace>>) -> &mut Self {
         unsafe {
             sb::C_SkPixmap_setColorSpace(self.native_mut(), color_space.into().into_ptr_or_null())
@@ -76,6 +100,11 @@ impl<'pixels> Pixmap<'pixels> {
         self
     }
 
+    /// Sets the subset width, height, pixel address to the intersection of the [`Pixmap`] with
+    /// `area`, if the intersection is not empty; and returns true. Otherwise, leaves the subset
+    /// unchanged and returns false.
+    ///
+    /// - `area` bounds to intersect with the pixmap
     #[must_use]
     pub fn extract_subset(&self, area: impl AsRef<IRect>) -> Option<Self> {
         let mut pixmap = Pixmap::default();
@@ -180,6 +209,14 @@ impl<'pixels> Pixmap<'pixels> {
     /// whether a pixel describes alpha. Returns true for color types without alpha in each pixel;
     /// for other color types, returns true if all pixels have alpha values equivalent to 1.0 or
     /// greater.
+    ///
+    /// For [`ColorType::RGB565`] or [`ColorType::Gray8`]: always returns true. For
+    /// [`ColorType::Alpha8`], [`ColorType::BGRA8888`], [`ColorType::RGBA8888`]: returns true if all
+    /// pixel alpha values are 255. For [`ColorType::ARGB4444`]: returns true if all pixel alpha
+    /// values are 15. For [`ColorType::RGBAF16`]: returns true if all pixel alpha values are 1.0 or
+    /// greater.
+    ///
+    /// Returns false for [`ColorType::Unknown`].
     pub fn compute_is_opaque(&self) -> bool {
         unsafe { self.native().computeIsOpaque() }
     }

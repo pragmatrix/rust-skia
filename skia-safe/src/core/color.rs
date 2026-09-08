@@ -78,8 +78,9 @@ impl Color {
 
     // Don't use the u8cpu type in the arguments here, because we trust the Rust compiler to
     // optimize the storage type.
-    /// Returns a color value from 8-bit component values. Since the color is unpremultiplied, `a`
-    /// may be smaller than the largest of `r`, `g`, and `b`.
+    /// Returns a color value from 8-bit component values. Asserts if `a`, `r`, `g`, or `b` exceed
+    /// 255. Since the color is unpremultiplied, `a` may be smaller than the largest of `r`, `g`,
+    /// and `b`.
     ///
     /// - `a` amount of alpha, from fully transparent (0) to fully opaque (255)
     /// - `r` amount of red, from no red (0) to full red (255)

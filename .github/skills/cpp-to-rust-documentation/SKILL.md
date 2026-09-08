@@ -8,6 +8,12 @@ description: "Use when porting documentation from Skia C++ headers to Rust APIs,
 When porting documentation from C++ headers:
 
 - Keep wording as close to the original as possible, including grammatical errors, except where Rust terminology or syntax requires a change.
+- Port the documentation completely: do not shorten, summarize, or omit any
+  information from the C++ comment. Every sentence, clause, and detail must be
+  carried over (for example, the per-color-type breakdown in
+  `SkPixmap::computeIsOpaque` must be included in full, not reduced to a
+  one-line summary). Only drop content that is explicitly excluded by another
+  rule (e.g. `example:` fiddle links).
 - Document parameters using a list entry per parameter, backticking the Rust
   parameter name and following it directly with the description (for example,
   `` - `color` unpremultiplied RGBA ``). Do not add a colon between name and
