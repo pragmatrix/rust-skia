@@ -179,14 +179,25 @@ impl StrokeRec {
         r
     }
 
+    /// Applies these stroke parameters to a paint.
+    ///
+    /// - `paint` paint to apply the stroke parameters to
     pub fn apply_to_paint(&self, paint: &mut Paint) {
         unsafe { self.native().applyToPaint(paint.native_mut()) }
     }
 
+    /// Gives a conservative value for the outset that should be applied to a geometry's bounds to
+    /// account for any inflation due to applying this stroke record to the geometry.
     pub fn inflation_radius(&self) -> scalar {
         unsafe { self.native().getInflationRadius() }
     }
 
+    /// Equivalent to constructing a stroke record from `paint` and `style` and calling
+    /// [`Self::inflation_radius()`]. This does not account for other effects on the paint (i.e.
+    /// path effects).
+    ///
+    /// - `paint` paint used to construct the stroke record
+    /// - `style` style used to construct the stroke record
     pub fn inflation_radius_from_paint_and_style(paint: &Paint, style: paint::Style) -> scalar {
         unsafe { SkStrokeRec::GetInflationRadius(paint.native(), style) }
     }
@@ -200,6 +211,10 @@ impl StrokeRec {
         unsafe { SkStrokeRec::GetInflationRadius1(join, miter_limit, cap, stroke_width) }
     }
 
+    /// Compares if two stroke records have an equal effect on a path. Equal stroke records produce
+    /// equal paths. Equality of produced paths does not take the res scale parameter into account.
+    ///
+    /// - `other` stroke record to compare with
     pub fn has_equal_effect(&self, other: &StrokeRec) -> bool {
         unsafe { sb::C_SkStrokeRec_hasEqualEffect(self.native(), other.native()) }
     }
