@@ -13,7 +13,7 @@ When porting documentation from C++ headers:
   carried over (for example, the per-color-type breakdown in
   `SkPixmap::computeIsOpaque` must be included in full, not reduced to a
   one-line summary). Only drop content that is explicitly excluded by another
-  rule (e.g. `example:` fiddle links).
+  rule.
 - Before porting a file, read the full corresponding C++ header and the full
   Rust file side by side, and port every public method that has a C++ doc
   comment. Do not rely on memory or on a partial survey: open the header and
@@ -35,7 +35,13 @@ When porting documentation from C++ headers:
 - Refer to parameter values in prose as backticked code (`` `None` ``), and use
   `None` / `Some` instead of `nullptr` / optional wording when describing Rust
   `Option` parameters.
-- Do not port `example:` fiddle links; rustdoc does not render Skia fiddles.
+- Keep `example:` fiddle links, but add a concise hint that the example is in
+  C++ (for example, `Example (C++):` or a short note that the fiddle is C++),
+  since rustdoc does not render Skia fiddles and the linked code is C++. Wrap
+  the URL in angle brackets (for example,
+  `Example (C++): <https://fiddle.skia.org/c/@Canvas_drawRect>`) so rustdoc
+  treats it as an explicit link; the `@` in fiddle URLs can otherwise break
+  bare-URL auto-linking.
 - Every reference to a Rust item in documentation must be a working intra-doc
   link, never plain backticked text. When a link fails to resolve, find the
   path that resolves instead of downgrading the reference to plain code text:
