@@ -180,6 +180,10 @@ impl From<(u8, u8, u8)> for RGB {
 }
 
 impl RGB {
+    /// Converts RGB to its HSV components.
+    ///
+    /// `h` contains the HSV hue, a value from zero to less than 360. `s` contains the HSV
+    /// saturation, a value from zero to one. `v` contains the HSV value, a value from zero to one.
     pub fn to_hsv(self) -> HSV {
         let mut hsv: [f32; 3] = Default::default();
         unsafe {
@@ -212,6 +216,15 @@ impl From<(f32, f32, f32)> for HSV {
 }
 
 impl HSV {
+    /// Converts HSV components to an ARGB color. Alpha is passed through unchanged.
+    ///
+    /// `h` represents the HSV hue, an angle from zero to less than 360. `s` represents the HSV
+    /// saturation, and varies from zero to one. `v` represents the HSV value, and varies from zero
+    /// to one.
+    ///
+    /// Out of range HSV values are pinned.
+    ///
+    /// - `alpha` alpha component of the returned ARGB color
     pub fn to_color(self, alpha: u8) -> Color {
         Color::from_native_c(unsafe {
             SkHSVToColor(alpha.into(), [self.h, self.s, self.v].as_ptr())
@@ -221,10 +234,20 @@ impl HSV {
 
 pub type PMColor = SkPMColor;
 
+/// Returns a `PMColor` value from unpremultiplied 8-bit component values.
+///
+/// - `a` amount of alpha, from fully transparent (0) to fully opaque (255)
+/// - `r` amount of red, from no red (0) to full red (255)
+/// - `g` amount of green, from no green (0) to full green (255)
+/// - `b` amount of blue, from no blue (0) to full blue (255)
 pub fn pre_multiply_argb(a: U8CPU, r: U8CPU, g: U8CPU, b: U8CPU) -> PMColor {
     unsafe { sb::SkPreMultiplyARGB(a, r, g, b) }
 }
 
+/// Returns the premultiplied color closest to `c`. Multiplies the `c` RGB components by the `c`
+/// alpha, and arranges the bytes to match the format of [`crate::ColorType::N32`].
+///
+/// - `c` unpremultiplied ARGB color
 pub fn pre_multiply_color(c: impl Into<Color>) -> PMColor {
     unsafe { sb::SkPreMultiplyColor(c.into().into_native()) }
 }
@@ -347,20 +370,29 @@ impl Color4f {
     }
 
     // corresponding Skia function: vec()
+    /// Returns a pointer to the components of this color, for array access.
+    ///
+    /// The returned slice is `[r, g, b, a]`.
     pub fn as_array(&self) -> &[f32; 4] {
         unsafe { transmute_ref(self) }
     }
 
     // corresponding Skia function: vec()
+    /// Returns a mutable pointer to the components of this color, for array access.
+    ///
+    /// The returned slice is `[r, g, b, a]`.
     pub fn as_array_mut(&mut self) -> &mut [f32; 4] {
         unsafe { transmute_ref_mut(self) }
     }
 
+    /// Returns true if this color is an opaque color. Asserts if `a` is out of range and `SK_DEBUG`
+    /// is defined.
     #[allow(clippy::float_cmp)]
     pub fn is_opaque(&self) -> bool {
         self.a == 1.0
     }
 
+    /// Returns true if all channels are in `[0, 1]`.
     // TODO: This is the copied implementation, it would probably be better
     //       to call the Skia function.
     pub fn fits_in_bytes(&self) -> bool {
@@ -373,6 +405,8 @@ impl Color4f {
             && self.b <= 1.0
     }
 
+    /// Returns the closest [`Color`] to this color. Only allowed if this color is
+    /// unpremultiplied.
     pub fn to_color(self) -> Color {
         fn c(f: f32) -> u8 {
             (f.clamp(0.0, 1.0) * 255.0) as u8
@@ -399,11 +433,13 @@ impl Color4f {
     }
 
     #[must_use]
+    /// Returns a copy of this color, but with the alpha component set to `1.0`.
     pub fn to_opaque(self) -> Self {
         Self { a: 1.0, ..self }
     }
 
     #[must_use]
+    /// Returns a copy of this color, but with the alpha component pinned to `[0, 1]`.
     pub fn pin_alpha(self) -> Self {
         Self {
             r: self.r,
