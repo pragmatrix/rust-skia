@@ -1,3 +1,13 @@
+//! Provides a utility to pair [`ImageInfo`] with pixels and row bytes. [`Pixmap`] is a low level
+//! class which provides convenience functions to access raster destinations. [`crate::Canvas`]
+//! cannot draw a [`Pixmap`], nor does [`Pixmap`] provide a direct drawing destination.
+//!
+//! Use [`crate::Bitmap`] to draw pixels referenced by [`Pixmap`]; use [`crate::Surface`] to draw
+//! into pixels referenced by [`Pixmap`].
+//!
+//! [`Pixmap`] does not try to manage the lifetime of the pixel memory. Use [`crate::PixelRef`] to
+//! manage pixel memory; [`crate::PixelRef`] is safe across threads.
+
 use crate::{
     AlphaType, Color, Color4f, ColorSpace, ColorType, IPoint, IRect, ISize, ImageInfo,
     SamplingOptions, prelude::*,
@@ -76,66 +86,100 @@ impl<'pixels> Pixmap<'pixels> {
         .then_some(pixmap)
     }
 
+    /// Returns the width, height, alpha type, color type, and color space.
     pub fn info(&self) -> &ImageInfo {
         ImageInfo::from_native_ref(&self.native().fInfo)
     }
 
+    /// Returns the row bytes, the interval from one pixel row to the next. Row bytes is at least as
+    /// large as `width() * info().bytes_per_pixel()`.
+    ///
+    /// Returns zero if the color type is [`ColorType::Unknown`]. It is up to the bitmap creator to
+    /// ensure that row bytes is a useful value.
     pub fn row_bytes(&self) -> usize {
         self.native().fRowBytes
     }
 
+    /// Returns the pixel address, the base address corresponding to the pixel origin.
+    ///
+    /// It is up to the pixmap creator to ensure that the pixel address is a useful value.
     pub fn addr(&self) -> *const c_void {
         self.native().fPixels
     }
 
+    /// Returns the pixel count in each pixel row. Should be equal to or less than
+    /// `row_bytes() / info().bytes_per_pixel()`.
     pub fn width(&self) -> i32 {
         self.info().width()
     }
 
+    /// Returns the pixel row count.
     pub fn height(&self) -> i32 {
         self.info().height()
     }
 
+    /// Returns true if the pixmap is empty (from its [`ImageInfo`]).
     pub fn is_empty(&self) -> bool {
         self.info().is_empty()
     }
 
+    /// Returns the dimensions of the pixmap (from its [`ImageInfo`]).
     pub fn dimensions(&self) -> ISize {
         self.info().dimensions()
     }
 
+    /// Returns the color type.
     pub fn color_type(&self) -> ColorType {
         self.info().color_type()
     }
 
+    /// Returns the alpha type.
     pub fn alpha_type(&self) -> AlphaType {
         self.info().alpha_type()
     }
 
+    /// Returns the [`ColorSpace`], the range of colors, associated with the [`ImageInfo`]. The
+    /// returned [`ColorSpace`] is immutable.
     pub fn color_space(&self) -> Option<ColorSpace> {
         ColorSpace::from_unshared_ptr(unsafe { self.native().colorSpace() })
     }
 
+    /// Returns true if the alpha type is [`AlphaType::Opaque`]. Does not check if the color type
+    /// allows alpha, or if any pixel value has transparency.
     pub fn is_opaque(&self) -> bool {
         self.alpha_type().is_opaque()
     }
 
+    /// Returns the integral rectangle from the origin to [`Self::width()`] and [`Self::height()`].
     pub fn bounds(&self) -> IRect {
         IRect::from_wh(self.width(), self.height())
     }
 
+    /// Returns the number of pixels that fit on a row. Should be greater than or equal to
+    /// [`Self::width()`].
     pub fn row_bytes_as_pixels(&self) -> usize {
         self.row_bytes() >> self.shift_per_pixel()
     }
 
+    /// Returns the bit shift converting row bytes to row pixels. Returns zero for
+    /// [`ColorType::Unknown`].
     pub fn shift_per_pixel(&self) -> usize {
         self.info().shift_per_pixel()
     }
 
+    /// Returns the minimum memory required for pixel storage. Does not include unused memory on
+    /// the last row when [`Self::row_bytes_as_pixels()`] exceeds [`Self::width()`]. Returns
+    /// `usize::MAX` if the result does not fit in `usize`. Returns zero if [`Self::height()`] or
+    /// [`Self::width()`] is 0. Returns [`Self::height()`] times [`Self::row_bytes()`] if the color
+    /// type is [`ColorType::Unknown`].
     pub fn compute_byte_size(&self) -> usize {
         self.info().compute_byte_size(self.row_bytes())
     }
 
+    /// Returns true if all pixels are opaque. The color type determines how pixels are encoded, and
+    /// whether a pixel describes alpha. Returns true for color types without alpha in each pixel;
+    /// for other color types, returns true if all pixels have alpha values equivalent to 1.0 or
+    /// greater.
     pub fn compute_is_opaque(&self) -> bool {
         unsafe { self.native().computeIsOpaque() }
     }
