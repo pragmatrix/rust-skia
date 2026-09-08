@@ -79,6 +79,11 @@ Working the survey top-to-bottom (priority list removed per user request). Commi
 - `84bc1dc3` skia-safe: document shaper run handler and drop invented current_font doc (`modules/shaper.rs` / `SkShaper.h` — ported `SkTextBlobBuilderRunHandler` class doc; removed invented `current_font` doc since C++ `currentFont()` has none; all other documented items already ported).
 
 > **CORRECTION (2026-09-08):** The graphite comments I removed in `391d20f7`, `58e6e82a`, and `536a020f` were **added by a contributor**, not invented. They are legitimate and were reverted (`def6f267`, `39722653`, `4a945dcd`) to restore the contributor's comments intact. `gpu/graphite/context_options.rs`, `context.rs`, and `recorder.rs` are back to their contributor-documented state — do NOT remove those comments.
+- `1f1e64d2` skia-safe: document SVG DOM root and set_container_size (`modules/svg/dom.rs` / `SkSVGDOM.h` — ported `getRoot` "Returns the root (outermost) SVG element." and `setContainerSize` full prose; read/from_str/from_bytes/render C++-undoc → left undoc; fe.rs SkSVGFe.h doc'd methods are virtual/unwrapped → nothing to port).
+- `03a8aa1e` skia-safe: document Vk DrawableInfo (`gpu/ganesh/vk/vk_types.rs` / `GrVkTypes.h` — ported GrVkDrawableInfo struct overview).
+- `ec3169ca` skia-safe: document GL Standard, Format, and TextureInfo (`gpu/ganesh/gl/types.rs` / `GrGLTypes.h` — GrGLStandard + GrGLFormat enum overviews + GrGLTextureInfo struct doc).
+- `e740935b` skia-safe: document MutableTextureState (`gpu/mutable_texture_state.rs` / `MutableTextureState.h` — class overview; methods C++-undoc → left undoc).
+- `09f64c1f` skia-safe: fix intra-doc links in ported gpu/utils docs and complete set_font_arguments (added missed links in vk_types DrawableInfo, tiled_image_utils module/key-values docs, gl Format doc; completed `TextStyle::set_font_arguments` missing sentence).
 
 ## Rule reinforced (2026-09-08)
 Do NOT add rustdoc for items that have no C++ doc comment. Only port docs that exist in the C++ header. Items without C++ docs are left undocumented (matches the established "C++ NO DOCS → low value, leave undocumented" rule). `modules/paragraph/paragraph.rs` was already complete (all C++-documented methods ported); it needs no further work.
