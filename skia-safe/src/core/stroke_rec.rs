@@ -106,6 +106,14 @@ impl StrokeRec {
         self
     }
 
+    /// Specify the stroke width, and optionally if you want stroke + fill.
+    ///
+    /// Note, if `width` is `0`, then this request is taken to mean:
+    /// `stroke_and_fill` set to `Some(true)` -> new style will be [`Style::Fill`]
+    /// `stroke_and_fill` set to `Some(false)` or `None` -> new style will be [`Style::Hairline`]
+    ///
+    /// - `width` the stroke width
+    /// - `stroke_and_fill` whether to stroke and fill
     pub fn set_stroke_style(
         &mut self,
         width: scalar,
@@ -138,11 +146,22 @@ impl StrokeRec {
         self.native_mut().fResScale = rs;
     }
 
+    /// Returns true if this specifies any thick stroking, i.e. [`Self::apply_to_path()`] will
+    /// return true.
     pub fn need_to_apply(&self) -> bool {
         let style = self.style();
         style == Style::Stroke || style == Style::StrokeAndFill
     }
 
+    /// Apply these stroke parameters to the `src` path, returning the result in `dst`.
+    ///
+    /// If there was no change (i.e. style == [`Style::Hairline`] or [`Style::Fill`]) this returns
+    /// false and `dst` is unchanged. Otherwise returns true and the result is stored in `dst`.
+    ///
+    /// `src` and `dst` may be the same path.
+    ///
+    /// - `dst` path builder receiving the result
+    /// - `src` source path
     pub fn apply_to_path(&self, dst: &mut PathBuilder, src: &Path) -> bool {
         unsafe { self.native().applyToPath(dst.native_mut(), src.native()) }
     }
