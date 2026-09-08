@@ -399,6 +399,25 @@ impl<'pixels> Pixmap<'pixels> {
         None
     }
 
+    /// Copies a rectangle of pixels to `dst`. Copy starts at `src`, and does not exceed the pixmap
+    /// (`width()`, `height()`). `dst` specifies width, height, color type, alpha type, and color
+    /// space of the destination. Returns true if pixels are copied. Returns false if the
+    /// destination address is null, or `dst.row_bytes()` is less than `dst.info().min_row_bytes()`.
+    ///
+    /// Pixels are copied only if pixel conversion is possible. If the pixmap color type is
+    /// [`ColorType::Gray8`] or [`ColorType::Alpha8`], `dst.info().color_type()` must match. If the
+    /// pixmap color type is [`ColorType::Gray8`], `dst.info().color_space()` must match. If the
+    /// pixmap alpha type is [`AlphaType::Opaque`], `dst.info().alpha_type()` must match. If the
+    /// pixmap color space is `None`, `dst.info().color_space()` must match. Returns false if pixel
+    /// conversion is not possible.
+    ///
+    /// `src.x` and `src.y` may be negative to copy only the top or left of the source. Returns
+    /// false if the pixmap width() or height() is zero or negative. Returns false if `abs(src.x)`
+    /// is greater than or equal to the pixmap width(), or if `abs(src.y)` is greater than or equal
+    /// to the pixmap height().
+    ///
+    /// - `dst` image info and pixel address to write to
+    /// - `src` source position
     pub fn read_pixels_to_pixmap(&self, dst: &mut Pixmap, src: impl Into<IPoint>) -> bool {
         let Some(dst_bytes) = dst.bytes_mut() else {
             return false;
@@ -406,11 +425,33 @@ impl<'pixels> Pixmap<'pixels> {
         self.read_pixels(dst.info(), dst_bytes, dst.row_bytes(), src)
     }
 
+    /// Copies the pixmap to `dst`, scaling pixels to fit `dst.width()` and `dst.height()`, and
+    /// converting pixels to match `dst.color_type()` and `dst.alpha_type()`. Returns true if pixels
+    /// are copied. Returns false if the destination address is null, or the destination row bytes
+    /// is less than the destination minimum row bytes.
+    ///
+    /// Pixels are copied only if pixel conversion is possible. If the pixmap color type is
+    /// [`ColorType::Gray8`] or [`ColorType::Alpha8`], the destination color type must match. If the
+    /// pixmap color type is [`ColorType::Gray8`], the destination color space must match. If the
+    /// pixmap alpha type is [`AlphaType::Opaque`], the destination alpha type must match. If the
+    /// pixmap color space is `None`, the destination color space must match. Returns false if pixel
+    /// conversion is not possible.
+    ///
+    /// Returns false if the pixmap width() or height() is zero or negative.
+    ///
+    /// - `dst` image info and pixel address to write to
+    /// - `sampling` sampling options
     pub fn scale_pixels(&self, dst: &mut Pixmap, sampling: impl Into<SamplingOptions>) -> bool {
         let sampling = sampling.into();
         unsafe { self.native().scalePixels(dst.native(), sampling.native()) }
     }
 
+    /// Writes `color` to pixels bounded by `subset`; returns true on success. Returns false if the
+    /// color type is [`ColorType::Unknown`], or if `subset` does not intersect the bounds. If
+    /// `subset` is `None`, writes color to pixels inside the bounds.
+    ///
+    /// - `color` sRGB unpremultiplied color to write
+    /// - `subset` bounding integer rectangle of pixels to write
     pub fn erase(&mut self, color: impl Into<Color>, subset: Option<&IRect>) -> bool {
         let color = color.into().into_native();
         unsafe {
@@ -421,6 +462,13 @@ impl<'pixels> Pixmap<'pixels> {
         }
     }
 
+    /// Writes `color` to pixels bounded by `subset`; returns true on success. If `subset` is `None`,
+    /// writes color to pixels inside the bounds. Returns false if the color type is
+    /// [`ColorType::Unknown`], if `subset` is not `None` and does not intersect the bounds, or if
+    /// `subset` is `None` and the bounds is empty.
+    ///
+    /// - `color` unpremultiplied color to write
+    /// - `subset` bounding integer rectangle of pixels to write; may be `None`
     pub fn erase_4f(&mut self, color: impl AsRef<Color4f>, subset: Option<&IRect>) -> bool {
         let color = color.as_ref();
         unsafe {
