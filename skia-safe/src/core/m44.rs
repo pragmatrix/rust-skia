@@ -456,6 +456,7 @@ impl M44 {
     }
 
     #[allow(clippy::too_many_arguments)]
+    /// The constructor parameters are in row-major order.
     pub const fn new(
         m0: scalar,
         m4: scalar,
@@ -531,6 +532,10 @@ impl M44 {
         m
     }
 
+    /// Scales and translates `src` to fill `dst` exactly.
+    ///
+    /// - `src` source rectangle
+    /// - `dst` destination rectangle
     pub fn rect_to_rect(src: impl AsRef<Rect>, dst: impl AsRef<Rect>) -> Self {
         let (src, dst) = (src.as_ref(), dst.as_ref());
         Self::construct(|m| unsafe { sb::C_SkM44_RectToRect(src.native(), dst.native(), m) })
@@ -787,6 +792,15 @@ impl M44 {
         V4::from_native_c(unsafe { sb::C_SkM44_map(self.native(), x, y, z, w) })
     }
 
+    /// When converting from [`M44`] to [`Matrix`], the third row and column is dropped. When
+    /// converting from [`Matrix`] to [`M44`] the third row and column remain as identity:
+    ///
+    /// ```text
+    /// [ a b c ]      [ a b 0 c ]
+    /// [ d e f ]  ->  [ d e 0 f ]
+    /// [ g h i ]      [ 0 0 1 0 ]
+    ///                [ g h 0 i ]
+    /// ```
     pub fn to_m33(&self) -> Matrix {
         let m = &self.mat;
         Matrix::new_all(m[0], m[4], m[12], m[1], m[5], m[13], m[3], m[7], m[15])
