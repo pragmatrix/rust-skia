@@ -382,11 +382,22 @@ impl ImageInfo {
         self.color_info().is_gamma_close_to_srgb()
     }
 
+    /// Creates [`ImageInfo`] with the same color type, color space, and alpha type, with dimensions
+    /// set to `new_dimensions`.
+    ///
+    /// - `new_dimensions` pixel column and row count; must be zero or greater
     #[must_use]
     pub fn with_dimensions(&self, new_dimensions: impl Into<ISize>) -> Self {
         Self::from_color_info(new_dimensions, self.color_info().clone())
     }
 
+    /// Creates [`ImageInfo`] with the same color type, color space, width, and height, with the
+    /// alpha type set to `new_alpha_type`.
+    ///
+    /// The created [`ImageInfo`] contains `new_alpha_type` even if it is incompatible with the
+    /// color type, in which case the alpha type in [`ImageInfo`] is ignored.
+    ///
+    /// - `new_alpha_type` new alpha type
     #[must_use]
     pub fn with_alpha_type(&self, new_alpha_type: AlphaType) -> Self {
         Self::from_color_info(
@@ -395,6 +406,10 @@ impl ImageInfo {
         )
     }
 
+    /// Creates [`ImageInfo`] with the same alpha type, color space, width, and height, with the
+    /// color type set to `new_color_type`.
+    ///
+    /// - `new_color_type` new color type
     #[must_use]
     pub fn with_color_type(&self, new_color_type: ColorType) -> Self {
         Self::from_color_info(
@@ -403,6 +418,10 @@ impl ImageInfo {
         )
     }
 
+    /// Creates [`ImageInfo`] with the same alpha type, color type, width, and height, with the
+    /// color space set to `new_color_space`. `new_color_space` may be `None`.
+    ///
+    /// - `new_color_space` optional color space
     #[must_use]
     pub fn with_color_space(&self, new_color_space: impl Into<Option<ColorSpace>>) -> Self {
         Self::construct(|ii| unsafe {
@@ -414,14 +433,19 @@ impl ImageInfo {
         })
     }
 
+    /// Returns the number of bytes per pixel required by the color type. Returns zero if the color
+    /// type is [`ColorType::Unknown`].
     pub fn bytes_per_pixel(&self) -> usize {
         self.color_info().bytes_per_pixel()
     }
 
+    /// Returns the bit shift converting row bytes to row pixels. Returns zero for
+    /// [`ColorType::Unknown`].
     pub fn shift_per_pixel(&self) -> usize {
         self.color_info().shift_per_pixel()
     }
 
+    /// Returns the minimum number of bytes per row, computed from the pixel width and color type.
     pub fn min_row_bytes(&self) -> usize {
         usize::try_from(self.width()).unwrap() * self.bytes_per_pixel()
     }
