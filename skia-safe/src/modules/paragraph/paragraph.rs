@@ -13,7 +13,6 @@ use crate::{
     scalar,
 };
 
-/// A laid-out paragraph of text that can be painted and queried for layout information.
 pub type Paragraph = RefHandle<sb::skia_textlayout_Paragraph>;
 // <https://github.com/rust-skia/rust-skia/issues/537>
 // unsafe_send_sync!(Paragraph);
@@ -41,52 +40,42 @@ impl fmt::Debug for Paragraph {
 }
 
 impl Paragraph {
-    /// Returns the width used to lay out the paragraph.
     pub fn max_width(&self) -> scalar {
         self.native().fWidth
     }
 
-    /// Returns the height of the laid out paragraph.
     pub fn height(&self) -> scalar {
         self.native().fHeight
     }
 
-    /// Returns the minimum intrinsic width of the paragraph.
     pub fn min_intrinsic_width(&self) -> scalar {
         self.native().fMinIntrinsicWidth
     }
 
-    /// Returns the maximum intrinsic width of the paragraph.
     pub fn max_intrinsic_width(&self) -> scalar {
         self.native().fMaxIntrinsicWidth
     }
 
-    /// Returns the alphabetic baseline of the paragraph.
     pub fn alphabetic_baseline(&self) -> scalar {
         self.native().fAlphabeticBaseline
     }
 
-    /// Returns the ideographic baseline of the paragraph.
     pub fn ideographic_baseline(&self) -> scalar {
         self.native().fIdeographicBaseline
     }
 
-    /// Returns the length of the longest line in the paragraph.
     pub fn longest_line(&self) -> scalar {
         self.native().fLongestLine
     }
 
-    /// Whether the layout exceeded the maximum number of lines.
     pub fn did_exceed_max_lines(&self) -> bool {
         self.native().fExceededMaxLines
     }
 
-    /// Lay out the paragraph within the given width.
     pub fn layout(&mut self, width: scalar) {
         unsafe { sb::C_Paragraph_layout(self.native_mut(), width) }
     }
 
-    /// Paint the paragraph onto `canvas` with the top left corner at `p`.
     pub fn paint(&self, canvas: &Canvas, p: impl Into<Point>) {
         let p = p.into();
         unsafe { sb::C_Paragraph_paint(self.native_mut_force(), canvas.native_mut(), p.x, p.y) }
@@ -119,7 +108,6 @@ impl Paragraph {
         result
     }
 
-    /// Returns a vector of bounding boxes for all the placeholders in the paragraph.
     pub fn get_rects_for_placeholders(&self) -> Vec<TextBox> {
         let mut result = Vec::new();
 
@@ -157,7 +145,6 @@ impl Paragraph {
         range[0]..range[1]
     }
 
-    /// Returns the metrics for each line of the laid out paragraph.
     pub fn get_line_metrics(&self) -> Vec<LineMetrics> {
         let mut result: Vec<LineMetrics> = Vec::new();
         let mut set_lm = |lms: &[sb::skia_textlayout_LineMetrics]| {
@@ -174,12 +161,10 @@ impl Paragraph {
         result
     }
 
-    /// Returns the number of lines in the laid out paragraph.
     pub fn line_number(&self) -> usize {
         unsafe { sb::C_Paragraph_lineNumber(self.native_mut_force()) }
     }
 
-    /// Marks the paragraph as needing to be re-laid out.
     pub fn mark_dirty(&mut self) {
         unsafe { sb::C_Paragraph_markDirty(self.native_mut()) }
     }
@@ -192,7 +177,6 @@ impl Paragraph {
             .ok()
     }
 
-    /// Returns the set of unresolved codepoints in the paragraph.
     pub fn unresolved_codepoints(&mut self) -> Vec<Unichar> {
         let mut result = Vec::new();
 
@@ -210,8 +194,6 @@ impl Paragraph {
         result
     }
 
-    /// Visit each line of the paragraph. The visitor is called with the line number (beginning at
-    /// 0) and the [`VisitorInfo`] for that line, or `None` to signal the end of the line.
     pub fn visit<'a, F>(&mut self, mut visitor: F)
     where
         F: FnMut(usize, Option<&'a VisitorInfo>),
@@ -238,9 +220,6 @@ impl Paragraph {
         }
     }
 
-    /// Visit each line of the paragraph with extended per-glyph information. The visitor is called
-    /// with the line number (beginning at 0) and the [`ExtendedVisitorInfo`] for that line, or
-    /// `None` to signal the end of the line.
     pub fn extended_visit<'a, F>(&mut self, mut visitor: F)
     where
         F: FnMut(usize, Option<&'a ExtendedVisitorInfo>),
