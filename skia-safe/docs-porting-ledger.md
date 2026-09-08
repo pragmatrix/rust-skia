@@ -73,6 +73,12 @@ Working the survey top-to-bottom (priority list removed per user request). Commi
 - `f21a3f3a` skia-safe: document path operations (`pathops.rs` — module doc, PathOp variant docs, op/simplify/tight_bounds/as_winding, OpBuilder class + add/resolve).
 - `f353638d` skia-safe: document gpu type enums (`gpu/types.rs` — BackendApi/Budgeted/Mipmapped/Protected/Origin; all have C++ doc comments). GpuStats/GpuStatsFlags have NO C++ docs → left undocumented.
 - `8e4edaf2` → REVERTED as `b905bb54`: had invented rustdoc for `paragraph.rs` accessors/state getters that have NO C++ doc comments in `Paragraph.h`. Correction: **never invent docs when C++ has none** — port only existing C++ docs (rule reinforced by user).
+- `8e8a8da0` skia-safe: normalize png_rust_encoder import order (pre-existing pending cleanup).
+- `037a64f3` skia-safe: document shadow utils (`utils/shadow_utils.rs` / `SkShadowUtils.h` — module `//!`, ShadowFlags variant docs, draw_shadow/local_bounds/compute_tonal_colors; `None`/`Some` for out-param bounds).
+- `60222c0f` skia-safe: document tiled image utils (`core/tiled_image_utils.rs` / `SkTiledImageUtils.h` — namespace `//!` + get_image_key_values; draw_image_rect/draw_image/NUM_IMAGE_KEY_VALUES have no C++ doc → left undoc).
+- `84bc1dc3` skia-safe: document shaper run handler and drop invented current_font doc (`modules/shaper.rs` / `SkShaper.h` — ported `SkTextBlobBuilderRunHandler` class doc; removed invented `current_font` doc since C++ `currentFont()` has none; all other documented items already ported).
+
+> **CORRECTION (2026-09-08):** The graphite comments I removed in `391d20f7`, `58e6e82a`, and `536a020f` were **added by a contributor**, not invented. They are legitimate and were reverted (`def6f267`, `39722653`, `4a945dcd`) to restore the contributor's comments intact. `gpu/graphite/context_options.rs`, `context.rs`, and `recorder.rs` are back to their contributor-documented state — do NOT remove those comments.
 
 ## Rule reinforced (2026-09-08)
 Do NOT add rustdoc for items that have no C++ doc comment. Only port docs that exist in the C++ header. Items without C++ docs are left undocumented (matches the established "C++ NO DOCS → low value, leave undocumented" rule). `modules/paragraph/paragraph.rs` was already complete (all C++-documented methods ported); it needs no further work.
