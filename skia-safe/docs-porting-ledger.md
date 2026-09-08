@@ -71,6 +71,11 @@ Working the survey top-to-bottom (priority list removed per user request). Commi
 - `0ddc3258` skia-safe: document FontMgr match and fallback APIs (`core/font_mgr.rs` — module doc, Request.bcp_47 field, CMapEntry.variation, match_family/match_family_style/match_family_style_character/match_request/fallback/new_from_data/new_from_bytes/empty).
 - `a2119ba5` skia-safe: document image encoders (`encode_.rs` module + Pixmap/Bitmap/Image::encode + Comment; `png_encoder.rs` Options fields + encode/encode_pixmap/encode_image; `jpeg_encoder.rs` AlphaOption/Downsample + Options fields + encode*/encode_image; `webp_encoder.rs` Compression + Options fields; `png_rust_encoder.rs` CompressionLevel + Options.comments).
 - `f21a3f3a` skia-safe: document path operations (`pathops.rs` — module doc, PathOp variant docs, op/simplify/tight_bounds/as_winding, OpBuilder class + add/resolve).
+- `f353638d` skia-safe: document gpu type enums (`gpu/types.rs` — BackendApi/Budgeted/Mipmapped/Protected/Origin; all have C++ doc comments). GpuStats/GpuStatsFlags have NO C++ docs → left undocumented.
+- `8e4edaf2` → REVERTED as `b905bb54`: had invented rustdoc for `paragraph.rs` accessors/state getters that have NO C++ doc comments in `Paragraph.h`. Correction: **never invent docs when C++ has none** — port only existing C++ docs (rule reinforced by user).
+
+## Rule reinforced (2026-09-08)
+Do NOT add rustdoc for items that have no C++ doc comment. Only port docs that exist in the C++ header. Items without C++ docs are left undocumented (matches the established "C++ NO DOCS → low value, leave undocumented" rule). `modules/paragraph/paragraph.rs` was already complete (all C++-documented methods ported); it needs no further work.
 
 ## Known remaining doc warnings (PRE-EXISTING, not from porting)
 - core/surface.rs:344, 359; modules/svg/dom.rs:48; 2× Self::from_backend_texture; UReqResourceProvider.
@@ -163,10 +168,10 @@ Note: `SkAndroidCodec.h` (rich) not wrapped at all (TODO in codec.rs).
 | `modules/shaper/harfbuzz.rs` | `SkShaper_harfbuzz.h` | none — 4 undoc | NO DOCS |
 | `modules/shaper/unicode.rs` | `SkShaper_skunicode.h` | none — 1 undoc | NO DOCS |
 
-## modules/paragraph/ — big count, but C++ mostly undocumented
+## modules/paragraph/ — ✅ DONE already (C++ rich; all documented methods ported; do NOT invent docs for undocumented accessors)
 | File | C++ header | Rust doc | C++ richness |
 |---|---|---|---|
-| `modules/paragraph/paragraph.rs` | `Paragraph.h` | **partial — ~41 undoc** | **rich** ⭐ |
+| `modules/paragraph/paragraph.rs` | `Paragraph.h` | complete (all C++-documented methods) | **rich** ⭐ |
 | `modules/paragraph/text_style.rs` | `TextStyle.h` | sparse — ~92 undoc | sparse |
 | `modules/paragraph/paragraph_style.rs` | `ParagraphStyle.h` | none — 53 undoc | NO DOCS |
 | `modules/paragraph/font_collection.rs` | `FontCollection.h` | none — 21 undoc | NO DOCS |
