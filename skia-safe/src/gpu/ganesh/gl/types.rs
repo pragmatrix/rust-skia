@@ -1,13 +1,20 @@
 use crate::{gpu, prelude::*};
 use skia_bindings::{self as sb, GrGLFramebufferInfo, GrGLSurfaceInfo, GrGLTextureInfo};
 
+/// The supported GL formats represented as an enum. Actual support by `GrContext` depends on GL
+/// context version and extensions.
 pub use skia_bindings::GrGLFormat as Format;
 variant_name!(Format::ALPHA8);
+/// Classifies GL contexts by which standard they implement (currently as OpenGL vs. OpenGL ES).
 pub use skia_bindings::GrGLStandard as Standard;
 variant_name!(Standard::GLES);
 pub use skia_bindings::GrGLenum as Enum;
 pub use skia_bindings::GrGLuint as UInt;
 
+/// Types for interacting with GL resources created externally to Skia. `GrBackendObject`s for GL
+/// textures are really const `GrGLTexture`*. The `format` here should be a sized, internal format
+/// for the texture. We will try to use the sized format if the GL Context supports it, otherwise
+/// we will internally fall back to using the base internal formats.
 #[derive(Copy, Clone, Eq, Debug)]
 #[repr(C)]
 pub struct TextureInfo {
