@@ -19,6 +19,7 @@ pub struct Bone {
 pub use skia_bindings::SkVertices_VertexMode as VertexMode;
 variant_name!(VertexMode::Triangles);
 
+/// An immutable set of vertex data that can be used with [`crate::Canvas::draw_vertices`].
 pub type Vertices = RCHandle<SkVertices>;
 unsafe_send_sync!(Vertices);
 require_base_type!(SkVertices, SkNVRefCnt);
@@ -48,6 +49,13 @@ impl fmt::Debug for Vertices {
 }
 
 impl Vertices {
+    /// Creates vertices by copying the specified arrays. `indices` is ignored if empty.
+    ///
+    /// - `mode` vertex mode
+    /// - `positions` vertex positions
+    /// - `texs` texture coordinates
+    /// - `colors` vertex colors
+    /// - `indices` optional vertex indices
     pub fn new_copy(
         mode: VertexMode,
         positions: &[Point],
@@ -175,6 +183,7 @@ impl Vertices {
         unimplemented!("removed without replacement")
     }
 
+    /// Returns the approximate byte size of the vertices object.
     pub fn approximate_size(&self) -> usize {
         unsafe { self.native().approximateSize() }
     }
@@ -296,6 +305,7 @@ impl Builder {
         None
     }
 
+    /// Detaches the built vertices object. After the first call, this always returns `None`.
     pub fn detach(mut self) -> Vertices {
         Vertices::from_ptr(unsafe { sb::C_SkVertices_Builder_detach(self.native_mut()) }).unwrap()
     }
