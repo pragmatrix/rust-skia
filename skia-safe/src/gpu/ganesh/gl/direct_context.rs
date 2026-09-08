@@ -6,6 +6,7 @@ pub mod direct_contexts {
         prelude::*,
     };
 
+    /// Creates a [`DirectContext`] for a backend context. The [`gl::Interface`] must be non-null.
     pub fn make_gl<'a>(
         interface: impl Into<gl::Interface>,
         options: impl Into<Option<&'a ContextOptions>>,
@@ -24,6 +25,7 @@ pub mod contexts {
 
     use crate::{Context, ContextOptions, gpu::gl, prelude::*};
 
+    /// Creates a context wrapping a Ganesh GPU backend with OpenGL
     pub fn make_ganesh(
         interface: impl Into<gl::Interface>,
         options: &ContextOptions,

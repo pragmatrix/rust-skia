@@ -124,6 +124,8 @@ impl Typeface {
         unsafe { self.native().isSyntheticOblique() }
     }
 
+    /// Returns a 32bit value for this typeface, unique for the underlying font data.
+    /// Will never return 0.
     pub fn unique_id(&self) -> TypefaceId {
         self.native().fUniqueID
     }

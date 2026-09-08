@@ -27,6 +27,7 @@ pub mod contexts {
 
     use crate::{Context, ContextOptions, gpu::mtl, prelude::*};
 
+    /// Creates a context wrapping a Ganesh GPU backend with Metal
     pub fn make_ganesh(backend: &mtl::BackendContext, options: &ContextOptions) -> Option<Context> {
         Context::from_ptr(unsafe {
             sb::C_SkContexts_MakeGaneshMetal(backend.native(), options.native())

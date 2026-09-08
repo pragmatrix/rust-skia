@@ -28,6 +28,7 @@ pub mod contexts {
     use crate::{Context, ContextOptions, gpu::d3d, prelude::*};
 
     #[allow(clippy::missing_safety_doc)]
+    /// Creates a context wrapping a Ganesh GPU backend with D3D
     pub unsafe fn make_ganesh(
         backend_context: &d3d::BackendContext,
         options: &ContextOptions,
