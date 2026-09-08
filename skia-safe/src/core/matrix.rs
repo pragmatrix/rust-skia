@@ -1,3 +1,11 @@
+//! Holds a 3x3 matrix for transforming coordinates. This allows mapping [`Point`] and vectors
+//! with translation, scaling, skewing, rotation, and perspective.
+//!
+//! Matrix elements are in row-major order. [`Matrix`] constexpr default constructs to identity.
+//!
+//! [`Matrix`] includes a hidden variable that classifies the type of matrix to improve
+//! performance. [`Matrix`] is not thread safe unless [`Matrix::get_type()`] is called first.
+
 use std::{
     ops::{Index, IndexMut, Mul},
     slice,
@@ -209,38 +217,132 @@ impl TypeMask {
 }
 
 impl Matrix {
+    /// Returns a bit field describing the transformations the matrix may perform. The bit field is
+    /// computed conservatively, so it may include false positives. For example, when
+    /// [`TypeMask::PERSPECTIVE`] is set, all other bits are set.
     pub fn get_type(&self) -> TypeMask {
         TypeMask::from_bits_truncate(unsafe { sb::C_SkMatrix_getType(self.native()) } as _)
     }
 
+    /// Returns true if the matrix is identity. The identity matrix is:
+    ///
+    /// ```text
+    /// | 1 0 0 |
+    /// | 0 1 0 |
+    /// | 0 0 1 |
+    /// ```
     pub fn is_identity(&self) -> bool {
         self.get_type() == TypeMask::IDENTITY
     }
 
+    /// Returns true if the matrix at most scales and translates. The matrix may be identity,
+    /// contain only scale elements, only translate elements, or both. The matrix form is:
+    ///
+    /// ```text
+    /// | scale-x    0    translate-x |
+    /// |    0    scale-y translate-y |
+    /// |    0       0         1      |
+    /// ```
     pub fn is_scale_translate(&self) -> bool {
         (self.get_type() & !(TypeMask::SCALE | TypeMask::TRANSLATE)).is_empty()
     }
 
+    /// Returns true if the matrix is identity, or translates. The matrix form is:
+    ///
+    /// ```text
+    /// | 1 0 translate-x |
+    /// | 0 1 translate-y |
+    /// | 0 0      1      |
+    /// ```
     pub fn is_translate(&self) -> bool {
         (self.get_type() & !TypeMask::TRANSLATE).is_empty()
     }
 
+    /// Returns true if the matrix maps a [`Rect`] to another [`Rect`]. If true, the matrix is
+    /// identity, or scales, or rotates a multiple of 90 degrees, or mirrors on axes. In all cases,
+    /// the matrix may also have translation. The matrix form is either:
+    ///
+    /// ```text
+    /// | scale-x    0    translate-x |
+    /// |    0    scale-y translate-y |
+    /// |    0       0         1      |
+    /// ```
+    ///
+    /// or
+    ///
+    /// ```text
+    /// |    0     rotate-x translate-x |
+    /// | rotate-y    0     translate-y |
+    /// |    0        0          1      |
+    /// ```
+    ///
+    /// for non-zero values of scale-x, scale-y, rotate-x, and rotate-y.
+    ///
+    /// Also called [`Self::preserves_axis_alignment()`]; use the one that provides better inline
+    /// documentation.
     pub fn rect_stays_rect(&self) -> bool {
         unsafe { sb::C_SkMatrix_rectStaysRect(self.native()) }
     }
 
+    /// Returns true if the matrix maps a [`Rect`] to another [`Rect`]. If true, the matrix is
+    /// identity, or scales, or rotates a multiple of 90 degrees, or mirrors on axes. In all cases,
+    /// the matrix may also have translation. The matrix form is either:
+    ///
+    /// ```text
+    /// | scale-x    0    translate-x |
+    /// |    0    scale-y translate-y |
+    /// |    0       0         1      |
+    /// ```
+    ///
+    /// or
+    ///
+    /// ```text
+    /// |    0     rotate-x translate-x |
+    /// | rotate-y    0     translate-y |
+    /// |    0        0          1      |
+    /// ```
+    ///
+    /// for non-zero values of scale-x, scale-y, rotate-x, and rotate-y.
+    ///
+    /// Also called [`Self::rect_stays_rect()`]; use the one that provides better inline
+    /// documentation.
     pub fn preserves_axis_alignment(&self) -> bool {
         self.rect_stays_rect()
     }
 
+    /// Returns true if the matrix contains perspective elements. The matrix form is:
+    ///
+    /// ```text
+    /// |       --            --              --          |
+    /// |       --            --              --          |
+    /// | perspective-x  perspective-y  perspective-scale |
+    /// ```
+    ///
+    /// where perspective-x or perspective-y is non-zero, or perspective-scale is not one. All other
+    /// elements may have any value.
     pub fn has_perspective(&self) -> bool {
         unsafe { sb::C_SkMatrix_hasPerspective(self.native()) }
     }
 
+    /// Returns true if the matrix contains only translation, rotation, reflection, and uniform
+    /// scale. Returns false if the matrix contains different scales, skewing, perspective, or
+    /// degenerate forms that collapse to a line or point.
+    ///
+    /// Describes that the matrix makes rendering with and without the matrix visually alike; a
+    /// transformed circle remains a circle. Mathematically, this is referred to as similarity of a
+    /// Euclidean space, or a similarity transformation.
+    ///
+    /// Preserves right angles, keeping the arms of the angle equal lengths.
     pub fn is_similarity(&self) -> bool {
         unsafe { self.native().isSimilarity(scalar::NEARLY_ZERO) }
     }
 
+    /// Returns true if the matrix contains only translation, rotation, reflection, and scale. Scale
+    /// may differ along rotated axes. Returns false if the matrix skews, has perspective, or has
+    /// degenerate forms that collapse to a line or point.
+    ///
+    /// Preserves right angles, but does not require that the arms of the angle retain equal
+    /// lengths.
     pub fn preserves_right_angles(&self) -> bool {
         unsafe { self.native().preservesRightAngles(scalar::NEARLY_ZERO) }
     }
