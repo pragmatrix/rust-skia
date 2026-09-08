@@ -1,4 +1,4 @@
-/// Describes geometric operations (ala [`crate::RegionOp`]) that can be applied to coverage bytes.
+/// Describes geometric operations (ala [`crate::region::RegionOp`]) that can be applied to coverage bytes.
 /// These can be thought of as variants of porter-duff ([`crate::BlendMode`]) modes, but only
 /// applied to the alpha channel.
 ///

@@ -30,10 +30,10 @@ impl Interface {
     /// Rather than depend on platform-specific GL headers and libraries, we require the client to
     /// provide a struct of GL function pointers. This struct can be specified per
     /// [`crate::gpu::ganesh::DirectContext`] as a parameter to
-    /// [`crate::gpu::ganesh::DirectContext::make_gl()`]. If no interface is passed to
-    /// [`crate::gpu::ganesh::DirectContext::make_gl()`] then a default GL interface is created
+    /// [`crate::gpu::direct_contexts::make_gl()`]. If no interface is passed to
+    /// [`crate::gpu::direct_contexts::make_gl()`] then a default GL interface is created
     /// using [`Self::new_native()`]. If this returns `None` then
-    /// [`crate::gpu::ganesh::DirectContext::make_gl()`] will fail.
+    /// [`crate::gpu::direct_contexts::make_gl()`] will fail.
     ///
     /// The implementation of [`Self::new_native()`] is platform-specific. Several implementations
     /// have been provided (for GLX, WGL, EGL, etc), along with an implementation that simply

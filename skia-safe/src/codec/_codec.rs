@@ -62,7 +62,7 @@ variant_name!(ZeroInitialized::Yes);
 pub struct Options {
     pub zero_initialized: ZeroInitialized,
     /// If `Some`, represents a subset of the original image to decode. Must be within the bounds
-    /// returned by [`Codec::info()`]. If the encoded format is [`EncodedImageFormat::Webp`] (the only
+    /// returned by [`Codec::info()`]. If the encoded format is [`EncodedImageFormat::WEBP`] (the only
     /// one which currently supports subsets), the top and left values must be even.
     ///
     /// In [`Codec::get_pixels_with_options`] and incremental decode, we will attempt to decode the

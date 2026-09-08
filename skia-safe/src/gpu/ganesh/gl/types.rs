@@ -115,9 +115,9 @@ impl Default for SurfaceInfo {
     }
 }
 
-/// A [`crate::gpu::DirectContext`]'s cache of backend context state can be partially invalidated.
-/// These flags are specific to the GL backend and we'd add a new set for an alternative backend.
 bitflags! {
+    /// A [`crate::gpu::DirectContext`]'s cache of backend context state can be partially invalidated.
+    /// These flags are specific to the GL backend and we'd add a new set for an alternative backend.
     #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct BackendState: u32 {
         const RENDER_TARGET = sb::GrGLBackendState_kRenderTarget_GrGLBackendState as _;
