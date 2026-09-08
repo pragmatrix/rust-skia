@@ -2,10 +2,12 @@ use std::fmt;
 
 use crate::{
     ColorType, TextureCompressionType, cpu,
-    gpu::{BackendAPI, BackendFormat, DirectContext, Renderable},
+    gpu::{BackendFormat, DirectContext, Renderable},
     prelude::*,
     recorder::RecorderRef,
 };
+
+use super::types::BackendApi;
 use skia_bindings::{self as sb, GrRecordingContext, SkRefCntBase};
 
 pub type RecordingContext = RCHandle<GrRecordingContext>;
@@ -41,7 +43,7 @@ impl RecordingContext {
     }
 
     // From GrContext_Base
-    pub fn backend(&self) -> BackendAPI {
+    pub fn backend(&self) -> BackendApi {
         unsafe { sb::C_GrRecordingContext_backend(self.native()) }
     }
 

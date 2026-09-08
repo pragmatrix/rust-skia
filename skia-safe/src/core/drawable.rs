@@ -49,7 +49,7 @@ impl Drawable {
     #[cfg(feature = "ganesh")]
     pub fn snap_gpu_draw_handler(
         &mut self,
-        api: crate::gpu::BackendAPI,
+        api: crate::gpu::ganesh::BackendApi,
         matrix: &Matrix,
         clip_bounds: impl Into<crate::IRect>,
         buffer_info: &crate::ImageInfo,

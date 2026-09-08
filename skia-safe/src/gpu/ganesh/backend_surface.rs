@@ -2,6 +2,7 @@ use std::fmt;
 
 use skia_bindings::{self as sb, GrBackendFormat, GrBackendRenderTarget, GrBackendTexture};
 
+use super::types::BackendApi;
 use crate::gpu;
 use crate::{ISize, interop::AsStr, prelude::*};
 #[cfg(feature = "d3d")]
@@ -12,7 +13,7 @@ use gpu::gl;
 use gpu::mtl;
 #[cfg(feature = "vulkan")]
 use gpu::vk;
-use gpu::{BackendAPI, Mipmapped, MutableTextureState};
+use gpu::{Mipmapped, MutableTextureState};
 
 /// Describes a texture or render target format for a specific backend API.
 pub type BackendFormat = Handle<GrBackendFormat>;
@@ -59,8 +60,8 @@ impl BackendFormat {
             .assert_valid()
     }
 
-    /// The [`crate::gpu::BackendApi`] this format is used with.
-    pub fn backend(&self) -> BackendAPI {
+    /// The [`crate::gpu::ganesh::BackendApi`] this format is used with.
+    pub fn backend(&self) -> BackendApi {
         self.native().fBackend
     }
 
@@ -211,8 +212,8 @@ impl BackendTexture {
         self.native().fMipmapped == Mipmapped::Yes
     }
 
-    /// The [`crate::gpu::BackendApi`] this texture is used with.
-    pub fn backend(&self) -> BackendAPI {
+    /// The [`crate::gpu::ganesh::BackendApi`] this texture is used with.
+    pub fn backend(&self) -> BackendApi {
         self.native().fBackend
     }
 
@@ -374,8 +375,8 @@ impl BackendRenderTarget {
         self.native().fStencilBits.try_into().unwrap()
     }
 
-    /// The [`crate::gpu::BackendApi`] this render target is used with.
-    pub fn backend(&self) -> BackendAPI {
+    /// The [`crate::gpu::ganesh::BackendApi`] this render target is used with.
+    pub fn backend(&self) -> BackendApi {
         self.native().fBackend
     }
 
