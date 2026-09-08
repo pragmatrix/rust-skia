@@ -479,6 +479,9 @@ impl QuickReject<Region> for Region {
 
 #[derive(Clone)]
 #[repr(transparent)]
+/// Goes through the region one rectangle at a time. For each "strip" of one or more contiguous
+/// Y values (scanlines) in ascending order, the iterator returns each rectangle in that strip
+/// (from left to right) before advancing to the next strip (which may or may not have a gap).
 pub struct Iterator<'a>(SkRegion_Iterator, PhantomData<&'a Region>);
 
 native_transmutable!(SkRegion_Iterator, Iterator<'_>);
@@ -493,20 +496,30 @@ impl fmt::Debug for Iterator<'_> {
 }
 
 impl<'a> Iterator<'a> {
+    /// Initializes an iterator with an empty region. [`Self::is_done()`] on the iterator returns
+    /// true. Call [`Self::reset()`] to initialize the iterator at a later time.
     pub fn new_empty() -> Self {
         Iterator::construct(|iterator| unsafe {
             sb::C_SkRegion_Iterator_Construct(iterator);
         })
     }
 
+    /// Sets the iterator to return elements of the region's rectangle array.
+    ///
+    /// - `region` region to iterate
     pub fn new(region: &'a Region) -> Iterator<'a> {
         Iterator::from_native_c(unsafe { SkRegion_Iterator::new(region.native()) })
     }
 
+    /// Moves the iterator to the start of the region. Returns true if the region was set;
+    /// otherwise, returns false.
     pub fn rewind(&mut self) -> bool {
         unsafe { self.native_mut().rewind() }
     }
 
+    /// Resets the iterator, using the new region.
+    ///
+    /// - `region` region to iterate
     pub fn reset(mut self, region: &Region) -> Iterator {
         unsafe {
             self.native_mut().reset(region.native());
@@ -514,20 +527,28 @@ impl<'a> Iterator<'a> {
         }
     }
 
+    /// Returns true if the iterator is pointing to the final rectangle in the region.
     pub fn is_done(&self) -> bool {
         self.native().fDone
     }
 
+    /// Advances the iterator to the next rectangle in the region if it is not done. This moves to
+    /// the next rectangle to the right within the current horizontal strip. If the end of the strip
+    /// is reached, it automatically advances to the first rectangle in the next strip, skipping any
+    /// vertical gaps.
     pub fn next(&mut self) {
         unsafe {
             self.native_mut().next();
         }
     }
 
+    /// Returns the rectangle element in the region. Does not return predictable results if the
+    /// region is empty.
     pub fn rect(&self) -> &IRect {
         IRect::from_native_ref(&self.native().fRect)
     }
 
+    /// Returns the region if set; otherwise, returns `None`.
     pub fn rgn(&self) -> Option<&Region> {
         unsafe {
             let r = sb::C_SkRegion_Iterator_rgn(self.native()).into_non_null()?;
@@ -563,6 +584,8 @@ fn test_iterator() {
 
 #[derive(Clone)]
 #[repr(transparent)]
+/// Returns the sequence of rectangles, sorted along the y-axis, then the x-axis, that make up the
+/// region intersected with the specified clip rectangle.
 pub struct Cliperator<'a>(SkRegion_Cliperator, PhantomData<&'a Region>);
 
 native_transmutable!(SkRegion_Cliperator, Cliperator<'_>);
@@ -583,20 +606,28 @@ impl fmt::Debug for Cliperator<'_> {
 }
 
 impl<'a> Cliperator<'a> {
+    /// Sets the cliperator to return elements of the region's rectangle array within `clip`.
+    ///
+    /// - `region` region to iterate
+    /// - `clip` bounds of iteration
     pub fn new(region: &'a Region, clip: impl AsRef<IRect>) -> Cliperator<'a> {
         Cliperator::from_native_c(unsafe {
             SkRegion_Cliperator::new(region.native(), clip.as_ref().native())
         })
     }
 
+    /// Returns true if the cliperator is pointing to the final rectangle in the region.
     pub fn is_done(&self) -> bool {
         self.native().fDone
     }
 
+    /// Advances the iterator to the next rectangle in the region contained by the clip.
     pub fn next(&mut self) {
         unsafe { self.native_mut().next() }
     }
 
+    /// Returns the rectangle element in the region, intersected with the clip passed to
+    /// [`Self::new()`]. Does not return predictable results if the region is empty.
     pub fn rect(&self) -> &IRect {
         IRect::from_native_ref(&self.native().fRect)
     }
@@ -616,6 +647,7 @@ impl iter::Iterator for Cliperator<'_> {
 
 #[derive(Clone)]
 #[repr(transparent)]
+/// Returns the line segment ends within the region that intersect a horizontal line.
 pub struct Spanerator<'a>(SkRegion_Spanerator, PhantomData<&'a Region>);
 
 native_transmutable!(SkRegion_Spanerator, Spanerator<'_>);
@@ -633,6 +665,12 @@ impl fmt::Debug for Spanerator<'_> {
 }
 
 impl<'a> Spanerator<'a> {
+    /// Sets the spanerator to return line segments in the region on the scan line.
+    ///
+    /// - `region` region to iterate
+    /// - `y` horizontal line to intersect
+    /// - `left` bounds of iteration
+    /// - `right` bounds of iteration
     pub fn new(region: &'a Region, y: i32, left: i32, right: i32) -> Spanerator<'a> {
         Spanerator::from_native_c(unsafe {
             SkRegion_Spanerator::new(region.native(), y, left, right)
@@ -643,6 +681,8 @@ impl<'a> Spanerator<'a> {
 impl iter::Iterator for Spanerator<'_> {
     type Item = (i32, i32);
 
+    /// Advances the iterator to the next span intersecting the region within the line segment
+    /// provided in the constructor. Returns the `(left, right)` span if an interval was found.
     fn next(&mut self) -> Option<Self::Item> {
         unsafe {
             let mut left = 0;
