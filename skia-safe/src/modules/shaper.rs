@@ -95,8 +95,11 @@ impl Shaper {
 pub use skia_bindings::SkShaper_Feature as Feature;
 
 pub trait RunIterator {
+    /// Set state to that of current run and move iterator to end of that run.
     fn consume(&mut self);
+    /// Offset to one past the last (utf8) element in the current run.
     fn end_of_current_run(&self) -> usize;
+    /// Return true if [`RunIterator::consume()`] should no longer be called.
     fn at_end(&self) -> bool;
 }
 
@@ -137,6 +140,7 @@ impl fmt::Debug for FontRunIterator {
 }
 
 impl FontRunIterator {
+    /// Returns the font for the current run.
     pub fn current_font(&self) -> &Font {
         Font::from_native_ref(unsafe {
             &*sb::C_SkShaper_FontRunIterator_currentFont(self.native())
@@ -193,6 +197,7 @@ impl fmt::Debug for BiDiRunIterator {
 }
 
 impl BiDiRunIterator {
+    /// The unicode bidi embedding level (even ltr, odd rtl).
     pub fn current_level(&self) -> u8 {
         unsafe { sb::C_SkShaper_BiDiRunIterator_currentLevel(self.native()) }
     }
@@ -243,6 +248,7 @@ impl fmt::Debug for ScriptRunIterator {
 }
 
 impl ScriptRunIterator {
+    /// Should be ISO 15924 codes.
     pub fn current_script(&self) -> FourByteTag {
         FourByteTag::from_native_c(unsafe {
             sb::C_SkShaper_ScriptRunIterator_currentScript(self.native())

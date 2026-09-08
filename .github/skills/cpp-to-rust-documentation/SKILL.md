@@ -40,6 +40,8 @@ When porting documentation from C++ headers:
     methods, e.g. `[`Pixmap::color_type()`]`; sibling methods of the documented
     type are `[`Self::method()`]`, or `[`Type::method()`]` when `Self` refers
     to a different type (for example inside a trait impl like `Iterator`).
+- Do not add documentation above `variant_name!` macro invocations. These are
+  compile-time API checks, not public Rust items requiring rustdoc.
 
 ## Module level documentation
 
