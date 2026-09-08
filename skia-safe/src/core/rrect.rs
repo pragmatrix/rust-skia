@@ -310,26 +310,57 @@ impl RRect {
         }
     }
 
+    /// Returns bounds. Bounds may have zero width or zero height. Bounds right is greater than or
+    /// equal to left; bounds bottom is greater than or equal to top. Result is identical to
+    /// [`Self::bounds()`].
     pub fn rect(&self) -> &Rect {
         Rect::from_native_ref(&self.native().fRect)
     }
 
+    /// Returns the scalar pair for the radius of the curve on the x-axis and y-axis for one corner.
+    /// Both radii may be zero. If not zero, both are positive and finite.
+    ///
+    /// - `corner` corner to return radii for
     pub fn radii(&self, corner: Corner) -> Vector {
         Vector::from_native_c(self.native().fRadii[corner as usize])
     }
 
+    /// Returns the corner radii for all four corners, in the same order as [`Corner`].
     pub fn radii_ref(&self) -> &[Vector; 4] {
         Vector::from_native_array_ref(&self.native().fRadii)
     }
 
+    /// Returns bounds. Bounds may have zero width or zero height. Bounds right is greater than or
+    /// equal to left; bounds bottom is greater than or equal to top. Result is identical to
+    /// [`Self::rect()`].
     pub fn bounds(&self) -> &Rect {
         self.rect()
     }
 
+    /// Insets bounds by `delta`, and adjusts radii by `delta`. `delta` may be positive, negative,
+    /// or zero.
+    ///
+    /// If either corner radius is zero, the corner has no curvature and is unchanged. Otherwise, if
+    /// the adjusted radius becomes negative, pins the radius to zero. If `delta.x` exceeds half the
+    /// bounds width, the bounds left and right are set to the bounds x-axis center. If `delta.y`
+    /// exceeds half the bounds height, the bounds top and bottom are set to the bounds y-axis
+    /// center.
+    ///
+    /// If `delta` causes the bounds to become infinite, the bounds is zeroed.
     pub fn inset(&mut self, delta: impl Into<Vector>) {
         *self = self.with_inset(delta)
     }
 
+    /// Copies this rounded rectangle to a new one, then insets the new bounds by `delta`, and
+    /// adjusts the new radii by `delta`. `delta` may be positive, negative, or zero.
+    ///
+    /// If either corner radius is zero, the corner has no curvature and is unchanged. Otherwise, if
+    /// the adjusted radius becomes negative, pins the radius to zero. If `delta.x` exceeds half the
+    /// new bounds width, the new bounds left and right are set to the new bounds x-axis center. If
+    /// `delta.y` exceeds half the new bounds height, the new bounds top and bottom are set to the
+    /// new bounds y-axis center.
+    ///
+    /// If `delta` causes the new bounds to become infinite, the new bounds is zeroed.
     #[must_use]
     pub fn with_inset(&self, delta: impl Into<Vector>) -> Self {
         let delta = delta.into();
@@ -338,19 +369,41 @@ impl RRect {
         r
     }
 
+    /// Outsets bounds by `delta`, and adjusts radii by `delta`. `delta` may be positive, negative,
+    /// or zero.
+    ///
+    /// If either corner radius is zero, the corner has no curvature and is unchanged. Otherwise, if
+    /// the adjusted radius becomes negative, pins the radius to zero. If `delta.x` exceeds half the
+    /// bounds width, the bounds left and right are set to the bounds x-axis center. If `delta.y`
+    /// exceeds half the bounds height, the bounds top and bottom are set to the bounds y-axis
+    /// center.
+    ///
+    /// If `delta` causes the bounds to become infinite, the bounds is zeroed.
     pub fn outset(&mut self, delta: impl Into<Vector>) {
         *self = self.with_outset(delta)
     }
 
+    /// Copies this rounded rectangle to a new one, then outsets the new bounds by `delta`, and
+    /// adjusts the new radii by `delta`. `delta` may be positive, negative, or zero.
+    ///
+    /// If either corner radius is zero, the corner has no curvature and is unchanged. Otherwise, if
+    /// the adjusted radius becomes negative, pins the radius to zero. If `delta.x` exceeds half the
+    /// new bounds width, the new bounds left and right are set to the new bounds x-axis center. If
+    /// `delta.y` exceeds half the new bounds height, the new bounds top and bottom are set to the
+    /// new bounds y-axis center.
+    ///
+    /// If `delta` causes the new bounds to become infinite, the new bounds is zeroed.
     #[must_use]
     pub fn with_outset(&self, delta: impl Into<Vector>) -> Self {
         self.with_inset(-delta.into())
     }
 
+    /// Translates this rounded rectangle by `delta`.
     pub fn offset(&mut self, delta: impl Into<Vector>) {
         Rect::from_native_ref_mut(&mut self.native_mut().fRect).offset(delta)
     }
 
+    /// Returns this rounded rectangle translated by `delta`, with unchanged corner radii.
     #[must_use]
     pub fn with_offset(&self, delta: impl Into<Vector>) -> Self {
         let mut copied = *self;
@@ -358,23 +411,34 @@ impl RRect {
         copied
     }
 
-    /// Returns true if `point` is inside the bounds and corner radii, and this rounded rectangle is
-    /// not empty.
+    /// Returns true if `point` is inside the bounds and corner radii, and if this rounded rectangle
+    /// is not empty.
     pub fn contains_point(&self, point: impl Into<Point>) -> bool {
         let point = point.into();
         unsafe { sb::C_SkRRect_containsPoint(self.native(), point.native()) }
     }
 
+    /// Returns true if `rect` is inside the bounds and corner radii, and if this rounded rectangle
+    /// and `rect` are not empty.
+    ///
+    /// - `rect` area tested for containment
     pub fn contains(&self, rect: impl AsRef<Rect>) -> bool {
         unsafe { sb::C_SkRRect_containsRect(self.native(), rect.as_ref().native()) }
     }
 
+    /// Returns true if the bounds and radii values are finite and describe a [`RRect`] type that
+    /// matches [`Self::get_type()`]. All [`RRect`] methods construct valid types, even if the input
+    /// values are not valid. Invalid [`RRect`] data can only be generated by corrupting memory.
     pub fn is_valid(&self) -> bool {
         unsafe { self.native().isValid() }
     }
 
     pub const SIZE_IN_MEMORY: usize = mem::size_of::<Self>();
 
+    /// Writes this rounded rectangle to `buffer`. Writes [`Self::SIZE_IN_MEMORY`] bytes, and
+    /// returns [`Self::SIZE_IN_MEMORY`], the number of bytes written.
+    ///
+    /// - `buffer` storage for this rounded rectangle
     pub fn write_to_memory(&self, buffer: &mut Vec<u8>) {
         unsafe {
             let size = self.native().writeToMemory(ptr::null_mut());
@@ -384,6 +448,11 @@ impl RRect {
         }
     }
 
+    /// Reads this rounded rectangle from `buffer`, reading [`Self::SIZE_IN_MEMORY`] bytes. Returns
+    /// [`Self::SIZE_IN_MEMORY`], the bytes read, if `buffer.len()` is at least
+    /// [`Self::SIZE_IN_MEMORY`]. Otherwise, returns zero.
+    ///
+    /// - `buffer` memory to read from
     pub fn read_from_memory(&mut self, buffer: &[u8]) -> usize {
         unsafe {
             self.native_mut()
@@ -391,12 +460,18 @@ impl RRect {
         }
     }
 
+    /// Transforms this rounded rectangle by `matrix` and returns it if possible. If the matrix does
+    /// not preserve axis-alignment (e.g. rotates, skews, etc.) then this returns `None`.
     #[must_use]
     pub fn transform(&self, matrix: &Matrix) -> Option<Self> {
         let mut r = Self::default();
         unsafe { self.native().transform1(matrix.native(), r.native_mut()) }.then_some(r)
     }
 
+    /// Writes a text representation of this rounded rectangle to standard output. Set `as_hex` true
+    /// to generate exact binary representations of floating point numbers.
+    ///
+    /// - `as_hex` true if scalar values are written as hexadecimal
     pub fn dump(&self, as_hex: impl Into<Option<bool>>) {
         unsafe { self.native().dump(as_hex.into().unwrap_or_default()) }
     }
