@@ -9,6 +9,10 @@ use crate::gpu::{
 
 pub use crate::gpu::vk::{GetProc, GetProcOf, GetProcResult};
 
+/// When wrapping a [`crate::gpu::BackendTexture`] or [`crate::gpu::BackendRenderTarget`], the
+/// `current_queue_family` should either be [`vk::QUEUE_FAMILY_IGNORED`], `VK_QUEUE_FAMILY_EXTERNAL`,
+/// or `VK_QUEUE_FAMILY_FOREIGN_EXT`. If `sharing_mode` is [`vk::SharingMode::EXCLUSIVE`] then
+/// `current_queue_family` can also be the graphics queue index passed into Skia.
 #[derive(Copy, Clone, Debug)]
 #[repr(C)]
 pub struct ImageInfo {

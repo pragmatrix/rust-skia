@@ -115,11 +115,15 @@ impl Default for SurfaceInfo {
     }
 }
 
+/// A [`crate::gpu::DirectContext`]'s cache of backend context state can be partially invalidated.
+/// These flags are specific to the GL backend and we'd add a new set for an alternative backend.
 bitflags! {
     #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct BackendState: u32 {
         const RENDER_TARGET = sb::GrGLBackendState_kRenderTarget_GrGLBackendState as _;
+        /// Also includes samplers bound to texture units.
         const TEXTURE_BINDING = sb::GrGLBackendState_kTextureBinding_GrGLBackendState as _;
+        /// View state stands for scissor and viewport
         const VIEW = sb::GrGLBackendState_kView_GrGLBackendState as _;
         const BLEND = sb::GrGLBackendState_kBlend_GrGLBackendState as _;
         const MSAA_ENABLE = sb::GrGLBackendState_kMSAAEnable_GrGLBackendState as _;

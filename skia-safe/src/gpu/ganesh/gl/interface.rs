@@ -2,6 +2,15 @@ use crate::{gpu::gl::Extensions, prelude::*};
 use skia_bindings::{self as sb, GrGLInterface, SkRefCntBase};
 use std::{ffi::c_void, fmt, os::raw};
 
+/// [`crate::gpu::ganesh::DirectContext`] uses the following interface to make all calls into
+/// OpenGL. When a [`crate::gpu::ganesh::DirectContext`] is created it is given a [`Self`]. The
+/// interface's function pointers must be valid for the OpenGL context associated with the
+/// [`crate::gpu::ganesh::DirectContext`]. On some platforms, such as Windows, function pointers
+/// for OpenGL extensions may vary between OpenGL contexts. So the caller must be careful to use a
+/// [`Self`] initialized for the correct context. All functions that should be available based on
+/// the OpenGL's version and extension string must be non-NULL or
+/// [`crate::gpu::ganesh::DirectContext`] creation will fail. This can be tested with the
+/// [`Self::validate()`] method when the OpenGL context has been made current.
 pub type Interface = RCHandle<GrGLInterface>;
 require_type_equality!(sb::GrGLInterface_INHERITED, sb::SkRefCnt);
 
@@ -18,6 +27,17 @@ impl fmt::Debug for Interface {
 }
 
 impl Interface {
+    /// Rather than depend on platform-specific GL headers and libraries, we require the client to
+    /// provide a struct of GL function pointers. This struct can be specified per
+    /// [`crate::gpu::ganesh::DirectContext`] as a parameter to
+    /// [`crate::gpu::ganesh::DirectContext::make_gl()`]. If no interface is passed to
+    /// [`crate::gpu::ganesh::DirectContext::make_gl()`] then a default GL interface is created
+    /// using [`Self::new_native()`]. If this returns `None` then
+    /// [`crate::gpu::ganesh::DirectContext::make_gl()`] will fail.
+    ///
+    /// The implementation of [`Self::new_native()`] is platform-specific. Several implementations
+    /// have been provided (for GLX, WGL, EGL, etc), along with an implementation that simply
+    /// returns `None`. Clients should select the most appropriate one to build.
     pub fn new_native() -> Option<Self> {
         Self::from_ptr(unsafe { sb::C_GrGLInterface_MakeNativeInterface() as _ })
     }
