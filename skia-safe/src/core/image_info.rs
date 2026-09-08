@@ -190,6 +190,17 @@ impl fmt::Debug for ImageInfo {
 }
 
 impl ImageInfo {
+    /// Creates [`ImageInfo`] from integral dimensions, [`ColorType`], [`AlphaType`], and
+    /// optionally [`ColorSpace`].
+    ///
+    /// If `cs` is `None` and [`ImageInfo`] is part of a drawing source, [`ColorSpace`] defaults to
+    /// sRGB, mapping into the surface [`ColorSpace`]. Parameters are not validated to see if their
+    /// values are legal, or that the combination is supported.
+    ///
+    /// - `dimensions` pixel column and row count; must be zero or greater
+    /// - `ct` color type
+    /// - `at` alpha type
+    /// - `cs` optional color space
     pub fn new(
         dimensions: impl Into<ISize>,
         ct: ColorType,
@@ -209,6 +220,12 @@ impl ImageInfo {
         })
     }
 
+    /// Creates [`ImageInfo`] from integral dimensions and [`ColorInfo`]. Parameters are not
+    /// validated to see if their values are legal, or that the combination is supported.
+    ///
+    /// - `dimensions` pixel column and row count; must be zero or greater
+    /// - `color_info` pixel encoding consisting of [`ColorType`], [`AlphaType`], and [`ColorSpace`]
+    ///   which may be `None`
     pub fn from_color_info(dimensions: impl Into<ISize>, color_info: ColorInfo) -> Self {
         // TODO: (perf) actually move of color_info.
         Self::new(
@@ -219,6 +236,16 @@ impl ImageInfo {
         )
     }
 
+    /// Creates [`ImageInfo`] from integral dimensions, an N32 color type, `at`, and optionally
+    /// [`ColorSpace`]. N32 will equal either BGRA 8888 or RGBA 8888, whichever is optimal.
+    ///
+    /// If `cs` is `None` and [`ImageInfo`] is part of a drawing source, [`ColorSpace`] defaults to
+    /// sRGB, mapping into the surface [`ColorSpace`]. Parameters are not validated to see if their
+    /// values are legal, or that the combination is supported.
+    ///
+    /// - `dimensions` pixel column and row count; must be zero or greater
+    /// - `at` alpha type
+    /// - `cs` optional color space
     pub fn new_n32(
         dimensions: impl Into<ISize>,
         at: AlphaType,
@@ -236,6 +263,12 @@ impl ImageInfo {
         })
     }
 
+    /// Creates [`ImageInfo`] from integral dimensions, an N32 color type, and `at`, with sRGB
+    /// [`ColorSpace`]. Parameters are not validated to see if their values are legal, or that the
+    /// combination is supported.
+    ///
+    /// - `dimensions` pixel column and row count; must be zero or greater
+    /// - `at` alpha type
     pub fn new_s32(dimensions: impl Into<ISize>, at: AlphaType) -> ImageInfo {
         let dimensions = dimensions.into();
         Self::construct(|ii| unsafe {
@@ -243,6 +276,15 @@ impl ImageInfo {
         })
     }
 
+    /// Creates [`ImageInfo`] from integral dimensions, an N32 color type, premultiplied alpha,
+    /// and optional [`ColorSpace`].
+    ///
+    /// If `cs` is `None` and [`ImageInfo`] is part of a drawing source, [`ColorSpace`] defaults to
+    /// sRGB, mapping into the surface [`ColorSpace`]. Parameters are not validated to see if their
+    /// values are legal, or that the combination is supported.
+    ///
+    /// - `dimensions` pixel column and row count; must be zero or greater
+    /// - `cs` optional color space
     pub fn new_n32_premul(
         dimensions: impl Into<ISize>,
         cs: impl Into<Option<ColorSpace>>,
@@ -258,6 +300,10 @@ impl ImageInfo {
         })
     }
 
+    /// Creates [`ImageInfo`] from integral dimensions, an alpha-only color type, premultiplied
+    /// alpha, and no [`ColorSpace`].
+    ///
+    /// - `dimensions` pixel column and row count; must be zero or greater
     pub fn new_a8(dimensions: impl Into<ISize>) -> ImageInfo {
         let dimensions = dimensions.into();
         Self::construct(|ii| unsafe {
@@ -265,6 +311,11 @@ impl ImageInfo {
         })
     }
 
+    /// Creates [`ImageInfo`] from integral dimensions, an unknown color type, unknown alpha type,
+    /// and no [`ColorSpace`]. An [`ImageInfo`] used as a source does not draw, and one used as a
+    /// destination cannot be drawn to.
+    ///
+    /// - `dimensions` pixel column and row count; must be zero or greater
     pub fn new_unknown(dimensions: Option<ISize>) -> ImageInfo {
         let dimensions = dimensions.unwrap_or_default();
         Self::construct(|ii| unsafe {
