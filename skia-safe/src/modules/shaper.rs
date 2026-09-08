@@ -140,7 +140,6 @@ impl fmt::Debug for FontRunIterator {
 }
 
 impl FontRunIterator {
-    /// Returns the font for the current run.
     pub fn current_font(&self) -> &Font {
         Font::from_native_ref(unsafe {
             &*sb::C_SkShaper_FontRunIterator_currentFont(self.native())
@@ -658,10 +657,10 @@ mod rust_run_handler {
     }
 }
 
+/// Helper for shaping text directly into a [`TextBlob`].
 #[repr(transparent)]
 #[derive(Debug)]
 pub struct TextBlobBuilderRunHandler<'text>(SkTextBlobBuilderRunHandler, PhantomData<&'text str>);
-
 impl NativeAccess for TextBlobBuilderRunHandler<'_> {
     type Native = SkTextBlobBuilderRunHandler;
 
