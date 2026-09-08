@@ -323,46 +323,61 @@ impl ImageInfo {
         })
     }
 
+    /// Returns the pixel count in each row.
     pub fn width(&self) -> i32 {
         self.dimensions().width
     }
 
+    /// Returns the pixel row count.
     pub fn height(&self) -> i32 {
         self.dimensions().height
     }
 
+    /// Returns the color type.
     pub fn color_type(&self) -> ColorType {
         self.color_info().color_type()
     }
 
+    /// Returns the alpha type.
     pub fn alpha_type(&self) -> AlphaType {
         self.color_info().alpha_type()
     }
 
+    /// Returns [`ColorSpace`], the range of colors. The returned [`ColorSpace`] is immutable.
     pub fn color_space(&self) -> Option<ColorSpace> {
         ColorSpace::from_unshared_ptr(unsafe { self.native().colorSpace() })
     }
 
+    /// Returns true if either dimension is zero or smaller.
     pub fn is_empty(&self) -> bool {
         self.dimensions().is_empty()
     }
 
+    /// Returns the dimensionless [`ColorInfo`] that represents the same color type, alpha type,
+    /// and color space as this [`ImageInfo`].
     pub fn color_info(&self) -> &ColorInfo {
         Handle::from_native_ref(&self.native().fColorInfo)
     }
 
+    /// Returns true if the alpha type is set to hint that all pixels are opaque. If true, and all
+    /// pixels are not opaque, Skia may draw incorrectly.
+    ///
+    /// This does not check if the color type allows alpha, or if any pixel value has transparency.
     pub fn is_opaque(&self) -> bool {
         self.color_info().is_opaque()
     }
 
+    /// Returns the integral size of [`Self::width()`] and [`Self::height()`].
     pub fn dimensions(&self) -> ISize {
         ISize::from_native_c(self.native().fDimensions)
     }
 
+    /// Returns the integral rectangle from the origin to [`Self::width()`] and [`Self::height()`].
     pub fn bounds(&self) -> IRect {
         IRect::from_size(self.dimensions())
     }
 
+    /// Returns true if the associated [`ColorSpace`] gamma is approximately the same as sRGB.
     pub fn is_gamma_close_to_srgb(&self) -> bool {
         self.color_info().is_gamma_close_to_srgb()
     }
