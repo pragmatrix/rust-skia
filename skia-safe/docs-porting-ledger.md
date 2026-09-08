@@ -1,0 +1,200 @@
+# rust-skia Docs Porting Ledger
+
+Persistent ledger of documentation ported from Skia C++ headers into `skia-safe` Rust rustdoc and **verified for completeness** against the C++ header (rule: C++ doc ported COMPLETELY, no shortening; only allowed drops = fiddle example links, out-param/nullptr→Option, ownership sentences, name translation + intra-doc links).
+
+**Milestone:** m153 (skia-bindings `skia = "m153-0.101.2"`; Skia submodule tag `m153-0.101.2`). All ports below are against the m153 headers.
+
+## Verification method
+- Independent subagent audit comparing EVERY public item doc in each Rust file vs its C++ header.
+- Header read directly during review (per user requirement: "actually read the C++ header").
+- `cargo fmt -p skia-safe` after edits; `cargo doc` run ONCE at end of batch (user rule).
+
+## Status: ALL items in the 34-core-file audit FIXED (2026-09-08)
+
+Committed on branch `docs` (in order):
+- `c3865966` skia-safe: complete M44 documentation
+- `0c610c9f` skia-safe: document remaining Pixmap methods
+- `d21a7e25` skia-safe: document StrokeRec methods
+- `80afd23f` skia-safe: complete ImageInfo and ColorInfo documentation
+- `6401ed60` skia-safe: document TextBlob::from_str
+- `8502a0fb` skia-safe: document Color4f, PMColor, and HSV methods
+- `bff0c211` skia-safe: document RRect accessors and transforms
+- `571b0532` skia-safe: document Region iterators
+- `a64e56f0` skia-safe: document Matrix methods (largest, 824 lines)
+
+## Units ported + completeness-verified (chronological)
+
+### Core — 34-file audit (all confirmed complete or C++ had no docs)
+- **region.rs** (SkRegion.h): impl Region + Iterator/Cliperator/Spanerator (type + all methods: new/new_empty/rewind/reset/is_done/next/rect/rgn).
+- **text_blob.rs** (SkTextBlob.h): from_str + builder alloc_* (RunBuffer pos/utf8text/clusters "should be ignored" sentences dropped as Rust returns only relevant slices — legit adaptation).
+- **pixmap.rs** (SkPixmap.h): scale_pixels, erase, erase_4f, read_pixels_to_pixmap + all accessors/converters.
+- **image_generator.rs** (SkImageGenerator.h): all methods (unique_id/is_texture_generator have no C++ doc → OK).
+- **drawable.rs** (SkDrawable.h): all methods + GpuDrawHandler class doc.
+- **vertices.rs** (SkVertices.h): all (new_copy omits "texs/colors may be nullptr" — Rust API can't pass None, adaptation).
+- **image_info.rs** (SkImageInfo.h): ColorInfo + ImageInfo type overviews, all factories/accessors, reset, is_opaque, is_gamma_close_to_srgb.
+- **color_space.rs** (SkColorSpace.h): new_srgb/linear/new_icc/new_cicp/to_xyzd50_hash/with_*_gamma/with_color_spin/is_srgb/serialize (deserialize/transfer_fn/etc. have no C++ doc → OK).
+- **graphics.rs** (SkGraphics.h): all functions.
+- **m44.rs** (SkM44.h): new, rect_to_rect, to_m33 (asM33 diagram) + previously ported methods.
+- **matrix.rs** (SkMatrix.h): ~60 methods — factories (scale/translate/rotate_deg/skew/new_all), getters/setters (rc/scale_x/y/skew_x/y/translate_x/y/persp_x/y + set_*), set_all/get_9/set_9/reset/set_identity/set_translate/set_scale/set_rotate/set_sin_cos/set_rsxform/set_skew/set_concat, all pre_*/post_* matrix-multiply diagrams, rect_2_rect/rect_to_rect_or_identity/poly_to_poly/invert/affine family/normalize_perspective, all map_* methods, min_scale/max_scale/min_max_scales/decompose_scale/i/invalid_matrix/concat/dirty_matrix_type_cache/set_scale_translate/is_finite/dump.
+- **path_effect.rs** (SkPathEffect.h): all documented.
+- **data_table.rs** (SkDataTable.h): documented (at_t/iter are rust helpers, excluded).
+- **path_measure.rs** (SkPathMeasure.h): all documented (current_measure rust-specific; deprecated skipped).
+- **picture_recorder.rs** (SkPictureRecorder.h): all documented (new() has no C++ ctor doc → OK).
+- **pixel_ref.rs** (SkPixelRef.h): module doc + all documented methods (accessors have no C++ docs → OK).
+- **point3.rs** (SkPoint3.h): all methods.
+- **cubic_map.rs** (SkCubicMap.h): class doc only in C++ (methods have no C++ docs → OK).
+- **rsxform.rs** (SkRSXform.h): from_radians + others (no C++ docs → OK).
+- **size.rs** (SkSize.h): is_zero/is_empty/set_empty (others no C++ docs → OK).
+- **color.rs** (SkColor.h): Color + Color4f (is_opaque/fits_in_bytes/to_color/to_opaque/pin_alpha/as_array/as_array_mut) + pre_multiply_argb/pre_multiply_color + RGB::to_hsv + HSV::to_color + constants.
+- **font_metrics.rs** (SkFontMetrics.h): Flags/fields/methods all documented.
+- **font_parameters.rs** (SkFontParameters.h): Axis fields + is_hidden/set_hidden (new has no C++ doc → OK).
+- **font_types.rs** (SkFontTypes.h): TextEncoding variants (all 4 match C++ //!< verbatim).
+- **blend_mode.rs** (SkBlendMode.h): module doc matches overview verbatim.
+- **stroke_rec.rs** (SkStrokeRec.h): apply_to_paint, inflation_radius(+from_paint_and_style), has_equal_effect; set_stroke_style/need_to_apply/apply_to_path documented; getters/setters/new/from_paint no C++ docs → OK; inflation_radius_from_params no C++ prose → OK.
+- **surface_props.rs** (SkSurfaceProps.h): new/new_with_text_properties (accessors no C++ docs → OK; misleading new() default-ctor doc removed).
+- **annotation.rs** (SkAnnotation.h): rect_with_url/named_destination/link_to_destination + Canvas annotate_*.
+- **swizzle.rs** (SkSwizzle.h): swap_rb/swap_rb_inplace.
+- **coverage_mode.rs / alpha_type.rs / tile_mode.rs**: module docs match C++ enum/class overviews.
+- **rrect.rs** (SkRRect.h): rect/radii/bounds/inset/outset/offset/with_* + contains_point/contains/is_valid/write_to_memory/read_from_memory/transform/dump; get_type/is_empty/is_rect/etc. no C++ docs → OK.
+- **point.rs** (SkPoint.h + SkIPoint): all IPoint + Point public methods fully documented (Ops trait impls not counted).
+
+### Earlier verified units (from doc-porting-plan.md)
+- **paint.rs + font.rs** (SkPaint.h/SkFont.h): commit 313b826a (+434 lines), 1c795118 skill alignment. rustdoc clean for both (13 links via crate:: paths). SKIPPED (not in milestone header): SkPaint setFill/getFillStyle/getStrokeStyle, SkFont countStreamFonts.
+- **gpu/ganesh** (commit a7a8fb9a, +460/−2, 7 files): GrDirectContext.h (~25 methods), GrRecordingContext.h (7), GrTypes.h (BackendApi/GrSurfaceOrigin/GrFlushInfo/GrSubmitInfo/SemaphoresSubmitted), GrYUVABackendTextures accessors, ContextOptions struct, BackendSurface (sparse C++ // one-liners), `//!` on ganesh.rs. SKIPPED: driver_bug_workarounds.rs (C++ zero docs), gl/vk/d3d/mtl subdirs, TODO-commented gr_context wrappers.
+- **effects/** (commit 52a639c8, +257, 13 files): runtime_effect.rs (39 items), image_filters.rs (10 leftovers), 5 path-effect files (corner/dash/discrete/trim/_1d), color-filter batch (high_contrast/overdraw/luma), perlin noise, blenders::Blender::arithmetic. SKIPPED (C++ zero docs): _2d_path_effect.rs, color_matrix.rs; skipped deprecated: color_matrix_filter/shader_mask_filter/table_color_filter/table_mask_filter/gradient_shader; gradient.rs leftovers (3 accessors, no C++ docs).
+- **Doc-convention normalization** (commit b2af801d, +188/−309, 16 files): 122 fiddle links removed, 167 colon-bullets fixed, nullptr→None. DEFERRED (judgment call): Class 3b SkRefCnt wording (18 lines paint/font).
+
+## Backlog progress (survey 2026-09-08 → continuing, milestone m153)
+Working the survey top-to-bottom (priority list removed per user request). Committed on `docs`:
+- `110103b1` skia-safe: document SkCodec (`codec/_codec.rs` — full SkCodec.h: Result/SelectionPolicy/ZeroInitialized/ScanlineOrder/IsAnimated enum docs, Options + FrameInfo field docs, all methods incl. from_stream/from_data/get_pixels*/start_*_decode/scanlines/frames/is_animated; codecs::Decoder + deferred_image).
+- `698fc77c` skia-safe: document codec animation, decoders, and encoded formats (`codec_animation.rs` Blend/DisposalMethod variant docs; `decoders.rs` all 8 decoder modules; `encoded_origin.rs` to_matrix_inverse; `encoded_image_format.rs` enum overview — C++ has NO per-variant comments, so no Variants list).
+- `0ddc3258` skia-safe: document FontMgr match and fallback APIs (`core/font_mgr.rs` — module doc, Request.bcp_47 field, CMapEntry.variation, match_family/match_family_style/match_family_style_character/match_request/fallback/new_from_data/new_from_bytes/empty).
+- `a2119ba5` skia-safe: document image encoders (`encode_.rs` module + Pixmap/Bitmap/Image::encode + Comment; `png_encoder.rs` Options fields + encode/encode_pixmap/encode_image; `jpeg_encoder.rs` AlphaOption/Downsample + Options fields + encode*/encode_image; `webp_encoder.rs` Compression + Options fields; `png_rust_encoder.rs` CompressionLevel + Options.comments).
+
+## Known remaining doc warnings (PRE-EXISTING, not from porting)
+- core/surface.rs:344, 359; modules/svg/dom.rs:48; 2× Self::from_backend_texture; UReqResourceProvider.
+
+## Gotchas / rules (from porting)
+- Intra-doc links: prefer fully-qualified [`crate::X`] when type not in immediate scope; from inside a module use [`self::item`]; NEVER downgrade a link to plain backticked text (user rule, commit 506b6a68) — find the resolving path.
+- BackendApi trap: ganesh::BackendApi (GrBackendApi) ≠ gpu::BackendApi (skgpu/Graphite). Link [`crate::gpu::ganesh::BackendApi`] explicitly.
+- Don't run cargo doc after each edit — run once at end of batch.
+
+---
+
+# MISSING / UNCHECKED YET (survey 2026-09-08, milestone m153)
+
+File-by-file audit of the remaining `skia-safe` crate. "Rust doc" = doc-comment coverage (none/partial/mostly/complete). "C++ richness" = whether the matching C++ header carries substantive doc comments (rich/sparse/no docs). Items where C++ has NO docs are LOW porting value and are candidates to leave undocumented per the established rule. This section is the unchecked backlog, NOT yet verified against headers.
+
+## codec/ — ✅ DONE (committed above)
+| File | C++ header | Rust doc | C++ richness |
+|---|---|---|---|
+| `codec/_codec.rs` | `SkCodec.h` | **complete** ✅ | **rich** ⭐ |
+| `codec/decoders.rs` | `SkPngDecoder.h`, `SkJpegDecoder.h`, `SkWebpDecoder.h`, `SkGifDecoder.h`, `SkBmpDecoder.h`, `SkWbmpDecoder.h`, `SkIcoDecoder.h`, `SkAvifDecoder.h`, `SkRawDecoder.h`, `SkJpegxlDecoder.h` | **complete** ✅ | rich |
+| `codec/codec_animation.rs` | `SkCodecAnimation.h` | complete ✅ | rich |
+| `codec/encoded_origin.rs` | `SkEncodedOrigin.h` | complete ✅ | rich |
+| `codec/encoded_image_format.rs` | `SkEncodedImageFormat.h` | complete ✅ (C++ no per-variant comments) | some |
+| `codec/pixmap_utils.rs` | `SkPixmapUtils.h` | complete | rich |
+
+Note: `SkAndroidCodec.h` (rich) not wrapped at all (TODO in codec.rs).
+
+## encode_/ — ✅ DONE (committed above; all C++ rich)
+| File | C++ header | Rust doc | C++ richness |
+|---|---|---|---|
+| `encode_.rs` | `SkEncoder.h` | complete ✅ | rich |
+| `encode_/png_encoder.rs` | `SkPngEncoder.h` | complete ✅ | rich |
+| `encode_/jpeg_encoder.rs` | `SkJpegEncoder.h` | complete ✅ | rich |
+| `encode_/webp_encoder.rs` | `SkWebpEncoder.h` | complete ✅ | rich |
+| `encode_/png_rust_encoder.rs` | `SkPngRustEncoder.h` | complete ✅ | rich |
+
+## core/font_mgr.rs — ✅ DONE (committed `0ddc3258`; SkFontMgr.h rich)
+| File | C++ header | Rust doc | C++ richness |
+|---|---|---|---|
+| `core/font_mgr.rs` | `SkFontMgr.h` | **complete** ✅ | **rich** ⭐ |
+
+## pathops/ — MODERATE-HIGH
+| File | C++ header | Rust doc | C++ richness |
+|---|---|---|---|
+| `pathops.rs` | `SkPathOps.h` | **none — ~12 undoc** (only `//!`) | **rich** |
+
+## utils/ — mostly LOW (C++ undocumented), one high-value item
+| File | C++ header | Rust doc | C++ richness |
+|---|---|---|---|
+| `utils/shadow_utils.rs` | `SkShadowUtils.h` | **none — 5 undoc** | **rich** ⭐ |
+| `utils/null_canvas.rs` | `SkNullCanvas.h` | none — 2 undoc | some |
+| `utils/ordered_font_mgr.rs` | `SkOrderedFontMgr.h` | none — 3 undoc | some |
+| `utils/camera.rs` | `SkCamera.h` | none — 19 undoc | **NO DOCS** (low) |
+| `utils/custom_typeface.rs` | `SkCustomTypeface.h` | none — 9 undoc | **NO DOCS** (low) |
+| `utils/parse_path.rs` | `SkParsePath.h` | none — 6 undoc | **NO DOCS** (low) |
+| `utils/text_utils.rs` | `SkTextUtils.h` | none — 6 undoc | **NO DOCS** (low) |
+
+## interop/ — LOW (private module, internal glue, skip)
+| File | C++ counterpart | Rust doc | C++ richness |
+|---|---|---|---|
+| `interop.rs` | internal bindings glue | none | — |
+| `interop/cpp.rs` | bindings.h glue | sparse — 4 undoc | internal |
+| `interop/stream.rs` | `SkStream.h` + glue | sparse — 19 undoc | SkStream.h rich, glue internal |
+| `interop/string.rs` | SkString glue | none — 6 undoc | internal |
+| `interop/strings.rs` | SkStrings glue | sparse — 4 undoc | internal |
+
+## gpu/ — graphite good shape; ganesh subdirs mostly low; a few rich items
+| File | C++ header | Rust doc | C++ richness |
+|---|---|---|---|
+| `gpu/types.rs` | `GpuTypes.h` | **none — 5 undoc** | **rich** ⭐ |
+| `gpu/mutable_texture_state.rs` | `MutableTextureState.h` | none — 6 undoc | some |
+| `gpu/vk.rs` + `gpu/vk/vulkan_*.rs` | `VulkanTypes.h`, `VulkanBackendContext.h`, `VulkanMutableTextureState.h`, etc. | none/sparse — ~34 undoc | mostly NO DOCS (low) |
+| `gpu/graphite/context_options.rs` | `ContextOptions.h` | **sparse — 1 undoc** | **rich** ⭐ |
+| `gpu/graphite/context.rs` | `Context.h` | mostly (1 undoc) | rich |
+| `gpu/graphite/recorder.rs` | `Recorder.h` | mostly (1 undoc) | rich |
+| `gpu/graphite/texture_info.rs` | `TextureInfo.h` | partial (1 undoc) | sparse |
+| `gpu/graphite/backend_texture.rs` | `BackendTexture.h` | partial (1 undoc) | NO DOCS |
+| `gpu/graphite/recording.rs` | `Recording.h` | none — 1 undoc | NO DOCS |
+| graphite surface/image/graphite_types/mtl/vk | various | mostly/complete | mostly rich or NO DOCS |
+| `gpu/ganesh/gl/types.rs`, `gl/interface.rs`, `gl/extensions.rs` | `GrGLTypes.h`, `GrGLInterface.h`, `GrGLExtensions.h` | none — ~20 undoc | some/rich |
+| `gpu/ganesh/vk/vk_types.rs` | `GrVkTypes.h` | sparse — 5 undoc | rich |
+| `gpu/ganesh/d3d/types.rs` | `GrD3DTypes.h` | **none — 7 undoc** | **rich** ⭐ |
+| ganesh gl/vk/mtl/d3d other files | GrGL*/GrVk*/GrMtl*/GrD3D* headers | none/sparse | mostly NO DOCS (low) |
+
+## modules/shaper/ — MODERATE
+| File | C++ header | Rust doc | C++ richness |
+|---|---|---|---|
+| `modules/shaper.rs` | `SkShaper.h` | **sparse — ~45 undoc** | sparse-but-meaningful |
+| `modules/shaper/core_text.rs` | `SkShaper_coretext.h` | none — 1 undoc | NO DOCS |
+| `modules/shaper/harfbuzz.rs` | `SkShaper_harfbuzz.h` | none — 4 undoc | NO DOCS |
+| `modules/shaper/unicode.rs` | `SkShaper_skunicode.h` | none — 1 undoc | NO DOCS |
+
+## modules/paragraph/ — big count, but C++ mostly undocumented
+| File | C++ header | Rust doc | C++ richness |
+|---|---|---|---|
+| `modules/paragraph/paragraph.rs` | `Paragraph.h` | **partial — ~41 undoc** | **rich** ⭐ |
+| `modules/paragraph/text_style.rs` | `TextStyle.h` | sparse — ~92 undoc | sparse |
+| `modules/paragraph/paragraph_style.rs` | `ParagraphStyle.h` | none — 53 undoc | NO DOCS |
+| `modules/paragraph/font_collection.rs` | `FontCollection.h` | none — 21 undoc | NO DOCS |
+| paragraph_builder/cache/dart_types/font_arguments/typeface_font_provider/text_shadow/metrics | `ParagraphBuilder.h` etc. | none | NO DOCS (all) |
+
+## modules/svg/ — LOW value (C++ almost all NO DOCS)
+| File | C++ header | Rust doc | C++ richness |
+|---|---|---|---|
+| `modules/svg/dom.rs` | `SkSVGDOM.h` | partial — 26 doc | **rich** (has pre-existing warning line 48) |
+| `modules/svg/fe.rs` | `SkSVGFe.h` | none | some |
+| `modules/svg/use.rs` | `SkSVGUse.h` | none | some |
+| all other svg/* (node, shape, types, gradient, container, etc.) | `SkSVG*` headers | none — ~180 total undoc | **almost all NO DOCS** (low) |
+
+## modules/ — 
+| File | C++ header | Rust doc | C++ richness |
+|---|---|---|---|
+| `modules/resources.rs` | `SkResources.h` | **partial — 9 undoc** | **rich** ⭐ |
+| `modules/skottie.rs` | `Skottie.h`, `ExternalLayer.h`, `SkottieProperty.h`, `SlotManager.h` | **complete** ✅ | rich |
+| `modules.rs` / `skottie.rs` / `svg.rs` | re-export facades | none | — |
+
+## Core — verify done vs gap (corrected from earlier belief)
+| File | C++ header | Status |
+|---|---|---|
+| `core/strike_ref.rs` | `SkStrikeRef.h` (rich) | **complete** ✅ |
+| `core/typeface.rs` | `SkTypeface.h` (rich 206) | **mostly** ✅ (only ~6–10 aliases/unique_id undoc) |
+| `core/font_mgr.rs` | `SkFontMgr.h` (rich 64) | **GAP — ~27 undoc** ⭐ (only new_from_data/new_from_bytes documented) |
+| `core/tiled_image_utils.rs` | `SkTiledImageUtils.h` (rich 21) | **GAP — 4 undoc** |
+| `core/recorder.rs` | `SkRecorder.h` (some 7) | **GAP — 4 undoc** |
+| `core/cpu_recorder.rs` | `SkCPURecorder.h` (rich 20) | **GAP — 1 undoc** |
+| `core/mesh.rs` | `SkMesh.h` (rich 138) | **EMPTY stub** (nothing to port) |
+| `core/promise_image_texture.rs` | `GrPromiseImageTexture.h` (private) | **EMPTY file** (nothing to port) |
+| `core/font_scanner.rs` | `SkFontScanner.h` (NO DOCS) | **stub** (nothing to port) |
