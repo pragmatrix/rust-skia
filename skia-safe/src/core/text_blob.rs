@@ -83,6 +83,17 @@ impl TextBlob {
         }
     }
 
+    /// Creates a text blob with a single run. The string is encoded as UTF-8.
+    ///
+    /// `font` contains attributes used to define the run text.
+    ///
+    /// This function uses the default character-to-glyph mapping from the [`Typeface`] in `font`.
+    /// It does not perform typeface fallback for characters not found in the [`Typeface`]. It does
+    /// not perform kerning or other complex shaping; glyphs are positioned based on their default
+    /// advances.
+    ///
+    /// - `str` character code points drawn
+    /// - `font` text size, typeface, text scale, and so on, used to draw
     pub fn from_str(str: impl AsRef<str>, font: &Font) -> Option<TextBlob> {
         Self::from_text(str.as_ref(), font)
     }
