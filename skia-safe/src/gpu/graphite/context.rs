@@ -38,13 +38,6 @@ impl fmt::Debug for Context {
 }
 
 impl Context {
-    /// Create a new recorder for recording draw operations
-    ///
-    /// # Arguments
-    /// - `options` - Configuration for the recorder, or `None` for default options
-    ///
-    /// # Returns
-    /// A new `Recorder` instance, or `None` if creation failed
     pub fn make_recorder(&mut self, options: Option<&RecorderOptions>) -> Option<Recorder> {
         let default_options;
         let options_ptr = match options {
@@ -59,25 +52,10 @@ impl Context {
         Recorder::from_ptr(recorder_ptr)
     }
 
-    /// Insert a recording into the context for later submission
-    ///
-    /// # Arguments
-    /// - `info` - Information about the recording to insert
-    ///
-    /// # Returns
-    /// [`InsertStatus::Success`], or the specific failure reason (see the
-    /// [`InsertStatus`] variants).
     pub fn insert_recording(&mut self, info: &InsertRecordingInfo<'_>) -> InsertStatus {
         unsafe { sb::C_Context_insertRecording(self.native_mut(), info.native()) }
     }
 
-    /// Submit pending work to the GPU
-    ///
-    /// # Arguments
-    /// - `submit_info` - Information about the submission, or `None` for defaults
-    ///
-    /// # Returns
-    /// `true` if submission was successful, `false` otherwise
     pub fn submit(&mut self, submit_info: Option<&SubmitInfo>) -> bool {
         let default_info;
         let info_ptr = match submit_info {
@@ -102,29 +80,27 @@ impl Context {
         self.submit(Some(&SubmitInfo::with_sync_to_cpu(true)))
     }
 
-    /// Pump any already-finished asynchronous work (invoking its finished procs).
-    ///
-    /// This does **not** block or report completion status: the underlying
-    /// `Context::checkAsyncWorkCompletion()` returns `void`. To wait for GPU
-    /// completion, use [`submit_and_wait`](Self::submit_and_wait).
+    /// Checks whether any asynchronous work is complete and if so calls related callbacks.
     pub fn check_async_work_completion(&mut self) {
         unsafe { sb::C_Context_checkAsyncWorkCompletion(self.native_mut()) }
     }
 
-    /// Delete a backend texture that was created through this context
+    /// Called to delete the passed in `BackendTexture`. This should only be called if the
+    /// `BackendTexture` was created by calling `Recorder::createBackendTexture` on a `Recorder`
+    /// created from this `Context`. If the `BackendTexture` is not valid or does not match the
+    /// `BackendApi` of the `Context` then nothing happens.
     ///
-    /// # Arguments
-    /// - `texture` - The backend texture to delete
+    /// Otherwise this will delete/release the backend object that is wrapped in the
+    /// `BackendTexture`. The `BackendTexture` will be reset to an invalid state and should not be
+    /// used again.
     pub fn delete_backend_texture(&mut self, texture: &BackendTexture) {
         unsafe {
             sb::C_Context_deleteBackendTexture(self.native_mut(), texture.native());
         }
     }
 
-    /// Check if the GPU device has been lost
-    ///
-    /// # Returns
-    /// `true` if the device is lost and the context is unusable
+    /// Returns true if the backend-specific context has gotten into an unrecoverarble, lost state
+    /// (e.g. if we've gotten a `VK_ERROR_DEVICE_LOST` in the Vulkan backend).
     pub fn is_device_lost(&self) -> bool {
         unsafe { sb::C_Context_isDeviceLost(self.native()) }
     }

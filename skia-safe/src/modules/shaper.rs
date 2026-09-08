@@ -661,6 +661,7 @@ mod rust_run_handler {
 #[repr(transparent)]
 #[derive(Debug)]
 pub struct TextBlobBuilderRunHandler<'text>(SkTextBlobBuilderRunHandler, PhantomData<&'text str>);
+
 impl NativeAccess for TextBlobBuilderRunHandler<'_> {
     type Native = SkTextBlobBuilderRunHandler;
 
