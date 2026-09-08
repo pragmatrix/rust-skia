@@ -5,6 +5,7 @@ use std::{fmt, mem};
 pub use skia_bindings::SkYUVColorSpace as YUVColorSpace;
 variant_name!(YUVColorSpace::JPEG);
 
+/// Describes pixel and encoding.
 pub type ColorInfo = Handle<SkColorInfo>;
 unsafe_send_sync!(ColorInfo);
 
@@ -52,6 +53,15 @@ impl fmt::Debug for ColorInfo {
 }
 
 impl ColorInfo {
+    /// Creates [`ColorInfo`] from [`ColorType`], [`AlphaType`], and optionally [`ColorSpace`].
+    ///
+    /// If `cs` is `None` and [`ColorInfo`] is part of a drawing source, [`ColorSpace`] defaults to
+    /// sRGB, mapping into the surface [`ColorSpace`]. Parameters are not validated to see if their
+    /// values are legal, or that the combination is supported.
+    ///
+    /// - `ct` color type
+    /// - `at` alpha type
+    /// - `cs` optional color space
     pub fn new(ct: ColorType, at: AlphaType, cs: impl Into<Option<ColorSpace>>) -> Self {
         Self::construct(|color_info| unsafe {
             sb::C_SkColorInfo_Construct2(
@@ -63,26 +73,38 @@ impl ColorInfo {
         })
     }
 
+    /// Returns the color space.
     pub fn color_space(&self) -> Option<ColorSpace> {
         ColorSpace::from_unshared_ptr(unsafe { self.native().colorSpace() })
     }
 
+    /// Returns the color type.
     pub fn color_type(&self) -> ColorType {
         ColorType::from_native_c(self.native().fColorType)
     }
 
+    /// Returns the alpha type.
     pub fn alpha_type(&self) -> AlphaType {
         self.native().fAlphaType
     }
 
+    /// Returns true if the color info is opaque.
     pub fn is_opaque(&self) -> bool {
         self.alpha_type().is_opaque() || self.color_type().is_always_opaque()
     }
 
+    /// Returns true if the gamma is close to sRGB.
     pub fn is_gamma_close_to_srgb(&self) -> bool {
         unsafe { self.native().gammaCloseToSRGB() }
     }
 
+    /// Creates [`ColorInfo`] with the same color type and color space, with the alpha type set to
+    /// `new_alpha_type`.
+    ///
+    /// The created [`ColorInfo`] contains `new_alpha_type` even if it is incompatible with the
+    /// color type, in which case the alpha type in [`ColorInfo`] is ignored.
+    ///
+    /// - `new_alpha_type` new alpha type
     #[must_use]
     pub fn with_alpha_type(&self, new_alpha_type: AlphaType) -> Self {
         Self::construct(|ci| unsafe {
@@ -90,6 +112,10 @@ impl ColorInfo {
         })
     }
 
+    /// Creates [`ColorInfo`] with the same alpha type and color space, with the color type set to
+    /// `new_color_type`.
+    ///
+    /// - `new_color_type` new color type
     #[must_use]
     pub fn with_color_type(&self, new_color_type: ColorType) -> Self {
         Self::construct(|ci| unsafe {
@@ -97,6 +123,10 @@ impl ColorInfo {
         })
     }
 
+    /// Creates [`ColorInfo`] with the same alpha type and color type, with the color space set to
+    /// `cs`. `cs` may be `None`.
+    ///
+    /// - `cs` optional color space
     #[must_use]
     pub fn with_color_space(&self, cs: impl Into<Option<ColorSpace>>) -> Self {
         let color_space: Option<ColorSpace> = cs.into();
@@ -105,10 +135,14 @@ impl ColorInfo {
         })
     }
 
+    /// Returns the number of bytes per pixel required by the color type. Returns zero if the color
+    /// type is [`ColorType::Unknown`].
     pub fn bytes_per_pixel(&self) -> usize {
         unsafe { self.native().bytesPerPixel().try_into().unwrap() }
     }
 
+    /// Returns the bit shift converting row bytes to row pixels. Returns zero for
+    /// [`ColorType::Unknown`].
     pub fn shift_per_pixel(&self) -> usize {
         unsafe { self.native().shiftPerPixel().try_into().unwrap() }
     }
