@@ -24,6 +24,22 @@ When porting documentation from C++ headers:
   `None` / `Some` instead of `nullptr` / optional wording when describing Rust
   `Option` parameters.
 - Do not port `example:` fiddle links; rustdoc does not render Skia fiddles.
+- Every reference to a Rust item in documentation must be a working intra-doc
+  link, never plain backticked text. When a link fails to resolve, find the
+  path that resolves instead of downgrading the reference to plain code text:
+
+  - Enum variants link like any other item once the enum's path is correct
+    (for example, `GrBackendApi::kOpenGL` becomes
+    `[`crate::gpu::ganesh::BackendApi::OpenGL`]`). A failure usually means the
+    path points at a different type with the same name — qualify further
+    rather than dropping the link.
+  - From inside the module that defines an item, link it with `[`self::item`]`
+    — the module's own name is not in scope there.
+  - Link the type that actually declares the member: references in prose to
+    `dst.colorType()` style C++ chains become links to the Rust counterpart
+    methods, e.g. `[`Pixmap::color_type()`]`; sibling methods of the documented
+    type are `[`Self::method()`]`, or `[`Type::method()`]` when `Self` refers
+    to a different type (for example inside a trait impl like `Iterator`).
 
 ## Module level documentation
 

@@ -96,8 +96,8 @@ impl DirectContext {
         self
     }
 
-    /// If the backend is `BackendApi::OpenGL`, then all texture unit/target
-    /// combinations for
+    /// If the backend is [`crate::gpu::ganesh::BackendApi::OpenGL`], then all texture
+    /// unit/target combinations for
     /// which the context has modified the bound texture will have texture id 0 bound. This does
     /// not flush the context. Calling [`DirectContext::reset()`] does not change the set that
     /// will be bound to texture id 0 on the next call to
@@ -511,8 +511,8 @@ impl DirectContext {
     /// If [`SubmitInfo::sync`] is [`SyncCpu::Yes`], this function will return once the gpu has
     /// finished with all submitted work.
     ///
-    /// If [`SubmitInfo::mark_boundary`] is `MarkFrameBoundary::Yes` and the GPU
-    /// supports a
+    /// If [`SubmitInfo::mark_boundary`] is
+    /// [`crate::gpu::ganesh::MarkFrameBoundary::Yes`] and the GPU supports a
     /// way to be notified about frame boundaries, then we will notify the GPU during/after the
     /// submission of work to the GPU. [`SubmitInfo::frame_id`] is a frame ID that is passed to
     /// the GPU when marking a boundary. Ideally this value should be unique for each frame.
@@ -708,7 +708,8 @@ impl DirectContext {
     /// To use this API, create a [`DirectContext`] as normal, but set the persistent cache on
     /// [`crate::gpu::ContextOptions`] to something that will save the cached shader blobs, with
     /// a shader
-    /// cache strategy of `ShaderCacheStrategy::SkSL` to ensure
+    /// cache strategy of [`crate::gpu::ganesh::context_options::ShaderCacheStrategy::SkSL`]
+    /// to ensure
     /// the blobs are SkSL and are
     /// suitable for pre-compilation. Then run the application and save all of the key/data
     /// pairs that are fed to the cache. At startup (or any convenient time), call this function

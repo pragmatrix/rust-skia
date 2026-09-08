@@ -146,7 +146,7 @@ variant_name!(BackendHandleAccess::FlushWrite);
 /// [`Surface`] is responsible for managing the pixels that a canvas draws into. The pixels can be
 /// allocated either in CPU memory (a raster surface) or on the GPU (a `RenderTarget` surface).
 /// [`Surface`] takes care of allocating a [`Canvas`] that will draw into the surface. Call
-/// `surface_get_canvas()` to use that canvas (but don't delete it, it is owned by the surface).
+/// [`Surface::canvas()`] to use that canvas (but don't delete it, it is owned by the surface).
 /// [`Surface`] always has non-zero dimensions. If there is a request for a new surface, and either
 /// of the requested dimensions are zero, then `None` will be returned.
 pub type Surface = RCHandle<SkSurface>;
@@ -505,9 +505,10 @@ impl Surface {
     /// Copies [`crate::Rect`] of pixels to dst.
     ///
     /// Source [`crate::Rect`] corners are (`src.x`, `src.y`) and [`Surface`] `(width(), height())`.
-    /// Destination [`crate::Rect`] corners are `(0, 0)` and `(dst.width(), dst.height())`.
+    /// Destination [`crate::Rect`] corners are `(0, 0)` and `(dst.width(), dst.
+    /// height())`.
     /// Copies each readable pixel intersecting both rectangles, without scaling,
-    /// converting to `dst_color_type()` and `dst_alpha_type()` if required.
+    /// converting to [`Pixmap::color_type()`] and [`Pixmap::alpha_type()`] if required.
     ///
     /// Pixels are readable when [`Surface`] is raster, or backed by a Ganesh GPU backend. Graphite
     /// has deprecated this API in favor of the equivalent asynchronous API on

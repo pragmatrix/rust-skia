@@ -543,16 +543,16 @@ impl Image {
         self.image_info().height()
     }
 
-    /// Returns [`ISize`] `{ width(), height() }`.
+    /// Returns [`ISize`] `{ [`Image::width()`], [`Image::height()`] }`.
     ///
-    /// Returns: integral size of `width()` and `height()`
+    /// Returns: integral size of [`Image::width()`] and [`Image::height()`]
     pub fn dimensions(&self) -> ISize {
         self.image_info().dimensions()
     }
 
-    /// Returns [`IRect`] `{ 0, 0, width(), height() }`.
+    /// Returns [`IRect`] `{ 0, 0, [`Image::width()`], [`Image::height()`] }`.
     ///
-    /// Returns: integral rectangle from origin to `width()` and `height()`
+    /// Returns: integral rectangle from origin to [`Image::width()`] and [`Image::height()`]
     pub fn bounds(&self) -> IRect {
         self.image_info().bounds()
     }

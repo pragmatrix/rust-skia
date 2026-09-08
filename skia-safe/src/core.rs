@@ -197,7 +197,7 @@ pub mod shaders {
     use skia_bindings as sb;
 
     impl Shader {
-        /// Creates fractal Perlin noise. See `fractal_noise()` for details.
+        /// Creates fractal Perlin noise. See [`self::fractal_noise()`] for details.
         pub fn fractal_perlin_noise(
             base_frequency: (scalar, scalar),
             num_octaves: usize,
@@ -207,7 +207,7 @@ pub mod shaders {
             fractal_noise(base_frequency, num_octaves, seed, tile_size)
         }
 
-        /// Creates Perlin turbulence. See `turbulence()` for details.
+        /// Creates Perlin turbulence. See [`self::turbulence()`] for details.
         pub fn turbulence_perlin_noise(
             base_frequency: (scalar, scalar),
             num_octaves: usize,
@@ -219,7 +219,7 @@ pub mod shaders {
     }
 
     /// Creates Perlin noise of the given type (fractal noise or turbulence — see
-    /// `shaders::turbulence()`).
+    /// [`self::turbulence()`]).
     /// Both base frequencies (X and Y) have a usual range of (0..1) and must be non-negative.
     ///
     /// The number of octaves provided should be fairly small, with a limit of 255 enforced.
@@ -247,7 +247,7 @@ pub mod shaders {
         })
     }
 
-    /// Creates Perlin turbulence, see `shaders::fractal_noise()` for the parameter
+    /// Creates Perlin turbulence, see [`self::fractal_noise()`] for the parameter
     /// semantics.
     pub fn turbulence(
         base_frequency: (scalar, scalar),
