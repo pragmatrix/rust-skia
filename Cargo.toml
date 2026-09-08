@@ -6,7 +6,6 @@ members = [
     "skia-bindings",
     "skia-org",
     "mk-workflows",
-    "comment-converter",
 ]
 
 [workspace.package]
