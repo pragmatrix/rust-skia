@@ -337,7 +337,7 @@ impl Surface {
 
     // TODO: support variant with TextureReleaseProc and ReleaseContext
 
-    /// If the surface was made via [`Self::from_backend_texture`] then it's backing texture may be
+    /// If the surface was made via [`crate::gpu::ganesh::surface_ganesh::wrap_backend_texture()`] then it's backing texture may be
     /// substituted with a different texture. The contents of the previous backing texture are
     /// copied into the new texture. [`Canvas`] state is preserved. The original sample count is
     /// used. The [`gpu::BackendFormat`] and dimensions of replacement texture must match that of
@@ -352,7 +352,7 @@ impl Surface {
         self.replace_backend_texture_with_mode(backend_texture, origin, ContentChangeMode::Retain)
     }
 
-    /// If the surface was made via [`Self::from_backend_texture()`] then it's backing texture may be
+    /// If the surface was made via [`crate::gpu::ganesh::surface_ganesh::wrap_backend_texture()`] then it's backing texture may be
     /// substituted with a different texture. The contents of the previous backing texture are
     /// copied into the new texture. [`Canvas`] state is preserved. The original sample count is
     /// used. The [`gpu::BackendFormat`] and dimensions of replacement texture must match that of
