@@ -5,7 +5,11 @@ use std::{fmt, mem};
 pub use skia_bindings::SkYUVColorSpace as YUVColorSpace;
 variant_name!(YUVColorSpace::JPEG);
 
-/// Describes pixel and encoding.
+/// Describes pixel and encoding. [`ImageInfo`] can be created from [`ColorInfo`] by providing
+/// dimensions.
+///
+/// It encodes how pixel bits describe alpha, transparency; color components red, blue, and green;
+/// and [`ColorSpace`], the range and linearity of colors.
 pub type ColorInfo = Handle<SkColorInfo>;
 unsafe_send_sync!(ColorInfo);
 
@@ -148,6 +152,15 @@ impl ColorInfo {
     }
 }
 
+/// Describes pixel dimensions and encoding. [`crate::Bitmap`], [`crate::Image`], [`crate::Pixmap`],
+/// and [`crate::Surface`] can be created from [`ImageInfo`]. [`ImageInfo`] can be retrieved from
+/// [`crate::Bitmap`] and [`crate::Pixmap`], but not from [`crate::Image`] and [`crate::Surface`].
+/// For example, [`crate::Image`] and [`crate::Surface`] implementations may defer pixel depth, so
+/// may not completely specify [`ImageInfo`].
+///
+/// [`ImageInfo`] contains dimensions, the pixel integral width and height. It encodes how pixel
+/// bits describe alpha, transparency; color components red, blue, and green; and [`ColorSpace`],
+/// the range and linearity of colors.
 pub type ImageInfo = Handle<SkImageInfo>;
 unsafe_send_sync!(ImageInfo);
 
@@ -359,8 +372,9 @@ impl ImageInfo {
         Handle::from_native_ref(&self.native().fColorInfo)
     }
 
-    /// Returns true if the alpha type is set to hint that all pixels are opaque. If true, and all
-    /// pixels are not opaque, Skia may draw incorrectly.
+    /// Returns true if the alpha type is set to hint that all pixels are opaque; their alpha value
+    /// is implicitly or explicitly 1.0. If true, and all pixels are not opaque, Skia may draw
+    /// incorrectly.
     ///
     /// This does not check if the color type allows alpha, or if any pixel value has transparency.
     pub fn is_opaque(&self) -> bool {
@@ -377,7 +391,8 @@ impl ImageInfo {
         IRect::from_size(self.dimensions())
     }
 
-    /// Returns true if the associated [`ColorSpace`] gamma is approximately the same as sRGB.
+    /// Returns true if the associated [`ColorSpace`] is not `None`, and the [`ColorSpace`] gamma
+    /// is approximately the same as sRGB.
     pub fn is_gamma_close_to_srgb(&self) -> bool {
         self.color_info().is_gamma_close_to_srgb()
     }
@@ -495,6 +510,8 @@ impl ImageInfo {
         aligned_row_bytes == row_bytes
     }
 
+    /// Creates an empty [`ImageInfo`] with [`ColorType::Unknown`], [`AlphaType::Unknown`], a width
+    /// and height of zero, and no [`ColorSpace`].
     pub fn reset(&mut self) -> &mut Self {
         unsafe { sb::C_SkImageInfo_reset(self.native_mut()) };
         self
