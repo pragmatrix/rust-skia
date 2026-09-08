@@ -117,7 +117,7 @@ impl FontArguments<'_, '_> {
     /// Font formats like ttc, dfont, cff, cid, pfr, t42, t1, and fon may actually be indexed
     /// collections of fonts.
     ///
-    /// - `collection_index`: index of the font in an indexed collection.
+    /// - `collection_index` index of the font in an indexed collection.
     pub fn set_collection_index(&mut self, collection_index: usize) -> &mut Self {
         self.native_mut().fCollectionIndex = collection_index.try_into().unwrap();
         self
@@ -135,7 +135,7 @@ impl FontArguments<'_, '_> {
     /// This borrows `position` data; the value must remain valid for the lifetime of
     /// [`FontArguments`].
     ///
-    /// - `position`: variation coordinates to use.
+    /// - `position` variation coordinates to use.
     pub fn set_variation_design_position(mut self, position: VariationPosition) -> FontArguments {
         let position = SkFontArguments_VariationPosition {
             coordinates: position.coordinates.native().as_ptr(),
@@ -174,7 +174,7 @@ impl FontArguments<'_, '_> {
     /// This borrows `palette` data; the value must remain valid for the lifetime of
     /// [`FontArguments`].
     ///
-    /// - `palette`: palette index and override entries.
+    /// - `palette` palette index and override entries.
     pub fn set_palette(mut self, palette: Palette) -> FontArguments {
         let palette = SkFontArguments_Palette {
             index: palette.index,
@@ -203,7 +203,7 @@ impl FontArguments<'_, '_> {
 
     /// Sets whether synthetic bold styling is requested.
     ///
-    /// - `synthetic_bold`: `Some(true)` to force synthetic bold,
+    /// - `synthetic_bold` `Some(true)` to force synthetic bold,
     ///   `Some(false)` to force non-bold, `None` to leave unspecified.
     pub fn set_synthetic_bold(&mut self, synthetic_bold: impl Into<Option<bool>>) -> &mut Self {
         unsafe {
@@ -222,7 +222,7 @@ impl FontArguments<'_, '_> {
 
     /// Sets whether synthetic oblique styling is requested.
     ///
-    /// - `synthetic_oblique`: `Some(true)` to force synthetic oblique,
+    /// - `synthetic_oblique` `Some(true)` to force synthetic oblique,
     ///   `Some(false)` to force non-oblique, `None` to leave unspecified.
     pub fn set_synthetic_oblique(
         &mut self,

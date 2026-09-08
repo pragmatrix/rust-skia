@@ -24,7 +24,6 @@ pub mod surfaces {
     ///
     /// Returns: [`Surface`] if width and height are positive; otherwise, `None`
     ///
-    /// example: <https://fiddle.skia.org/c/@Surface_MakeNull>
     pub fn null(size: impl Into<ISize>) -> Option<Surface> {
         let size = size.into();
         Surface::from_ptr(unsafe { sb::C_SkSurfaces_Null(size.width, size.height) })
@@ -262,7 +261,6 @@ impl Surface {
     ///
     /// Returns: [`Surface`] if width and height are positive; otherwise, `None`
     ///
-    /// example: <https://fiddle.skia.org/c/@Surface_MakeNull>
     #[deprecated(since = "0.64.0", note = "use surfaces::null()")]
     pub fn new_null(size: impl Into<ISize>) -> Option<Self> {
         surfaces::null(size)
@@ -296,7 +294,6 @@ impl Surface {
     ///
     /// Returns: unique content identifier
     ///
-    /// example: <https://fiddle.skia.org/c/@Surface_notifyContentWillChange>
     pub fn generation_id(&mut self) -> u32 {
         unsafe { self.native_mut().generationID() }
     }
@@ -304,7 +301,6 @@ impl Surface {
     /// Notifies that [`Surface`] contents will be changed by code outside of Skia.
     /// Subsequent calls to [`Self::generation_id()`] return a different value.
     ///
-    /// example: <https://fiddle.skia.org/c/@Surface_notifyContentWillChange>
     pub fn notify_content_will_change(&mut self, mode: ContentChangeMode) -> &mut Self {
         unsafe { self.native_mut().notifyContentWillChange(mode) }
         self
@@ -388,7 +384,6 @@ impl Surface {
     ///
     /// Returns: drawing [`Canvas`] for [`Surface`]
     ///
-    /// example: <https://fiddle.skia.org/c/@Surface_getCanvas>
     pub fn canvas(&mut self) -> &Canvas {
         let canvas_ref = unsafe { &*self.native_mut().getCanvas() };
         Canvas::borrow_from_native(canvas_ref)
@@ -410,7 +405,6 @@ impl Surface {
     ///
     /// Returns: compatible [`Surface`] or `None`
     ///
-    /// example: <https://fiddle.skia.org/c/@Surface_makeSurface>
     pub fn new_surface(&mut self, image_info: &ImageInfo) -> Option<Self> {
         Self::from_ptr(unsafe {
             sb::C_SkSurface_makeSurface(self.native_mut(), image_info.native())
@@ -432,7 +426,6 @@ impl Surface {
     ///
     /// Returns: [`Image`] initialized with [`Surface`] contents
     ///
-    /// example: <https://fiddle.skia.org/c/@Surface_makeImageSnapshot>
     pub fn image_snapshot(&mut self) -> Image {
         Image::from_ptr(unsafe {
             sb::C_SkSurface_makeImageSnapshot(self.native_mut(), ptr::null())
@@ -465,7 +458,6 @@ impl Surface {
     /// - If bounds does not intersect the surface, then this returns `None`.
     /// - If bounds == the surface, then this is the same as calling the no-parameter variant.
     ///
-    /// example: <https://fiddle.skia.org/c/@Surface_makeImageSnapshot_2>
     pub fn image_snapshot_with_bounds(&mut self, bounds: impl AsRef<IRect>) -> Option<Image> {
         Image::from_ptr(unsafe {
             sb::C_SkSurface_makeImageSnapshot(self.native_mut(), bounds.as_ref().native())
@@ -483,7 +475,6 @@ impl Surface {
     /// * `paint` - [`Paint`] containing [`crate::BlendMode`], [`crate::ColorFilter`], [`crate::ImageFilter`],
     ///                and so on; or `None`
     ///
-    /// example: <https://fiddle.skia.org/c/@Surface_draw>
     pub fn draw(
         &mut self,
         canvas: &Canvas,
@@ -541,7 +532,6 @@ impl Surface {
     ///
     /// Returns: `true` if pixels were copied
     ///
-    /// example: <https://fiddle.skia.org/c/@Surface_readPixels>    
     pub fn read_pixels_to_pixmap(&mut self, dst: &Pixmap, src: impl Into<IPoint>) -> bool {
         let src = src.into();
         unsafe { self.native_mut().readPixels(dst.native(), src.x, src.y) }
@@ -634,7 +624,6 @@ impl Surface {
     ///
     /// Returns: `true` if pixels were copied
     ///
-    /// example: <https://fiddle.skia.org/c/@Surface_readPixels_3>
     pub fn read_pixels_to_bitmap(&mut self, bitmap: &Bitmap, src: impl Into<IPoint>) -> bool {
         let src = src.into();
         unsafe { self.native_mut().readPixels2(bitmap.native(), src.x, src.y) }
@@ -658,7 +647,6 @@ impl Surface {
     /// * `dst.x` - x-axis position relative to [`Surface`] to begin copy; may be negative
     /// * `dst.y` - y-axis position relative to [`Surface`] to begin copy; may be negative
     ///
-    /// example: <https://fiddle.skia.org/c/@Surface_writePixels>
     pub fn write_pixels_from_pixmap(&mut self, src: &Pixmap, dst: impl Into<IPoint>) {
         let dst = dst.into();
         unsafe { self.native_mut().writePixels(src.native(), dst.x, dst.y) }
@@ -677,7 +665,6 @@ impl Surface {
     /// * `dst.x` - x-axis position relative to [`Surface`] to begin copy; may be negative
     /// * `dst.y` - y-axis position relative to [`Surface`] to begin copy; may be negative
     ///
-    /// example: <https://fiddle.skia.org/c/@Surface_writePixels_2>
     pub fn write_pixels_from_bitmap(&mut self, bitmap: &Bitmap, dst: impl Into<IPoint>) {
         let dst = dst.into();
         unsafe {

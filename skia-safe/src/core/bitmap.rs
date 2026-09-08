@@ -369,7 +369,7 @@ impl Bitmap {
     /// `row_bytes` must equal or exceed `info.width()` times `info.bytes_per_pixel()`, or equal
     /// `None`. Pass in `None` for `row_bytes` to compute the minimum valid value.
     ///
-    /// Aborts execution if SkImageInfo could not be set, or memory could
+    /// Aborts execution if [`ImageInfo`] could not be set, or memory could
     /// be allocated.
     ///
     /// On most platforms, allocating pixel memory may succeed even though there is not sufficient
@@ -606,7 +606,7 @@ impl Bitmap {
     ///
     /// Input is not validated: out of bounds values of `x` or `y` trigger an `assert()`.
     ///
-    /// Fails if [`ColorType`] is [`ColorType::Unknown`] or pixel address is `nullptr`.
+    /// Fails if [`ColorType`] is [`ColorType::Unknown`] or pixel address is `None`.
     ///
     /// [`ColorSpace`] in [`ImageInfo`] is ignored. Some color precision may be lost in the
     /// conversion to unpremultiplied color; original pixel data may have additional precision.
@@ -637,8 +637,8 @@ impl Bitmap {
     /// Returns pixel address at `(x, y)`.
     ///
     /// Input is not validated: out of bounds values of `x` or `y`, or [`ColorType::Unknown`],
-    /// trigger an `assert()`. Returns `nullptr` if [`ColorType`] is [`ColorType::Unknown`], or
-    /// [`PixelRef`] is `nullptr`.
+    /// trigger an `assert()`. Returns `None` if [`ColorType`] is [`ColorType::Unknown`], or
+    /// [`PixelRef`] is `None`.
     ///
     /// Performs a lookup of pixel size; for better performance, call one of: `get_addr8()`,
     /// `get_addr16()`, or `get_addr32()`.
@@ -659,11 +659,10 @@ impl Bitmap {
     /// Any contents of dst are discarded.
     ///
     /// Return `false` if:
-    /// - dst is `nullptr`
-    /// - [`PixelRef`] is `nullptr`
+    /// - dst is `None`
+    /// - [`PixelRef`] is `None`
     /// - subset does not intersect [`Self::bounds()`]
     ///
-    /// example: <https://fiddle.skia.org/c/@Bitmap_extractSubset>
     pub fn extract_subset(&self, dst: &mut Self, subset: impl AsRef<IRect>) -> bool {
         unsafe {
             self.native()
@@ -680,13 +679,13 @@ impl Bitmap {
     /// pixels are copied. Returns `false` if:
     /// - `dst_info` has no address
     /// - `dst_row_bytes` is less than `dst_info.min_row_bytes()`
-    /// - [`PixelRef`] is `nullptr`
+    /// - [`PixelRef`] is `None`
     ///
     /// Pixels are copied only if pixel conversion is possible. If [`Self::color_type()`] is
     /// [`ColorType::Gray8`], or [`ColorType::Alpha8`]; `dst_info.color_type()` must match. If
     /// [`Self::color_type()`] is [`ColorType::Gray8`], `dst_info.color_space()` must match. If
     /// [`Self::alpha_type()`] is [`AlphaType::Opaque`], `dst_info.alpha_type()` must match. If
-    /// [`Self::color_space()`] is `nullptr`, `dst_info.color_space()` must match. Returns `false`
+    /// [`Self::color_space()`] is `None`, `dst_info.color_space()` must match. Returns `false`
     /// if pixel conversion is not possible.
     ///
     /// `src_x` and `src_y` may be negative to copy only top or left of source. Returns `false` if
@@ -734,7 +733,6 @@ impl Bitmap {
     /// available, and returns `Some(Pixmap)`. If pixel address is not available, return `None`
     /// and leave pixmap unchanged.
     ///
-    /// example: <https://fiddle.skia.org/c/@Bitmap_peekPixels>
     pub fn peek_pixels(&self) -> Option<Pixmap> {
         let mut pixmap = Pixmap::default();
         unsafe { self.native().peekPixels(pixmap.native_mut()) }.then_some(pixmap)

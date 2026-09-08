@@ -448,13 +448,13 @@ impl RuntimeShaderBuilder {
     /// Supported types are `float`, `float2`, `float3`, `float4`, `float2x2`, `float3x3`, `float4x4`.
     ///
     /// The data array must have the correct length for the corresponding uniform type:
-    /// - `float`: `[f32; 1]`
-    /// - `float2`: `[f32; 2]`
-    /// - `float3`: `[f32; 3]`
-    /// - `float4`: `[f32; 4]`
-    /// - `float2x2`: `[f32; 4]`
-    /// - `float3x3`: `[f32; 9]`
-    /// - `float4x4`: `[f32; 16]`
+    /// - `float` `[f32; 1]`
+    /// - `float2` `[f32; 2]`
+    /// - `float3` `[f32; 3]`
+    /// - `float4` `[f32; 4]`
+    /// - `float2x2` `[f32; 4]`
+    /// - `float3x3` `[f32; 9]`
+    /// - `float4x4` `[f32; 16]`
     ///
     pub fn set_uniform_float(
         &mut self,
@@ -481,10 +481,10 @@ impl RuntimeShaderBuilder {
     /// Supported types are `int`, `int2`, `int3`, `int4`.
     ///
     /// The data array must have the correct length for the corresponding uniform type:
-    /// - `int`: `[i32; 1]`
-    /// - `int2`: `[i32; 2]`
-    /// - `int3`: `[i32; 3]`
-    /// - `int4`: `[i32; 4]`
+    /// - `int` `[i32; 1]`
+    /// - `int2` `[i32; 2]`
+    /// - `int3` `[i32; 3]`
+    /// - `int4` `[i32; 4]`
     ///
     ///
     pub fn set_uniform_int(
