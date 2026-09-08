@@ -1,6 +1,6 @@
-# rust-skia Docs Porting Ledger
+# rust-skia Docs Porting Tracker
 
-Persistent ledger of documentation ported from Skia C++ headers into `skia-safe` Rust rustdoc and **verified for completeness** against the C++ header (rule: C++ doc ported COMPLETELY, no shortening; only allowed drops = fiddle example links, out-param/nullptr→Option, ownership sentences, name translation + intra-doc links).
+Persistent tracker of documentation ported from Skia C++ headers into `skia-safe` Rust rustdoc and **verified for completeness** against the C++ header (rule: C++ doc ported COMPLETELY, no shortening; only allowed drops = fiddle example links, out-param/nullptr→Option, ownership sentences, name translation + intra-doc links).
 
 **Milestone:** m153 (skia-bindings `skia = "m153-0.101.2"`; Skia submodule tag `m153-0.101.2`). All ports below are against the m153 headers.
 
@@ -116,7 +116,7 @@ Do NOT add rustdoc for items that have no C++ doc comment. Only port docs that e
 - Only behavioral changes in the branch: `BackendAPI` → `BackendApi` in Ganesh `backend()` methods (deprecated alias retained) + `variant_name!(LineBreakMode::Strict)`.
 
 ## Known remaining doc warnings (PRE-EXISTING, not from porting)
-- NONE. All doc warnings resolved as of `e0a0021b` (2026-09-08): `core/surface.rs:344,359` (`Self::from_backend_texture` → `crate::gpu::ganesh::surface_ganesh::wrap_backend_texture()`) fixed; `modules/svg/dom.rs:48` was a stale ledger note (no current warning); UReqResourceProvider no longer warns. `cargo doc --no-deps --features gl,vulkan,metal,textlayout,svg,skottie,ureq,webp` is fully clean.
+- NONE. All doc warnings resolved as of `e0a0021b` (2026-09-08): `core/surface.rs:344,359` (`Self::from_backend_texture` → `crate::gpu::ganesh::surface_ganesh::wrap_backend_texture()`) fixed; `modules/svg/dom.rs:48` was a stale tracker note (no current warning); UReqResourceProvider no longer warns. `cargo doc --no-deps --features gl,vulkan,metal,textlayout,svg,skottie,ureq,webp` is fully clean.
 
 ## Gotchas / rules (from porting)
 - Intra-doc links: prefer fully-qualified [`crate::X`] when type not in immediate scope; from inside a module use [`self::item`]; NEVER downgrade a link to plain backticked text (user rule, commit 506b6a68) — find the resolving path.

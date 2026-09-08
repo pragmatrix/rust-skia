@@ -108,3 +108,16 @@ pub use skia_bindings::SkRRect_Type as Type;
   module file.
 - If the C++ header provides no class or module level documentation, write a
   very concise module description instead (one or two lines, no prose padding).
+
+## Porting tracker
+
+- Track every ported unit in the persistent tracker at
+  `skia-safe/docs-porting-tracker.md` (mirrored in repo memory at
+  `/memories/repo/docs-porting-tracker.md`). The tracker records, per unit, the
+  Rust file, the C++ header it was ported from, and the commit that completed
+  it, and is verified for completeness against the C++ header.
+- Before starting a new file, check the tracker to see whether the unit was
+  already ported or was previously determined to have no C++ documentation
+  (items without C++ doc comments are left undocumented by rule).
+- After completing a unit, update the tracker with the commit and any
+  corrections or rule refinements learned during the port.
