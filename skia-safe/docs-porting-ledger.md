@@ -70,6 +70,7 @@ Working the survey top-to-bottom (priority list removed per user request). Commi
 - `698fc77c` skia-safe: document codec animation, decoders, and encoded formats (`codec_animation.rs` Blend/DisposalMethod variant docs; `decoders.rs` all 8 decoder modules; `encoded_origin.rs` to_matrix_inverse; `encoded_image_format.rs` enum overview — C++ has NO per-variant comments, so no Variants list).
 - `0ddc3258` skia-safe: document FontMgr match and fallback APIs (`core/font_mgr.rs` — module doc, Request.bcp_47 field, CMapEntry.variation, match_family/match_family_style/match_family_style_character/match_request/fallback/new_from_data/new_from_bytes/empty).
 - `a2119ba5` skia-safe: document image encoders (`encode_.rs` module + Pixmap/Bitmap/Image::encode + Comment; `png_encoder.rs` Options fields + encode/encode_pixmap/encode_image; `jpeg_encoder.rs` AlphaOption/Downsample + Options fields + encode*/encode_image; `webp_encoder.rs` Compression + Options fields; `png_rust_encoder.rs` CompressionLevel + Options.comments).
+- `f21a3f3a` skia-safe: document path operations (`pathops.rs` — module doc, PathOp variant docs, op/simplify/tight_bounds/as_winding, OpBuilder class + add/resolve).
 
 ## Known remaining doc warnings (PRE-EXISTING, not from porting)
 - core/surface.rs:344, 359; modules/svg/dom.rs:48; 2× Self::from_backend_texture; UReqResourceProvider.
@@ -111,10 +112,10 @@ Note: `SkAndroidCodec.h` (rich) not wrapped at all (TODO in codec.rs).
 |---|---|---|---|
 | `core/font_mgr.rs` | `SkFontMgr.h` | **complete** ✅ | **rich** ⭐ |
 
-## pathops/ — MODERATE-HIGH
+## pathops/ — ✅ DONE (committed `f21a3f3a`; SkPathOps.h rich)
 | File | C++ header | Rust doc | C++ richness |
 |---|---|---|---|
-| `pathops.rs` | `SkPathOps.h` | **none — ~12 undoc** (only `//!`) | **rich** |
+| `pathops.rs` | `SkPathOps.h` | **complete** ✅ | **rich** |
 
 ## utils/ — mostly LOW (C++ undocumented), one high-value item
 | File | C++ header | Rust doc | C++ richness |
