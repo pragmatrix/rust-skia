@@ -84,6 +84,24 @@ Working the survey top-to-bottom (priority list removed per user request). Commi
 - `ec3169ca` skia-safe: document GL Standard, Format, and TextureInfo (`gpu/ganesh/gl/types.rs` / `GrGLTypes.h` — GrGLStandard + GrGLFormat enum overviews + GrGLTextureInfo struct doc).
 - `e740935b` skia-safe: document MutableTextureState (`gpu/mutable_texture_state.rs` / `MutableTextureState.h` — class overview; methods C++-undoc → left undoc).
 - `09f64c1f` skia-safe: fix intra-doc links in ported gpu/utils docs and complete set_font_arguments (added missed links in vk_types DrawableInfo, tiled_image_utils module/key-values docs, gl Format doc; completed `TextStyle::set_font_arguments` missing sentence).
+- `356b4749` skia-safe: port remaining gpu and utils documentation (graphite `TextureInfo` module overview; ganesh GL `Interface` class docs + `new_native()`; GL `Extensions` class + `has`/`remove`/`add`; GL `BackendState` enum overview + TEXTURE_BINDING/VIEW flag docs from `GrTypes.h`; Vulkan `ImageInfo` wrapping constraints from `GrVkTypes.h`; `VulkanAlloc` struct doc; null canvas fn docs; `OrderedFontMgr` module overview).
+- `cb542106` skia-safe: port backend direct-context and typeface documentation (gl/vk/mtl/d3d `make_ganesh` one-liners from `SkContexts`; gl `make_gl` + vk `make_vulkan` docs from `GrDirectContexts`; `Typeface::unique_id`).
+
+## Final verification sweep (2026-09-08, closes the survey)
+Confirmed NOTHING to port (C++ has no docs on wrapped items, or API not wrapped):
+- `core/recorder.rs` / `core/cpu_recorder.rs`: SkRecorder.h documents only a PRIVATE `makeCaptureCanvas`; SkCPURecorder.h documents `TODO()` and `makeBitmapSurface` — neither wrapped in Rust.
+- `modules/resources.rs`: all wrapped C++-documented items already ported (ImageAsset, ImageDecodeStrategy, ResourceProvider + load/loadImageAsset/loadTypeface); `font_mgr()` is rust-specific (no C++ counterpart); FileResourceProvider/CachingResourceProvider/DataURIResourceProviderProxy/ExternalTrackAsset not wrapped.
+- `modules/svg/dom.rs`: complete — Builder setters/containerSize/findNodeById/renderNode are NOT wrapped in Rust at all; read/from_str/from_bytes/render are C++-undocumented.
+- `gpu/graphite/image.rs`, `surface.rs`: fully documented (0 undocumented pub items).
+- `gpu/graphite/backend_texture.rs`, `recording.rs`: C++ headers have 0 doc blocks.
+- `gpu/graphite/graphite_types.rs`: contributor-authored docs — do not touch.
+- `gpu/ganesh/surface_ganesh.rs` (all 6 fns), `image_ganesh.rs`, `yuva_backend_textures.rs` (incl. `YUVABackendTextures` class doc), `types.rs` (FlushInfo/SubmitInfo documented): complete.
+- `gpu/ganesh/gl/interface.rs`+`extensions.rs`+`types.rs`, `vk/vk_types.rs`, `d3d/*`: closed by 356b4749; remaining d3d/mtl/vk backend headers (GrD3DBackendContext.h, GrMtlBackendContext.h, GrVkBackendSurface.h, GrGLBackendSurface.h, Gr*BackendSemaphore.h) have 0 doc blocks.
+- `core/contour_measure.rs`: complete (MatrixFlags docs are contributor-added; C++ enum has no docs; pos_tan/get_matrix/get_segment/length/is_closed all ported; ContourMeasure/ContourMeasureIter have no C++ class overviews).
+- `core/font_arguments.rs`: complete (FontArguments class doc + Palette doc + all setters ported).
+- `core.rs` facade: only 2 undocumented trait methods (contains/quick_reject) — rust-specific, no C++ counterpart.
+- `core/typeface.rs`: closed by cb542106 (unique_id was the only genuine miss; equal/serialize/table_tags flags were false positives).
+- `core/font_mgr.rs`: complete (count_families/family_name/family_names/new_style_set/legacy_make_typeface have NO C++ docs; empty/match_* ported in 0ddc3258).
 
 ## Rule reinforced (2026-09-08)
 Do NOT add rustdoc for items that have no C++ doc comment. Only port docs that exist in the C++ header. Items without C++ docs are left undocumented (matches the established "C++ NO DOCS → low value, leave undocumented" rule). `modules/paragraph/paragraph.rs` was already complete (all C++-documented methods ported); it needs no further work.
