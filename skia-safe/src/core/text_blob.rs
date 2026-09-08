@@ -176,6 +176,7 @@ impl TextBlob {
     }
 }
 
+/// Helper class for constructing [`TextBlob`].
 pub type TextBlobBuilder = Handle<SkTextBlobBuilder>;
 unsafe_send_sync!(TextBlobBuilder);
 
@@ -192,14 +193,37 @@ impl fmt::Debug for TextBlobBuilder {
 }
 
 impl TextBlobBuilder {
+    /// Constructs an empty text blob builder. By default, the text blob builder has no runs.
     pub fn new() -> Self {
         Self::from_native_c(unsafe { SkTextBlobBuilder::new() })
     }
 
+    /// Returns a [`TextBlob`] built from runs of glyphs added by the builder. The returned
+    /// [`TextBlob`] is immutable; it may be copied, but its contents may not be altered. Returns
+    /// `None` if no runs of glyphs were added by the builder.
+    ///
+    /// Resets the text blob builder to its initial empty state, allowing it to be reused to build
+    /// a new set of runs.
     pub fn make(&mut self) -> Option<TextBlob> {
         TextBlob::from_ptr(unsafe { sb::C_SkTextBlobBuilder_make(self.native_mut()) })
     }
 
+    /// Returns a run with storage for glyphs. The caller must write `count` glyphs to the returned
+    /// glyph buffer before the next call to the text blob builder.
+    ///
+    /// Glyphs share metrics in `font`.
+    ///
+    /// Glyphs are positioned on a baseline at `offset`, using font metrics to determine their
+    /// relative placement.
+    ///
+    /// `bounds` defines an optional bounding box, used to suppress drawing when the text blob bounds
+    /// does not intersect the surface bounds. If `bounds` is `None`, the text blob bounds is
+    /// computed from `offset` and the glyph metrics.
+    ///
+    /// - `font` font used for this run
+    /// - `count` number of glyphs
+    /// - `offset` horizontal and vertical offset within the blob
+    /// - `bounds` optional run bounding box
     pub fn alloc_run(
         &mut self,
         font: &Font,
@@ -220,6 +244,23 @@ impl TextBlobBuilder {
         }
     }
 
+    /// Returns a run with storage for glyphs and positions along a baseline. The caller must write
+    /// `count` glyphs to the returned glyph buffer and `count` scalars to the returned position
+    /// buffer before the next call to the text blob builder.
+    ///
+    /// Glyphs share metrics in `font`.
+    ///
+    /// Glyphs are positioned on a baseline at `y`, using x-axis positions written by the caller to
+    /// the returned position buffer.
+    ///
+    /// `bounds` defines an optional bounding box, used to suppress drawing when the text blob bounds
+    /// does not intersect the surface bounds. If `bounds` is `None`, the text blob bounds is
+    /// computed from `y`, the position buffer, and the glyph metrics.
+    ///
+    /// - `font` font used for this run
+    /// - `count` number of glyphs
+    /// - `y` vertical offset within the blob
+    /// - `bounds` optional run bounding box
     pub fn alloc_run_pos_h(
         &mut self,
         font: &Font,
@@ -241,6 +282,22 @@ impl TextBlobBuilder {
         }
     }
 
+    /// Returns a run with storage for glyphs and point positions. The caller must write `count`
+    /// glyphs to the returned glyph buffer and `count` points to the returned position buffer
+    /// before the next call to the text blob builder.
+    ///
+    /// Glyphs share metrics in `font`.
+    ///
+    /// Glyphs are positioned using the points written by the caller to the returned position
+    /// buffer, using two scalar values for each point.
+    ///
+    /// `bounds` defines an optional bounding box, used to suppress drawing when the text blob bounds
+    /// does not intersect the surface bounds. If `bounds` is `None`, the text blob bounds is
+    /// computed from the position buffer and the glyph metrics.
+    ///
+    /// - `font` font used for this run
+    /// - `count` number of glyphs
+    /// - `bounds` optional run bounding box
     pub fn alloc_run_pos(
         &mut self,
         font: &Font,
@@ -260,6 +317,14 @@ impl TextBlobBuilder {
         }
     }
 
+    /// Returns a run with storage for glyphs and [`RSXform`] positions. The caller must write
+    /// `count` glyphs to the returned glyph buffer and `count` [`RSXform`]s to the returned position
+    /// buffer before the next call to the text blob builder.
+    ///
+    /// Glyphs share metrics in `font`.
+    ///
+    /// - `font` font used for this run
+    /// - `count` number of glyphs
     pub fn alloc_run_rsxform(
         &mut self,
         font: &Font,
@@ -276,6 +341,25 @@ impl TextBlobBuilder {
         }
     }
 
+    /// Returns a run with storage for glyphs, text, and clusters. The caller must write `count`
+    /// glyphs to the returned glyph buffer, `text_byte_count` UTF-8 code units into the returned
+    /// text buffer, and `count` monotonic indexes into the text buffer into the returned cluster
+    /// buffer before the next call to the text blob builder.
+    ///
+    /// Glyphs share metrics in `font`.
+    ///
+    /// Glyphs are positioned on a baseline at `offset`, using font metrics to determine their
+    /// relative placement.
+    ///
+    /// `bounds` defines an optional bounding box, used to suppress drawing when the text blob bounds
+    /// does not intersect the surface bounds. If `bounds` is `None`, the text blob bounds is
+    /// computed from `offset` and the glyph metrics.
+    ///
+    /// - `font` font used for this run
+    /// - `count` number of glyphs
+    /// - `offset` horizontal and vertical offset within the blob
+    /// - `text_byte_count` number of UTF-8 code units
+    /// - `bounds` optional run bounding box
     pub fn alloc_run_text(
         &mut self,
         font: &Font,
@@ -302,6 +386,26 @@ impl TextBlobBuilder {
         }
     }
 
+    /// Returns a run with storage for glyphs, positions along a baseline, text, and clusters. The
+    /// caller must write `count` glyphs to the returned glyph buffer, `count` scalars to the
+    /// returned position buffer, `text_byte_count` UTF-8 code units into the returned text buffer,
+    /// and `count` monotonic indexes into the text buffer into the returned cluster buffer before
+    /// the next call to the text blob builder.
+    ///
+    /// Glyphs share metrics in `font`.
+    ///
+    /// Glyphs are positioned on a baseline at `y`, using x-axis positions written by the caller to
+    /// the returned position buffer.
+    ///
+    /// `bounds` defines an optional bounding box, used to suppress drawing when the text blob bounds
+    /// does not intersect the surface bounds. If `bounds` is `None`, the text blob bounds is
+    /// computed from `y`, the position buffer, and the glyph metrics.
+    ///
+    /// - `font` font used for this run
+    /// - `count` number of glyphs
+    /// - `y` vertical offset within the blob
+    /// - `text_byte_count` number of UTF-8 code units
+    /// - `bounds` optional run bounding box
     pub fn alloc_run_text_pos_h(
         &mut self,
         font: &Font,
@@ -327,6 +431,25 @@ impl TextBlobBuilder {
         }
     }
 
+    /// Returns a run with storage for glyphs, point positions, text, and clusters. The caller must
+    /// write `count` glyphs to the returned glyph buffer, `count` points to the returned position
+    /// buffer, `text_byte_count` UTF-8 code units into the returned text buffer, and `count`
+    /// monotonic indexes into the text buffer into the returned cluster buffer before the next call
+    /// to the text blob builder.
+    ///
+    /// Glyphs share metrics in `font`.
+    ///
+    /// Glyphs are positioned using the points written by the caller to the returned position
+    /// buffer, using two scalar values for each point.
+    ///
+    /// `bounds` defines an optional bounding box, used to suppress drawing when the text blob bounds
+    /// does not intersect the surface bounds. If `bounds` is `None`, the text blob bounds is
+    /// computed from the position buffer and the glyph metrics.
+    ///
+    /// - `font` font used for this run
+    /// - `count` number of glyphs
+    /// - `text_byte_count` number of UTF-8 code units
+    /// - `bounds` optional run bounding box
     pub fn alloc_run_text_pos(
         &mut self,
         font: &Font,
