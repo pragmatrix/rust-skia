@@ -43,6 +43,52 @@ When porting documentation from C++ headers:
 - Do not add documentation above `variant_name!` macro invocations. These are
   compile-time API checks, not public Rust items requiring rustdoc.
 
+## Documenting re-exported enums
+
+Many enums are re-exported from `skia_bindings` rather than defined in
+`skia-safe`, for example:
+
+```rust
+pub use skia_bindings::SkRRect_Type as Type;
+variant_name!(Type::Complex);
+```
+
+Rustdoc only reads variant documentation from the item's definition site, and a
+`pub use` is a single item with no syntax to attach per-variant `///` comments.
+The generated `skia_bindings` enum carries no docs (bindgen runs with
+`generate_comments(false)`), so `#[doc(inline)]` has nothing to inline. There is
+no way to add per-variant rustdoc blocks to a re-exported enum without
+re-defining the variants.
+
+To surface the C++ variant documentation anyway, document the variants in the
+enum-level doc comment on the `pub use` itself, using intra-doc links to the
+variants:
+
+```rust
+/// Describes possible specializations of [`RRect`]. Each type is exclusive; an
+/// [`RRect`] may only have one type.
+///
+/// Type members become progressively less restrictive; larger values of type
+/// have more degrees of freedom than smaller values.
+///
+/// Variants:
+/// - [`Type::Empty`]: zero width or height.
+/// - [`Type::Rect`]: non-zero width and height, and zeroed radii.
+/// - [`Type::Oval`]: non-zero width and height filled with radii.
+/// - [`Type::Simple`]: non-zero width and height with equal radii.
+/// - [`Type::NinePatch`]: non-zero width and height with axis-aligned radii.
+/// - [`Type::Complex`]: non-zero width and height with arbitrary radii.
+pub use skia_bindings::SkRRect_Type as Type;
+```
+
+- Port the C++ `\enum` overview into the doc comment, then list each variant
+  with its `//!<` comment, backticking the variant name and following it
+  directly with the description (no colon between name and description).
+- Link each variant with `[`Type::Variant`]` so the references resolve.
+- Do not re-define the enum in `skia-safe` just to get per-variant rustdoc
+  blocks; keeping the discriminants in sync with the C++ values is not worth
+  the duplication.
+
 ## Module level documentation
 
 - When a Rust module wraps a single C++ header or class, port the header's class
