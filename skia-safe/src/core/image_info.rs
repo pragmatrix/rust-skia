@@ -450,19 +450,41 @@ impl ImageInfo {
         usize::try_from(self.width()).unwrap() * self.bytes_per_pixel()
     }
 
+    /// Returns the byte offset of a pixel from the pixel base address.
+    ///
+    /// Asserts in debug builds if `point` is outside of bounds. Does not assert if `row_bytes` is
+    /// smaller than [`Self::min_row_bytes()`], even though the result may be incorrect.
+    ///
+    /// - `point` pixel column and row; both must be within the image bounds
+    /// - `row_bytes` size of the pixel row or larger
     pub fn compute_offset(&self, point: impl Into<IPoint>, row_bytes: usize) -> usize {
         let point = point.into();
         unsafe { self.native().computeOffset(point.x, point.y, row_bytes) }
     }
 
+    /// Returns the storage required by the pixel array, given [`ImageInfo`] dimensions, color
+    /// type, and `row_bytes`. `row_bytes` is assumed to be at least [`Self::min_row_bytes()`].
+    ///
+    /// Returns zero if the height is zero. Returns `usize::MAX` if the answer exceeds the range of
+    /// `usize`.
+    ///
+    /// - `row_bytes` size of the pixel row or larger
     pub fn compute_byte_size(&self, row_bytes: usize) -> usize {
         unsafe { self.native().computeByteSize(row_bytes) }
     }
 
+    /// Returns the least storage required by the pixel buffer, using [`Self::min_row_bytes()`] to
+    /// compute the bytes for each pixel row.
+    ///
+    /// Returns zero if the height is zero. Returns `usize::MAX` if the answer exceeds the range of
+    /// `usize`.
     pub fn compute_min_byte_size(&self) -> usize {
         self.compute_byte_size(self.min_row_bytes())
     }
 
+    /// Returns true if `row_bytes` is valid for this [`ImageInfo`].
+    ///
+    /// - `row_bytes` size of the pixel row including padding
     pub fn valid_row_bytes(&self, row_bytes: usize) -> bool {
         if row_bytes < self.min_row_bytes() {
             return false;
