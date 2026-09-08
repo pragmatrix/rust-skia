@@ -309,6 +309,7 @@ impl fmt::Debug for LanguageRunIterator {
 }
 
 impl LanguageRunIterator {
+    /// Should be BCP-47; C locale names may also work.
     pub fn current_language(&self) -> &CStr {
         unsafe {
             CStr::from_ptr(sb::C_SkShaper_LanguageRunIterator_currentLanguage(
@@ -348,11 +349,17 @@ pub mod run_handler {
     use crate::{Font, FourByteTag, GlyphId, Point, Vector, prelude::*};
 
     pub trait RunHandler {
+        /// Called when beginning a line.
         fn begin_line(&mut self);
+        /// Called once for each run in a line. Can compute baselines and offsets.
         fn run_info(&mut self, info: &RunInfo);
+        /// Called after all [`RunHandler::run_info()`] calls for a line.
         fn commit_run_info(&mut self);
+        /// Called for each run in a line after [`RunHandler::commit_run_info()`]. The buffer will be filled out.
         fn run_buffer(&mut self, info: &RunInfo) -> Buffer;
+        /// Called after each [`RunHandler::run_buffer()`] is filled out.
         fn commit_run_buffer(&mut self, info: &RunInfo);
+        /// Called when ending a line.
         fn commit_line(&mut self);
     }
 
@@ -390,10 +397,15 @@ pub mod run_handler {
 
     #[derive(Debug)]
     pub struct Buffer<'a> {
+        /// Required glyphs.
         pub glyphs: &'a mut [GlyphId],
+        /// Required positions. If [`Buffer::offsets`] is `None`, put `glyphs[i]` at `positions[i]`.
         pub positions: &'a mut [Point],
+        /// Optional offsets. If present, put `glyphs[i]` at `positions[i] + offsets[i]`.
         pub offsets: Option<&'a mut [Point]>,
+        /// Optional UTF-8 clusters. `clusters[i]` starts the run that produced `glyphs[i]`.
         pub clusters: Option<&'a mut [u32]>,
+        /// Offset to add to all positions.
         pub point: Point,
     }
 
