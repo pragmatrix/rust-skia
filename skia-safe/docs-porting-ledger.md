@@ -108,6 +108,13 @@ Confirmed NOTHING to port (C++ has no docs on wrapped items, or API not wrapped)
 ## Rule reinforced (2026-09-08)
 Do NOT add rustdoc for items that have no C++ doc comment. Only port docs that exist in the C++ header. Items without C++ docs are left undocumented (matches the established "C++ NO DOCS → low value, leave undocumented" rule). `modules/paragraph/paragraph.rs` was already complete (all C++-documented methods ported); it needs no further work.
 
+## PR finalized (2026-09-08)
+- Branch `docs` (98 commits ahead of `master`, 0 behind — no rebase needed) opened as **PR #1328** → https://github.com/rust-skia/rust-skia/pull/1328 (`master` ← `pragmatrix:docs`).
+- Review (quick depth): no Critical/High/Medium findings. [Low] pre-existing `Self::from_backend_texture` doc links in `core/surface.rs` — user chose "fix issues first"; fixed in `e0a0021b` (→ `crate::gpu::ganesh::surface_ganesh::wrap_backend_texture()`), making `cargo doc` fully warning-free.
+- Gates: `cargo fmt -- --check` clean; `make test-macos` (lib + integration + examples) all pass; `cargo clippy -p skia-safe --features "all-macos,ureq" --all-targets -- -D warnings` clean; `cargo doc --no-deps --features gl,vulkan,metal,textlayout,svg,skottie,ureq,webp` zero warnings.
+- Note: `make test-macos` requires network (Skia `git-sync-deps` fetches GN); the sandbox's SSL interception blocks it — run unsandboxed.
+- Only behavioral changes in the branch: `BackendAPI` → `BackendApi` in Ganesh `backend()` methods (deprecated alias retained) + `variant_name!(LineBreakMode::Strict)`.
+
 ## Known remaining doc warnings (PRE-EXISTING, not from porting)
 - NONE. All doc warnings resolved as of `e0a0021b` (2026-09-08): `core/surface.rs:344,359` (`Self::from_backend_texture` → `crate::gpu::ganesh::surface_ganesh::wrap_backend_texture()`) fixed; `modules/svg/dom.rs:48` was a stale ledger note (no current warning); UReqResourceProvider no longer warns. `cargo doc --no-deps --features gl,vulkan,metal,textlayout,svg,skottie,ureq,webp` is fully clean.
 
