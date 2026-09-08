@@ -42,6 +42,8 @@ impl Interface {
         Self::from_ptr(unsafe { sb::C_GrGLInterface_MakeNativeInterface() as _ })
     }
 
+    /// Generic function for creating an [`Interface`] for either OpenGL or GLES. It calls
+    /// `load_fn` to get each function address.
     pub fn new_load_with<F>(load_fn: F) -> Option<Self>
     where
         F: FnMut(&str) -> *const c_void,
@@ -54,6 +56,8 @@ impl Interface {
         })
     }
 
+    /// Generic function for creating an [`Interface`] for either OpenGL or GLES. It calls
+    /// `load_fn` to get each function address.
     pub fn new_load_with_cstr<F>(load_fn: F) -> Option<Self>
     where
         F: FnMut(&std::ffi::CStr) -> *const c_void,

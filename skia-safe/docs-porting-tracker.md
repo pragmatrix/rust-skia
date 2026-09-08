@@ -86,6 +86,7 @@ Working the survey top-to-bottom (priority list removed per user request). Commi
 - `09f64c1f` skia-safe: fix intra-doc links in ported gpu/utils docs and complete set_font_arguments (added missed links in vk_types DrawableInfo, tiled_image_utils module/key-values docs, gl Format doc; completed `TextStyle::set_font_arguments` missing sentence).
 - `356b4749` skia-safe: port remaining gpu and utils documentation (graphite `TextureInfo` module overview; ganesh GL `Interface` class docs + `new_native()`; GL `Extensions` class + `has`/`remove`/`add`; GL `BackendState` enum overview + TEXTURE_BINDING/VIEW flag docs from `GrTypes.h`; Vulkan `ImageInfo` wrapping constraints from `GrVkTypes.h`; `VulkanAlloc` struct doc; null canvas fn docs; `OrderedFontMgr` module overview).
 - `cb542106` skia-safe: port backend direct-context and typeface documentation (gl/vk/mtl/d3d `make_ganesh` one-liners from `SkContexts`; gl `make_gl` + vk `make_vulkan` docs from `GrDirectContexts`; `Typeface::unique_id`).
+- `NEW` skia-safe: close remaining backlog — d3d `TextureResourceInfo` note + `FenceInfo.value` field comment (`GrD3DTypes.h`); graphite `Context::delete_backend_texture` + `is_device_lost` full C++ docs (`Context.h`); mtl `TextureInfo` struct doc (`GrMtlTypes.h`); gl `new_load_with`/`new_load_with_cstr` docs (`GrGLAssembleInterface.h`); svg `use.rs` module doc (`SkSVGUse.h` class overview).
 
 ## Final verification sweep (2026-09-08, closes the survey)
 Confirmed NOTHING to port (C++ has no docs on wrapped items, or API not wrapped):
@@ -187,15 +188,16 @@ Note: `SkAndroidCodec.h` (rich) not wrapped at all (TODO in codec.rs).
 | `gpu/mutable_texture_state.rs` | `MutableTextureState.h` | none — 6 undoc | some |
 | `gpu/vk.rs` + `gpu/vk/vulkan_*.rs` | `VulkanTypes.h`, `VulkanBackendContext.h`, `VulkanMutableTextureState.h`, etc. | none/sparse — ~34 undoc | mostly NO DOCS (low) |
 | `gpu/graphite/context_options.rs` | `ContextOptions.h` | **sparse — 1 undoc** | **rich** ⭐ |
-| `gpu/graphite/context.rs` | `Context.h` | mostly (1 undoc) | rich |
+| `gpu/graphite/context.rs` | `Context.h` | **complete** ✅ (delete_backend_texture + is_device_lost full C++ docs) | rich |
 | `gpu/graphite/recorder.rs` | `Recorder.h` | mostly (1 undoc) | rich |
 | `gpu/graphite/texture_info.rs` | `TextureInfo.h` | partial (1 undoc) | sparse |
 | `gpu/graphite/backend_texture.rs` | `BackendTexture.h` | partial (1 undoc) | NO DOCS |
 | `gpu/graphite/recording.rs` | `Recording.h` | none — 1 undoc | NO DOCS |
 | graphite surface/image/graphite_types/mtl/vk | various | mostly/complete | mostly rich or NO DOCS |
-| `gpu/ganesh/gl/types.rs`, `gl/interface.rs`, `gl/extensions.rs` | `GrGLTypes.h`, `GrGLInterface.h`, `GrGLExtensions.h` | none — ~20 undoc | some/rich |
+| `gpu/ganesh/gl/types.rs`, `gl/interface.rs`, `gl/extensions.rs` | `GrGLTypes.h`, `GrGLInterface.h`, `GrGLExtensions.h` | **complete** ✅ (incl. new_load_with/new_load_with_cstr from `GrGLAssembleInterface.h`) | some/rich |
 | `gpu/ganesh/vk/vk_types.rs` | `GrVkTypes.h` | sparse — 5 undoc | rich |
-| `gpu/ganesh/d3d/types.rs` | `GrD3DTypes.h` | **none — 7 undoc** | **rich** ⭐ |
+| `gpu/ganesh/d3d/types.rs` | `GrD3DTypes.h` | **complete** ✅ (TextureResourceInfo note + FenceInfo.value) | rich ⭐ |
+| `gpu/ganesh/mtl/types.rs` | `GrMtlTypes.h` | **complete** ✅ (TextureInfo struct doc) | some |
 | ganesh gl/vk/mtl/d3d other files | GrGL*/GrVk*/GrMtl*/GrD3D* headers | none/sparse | mostly NO DOCS (low) |
 
 ## modules/shaper/ — MODERATE
@@ -220,7 +222,7 @@ Note: `SkAndroidCodec.h` (rich) not wrapped at all (TODO in codec.rs).
 |---|---|---|---|
 | `modules/svg/dom.rs` | `SkSVGDOM.h` | partial — 26 doc | **rich** (has pre-existing warning line 48) |
 | `modules/svg/fe.rs` | `SkSVGFe.h` | none | some |
-| `modules/svg/use.rs` | `SkSVGUse.h` | none | some |
+| `modules/svg/use.rs` | `SkSVGUse.h` | **complete** ✅ (module doc from class overview) | some |
 | all other svg/* (node, shape, types, gradient, container, etc.) | `SkSVG*` headers | none — ~180 total undoc | **almost all NO DOCS** (low) |
 
 ## modules/ — 

@@ -111,20 +111,22 @@ impl Context {
         unsafe { sb::C_Context_checkAsyncWorkCompletion(self.native_mut()) }
     }
 
-    /// Delete a backend texture that was created through this context
+    /// Called to delete the passed in [`BackendTexture`]. This should only be called if the
+    /// [`BackendTexture`] was created by calling `Recorder::createBackendTexture` on a [`Recorder`]
+    /// created from this [`Context`]. If the [`BackendTexture`] is not valid or does not match the
+    /// [`crate::gpu::BackendApi`] of the [`Context`] then nothing happens.
     ///
-    /// # Arguments
-    /// - `texture` - The backend texture to delete
+    /// Otherwise this will delete/release the backend object that is wrapped in the
+    /// [`BackendTexture`]. The [`BackendTexture`] will be reset to an invalid state and should not
+    /// be used again.
     pub fn delete_backend_texture(&mut self, texture: &BackendTexture) {
         unsafe {
             sb::C_Context_deleteBackendTexture(self.native_mut(), texture.native());
         }
     }
 
-    /// Check if the GPU device has been lost
-    ///
-    /// # Returns
-    /// `true` if the device is lost and the context is unusable
+    /// Returns true if the backend-specific context has gotten into an unrecoverable, lost state
+    /// (e.g. if we've gotten a `VK_ERROR_DEVICE_LOST` in the Vulkan backend).
     pub fn is_device_lost(&self) -> bool {
         unsafe { sb::C_Context_isDeviceLost(self.native()) }
     }
