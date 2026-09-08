@@ -16,8 +16,10 @@ use crate::{
 pub struct CropRect(Option<Rect>);
 
 impl CropRect {
+    /// An empty crop rect, equivalent to `None` — the factory does not crop.
     pub const NO_CROP_RECT: CropRect = CropRect(None);
 
+    /// The crop rectangle, or `None` if no crop is set.
     pub fn rect(&self) -> Option<Rect> {
         self.0
     }
@@ -150,6 +152,11 @@ pub fn blur(
     })
 }
 
+/// Create a filter that applies the color filter to the input filter results.
+///
+/// - `cf` the color filter that transforms the input image
+/// - `input` the input filter, or the source bitmap if this is `None`
+/// - `crop_rect` optional rectangle that crops the input and output
 pub fn color_filter(
     cf: impl Into<ColorFilter>,
     input: impl Into<Option<ImageFilter>>,
@@ -486,6 +493,10 @@ pub fn picture<'a>(
     })
 }
 
+/// Create a filter that evaluates a [`crate::RuntimeEffect`] child shader for each pixel,
+/// binding it
+/// to `input`. The equivalent to [`runtime_shader_with_options()`] with a sample radius of 0.
+/// See that function for details.
 pub fn runtime_shader(
     builder: &RuntimeShaderBuilder,
     child_shader_name: impl AsRef<str>,
@@ -538,6 +549,7 @@ pub fn runtime_shader_with_options(
     }
 }
 
+/// Whether [`shader()`] output should be dithered.
 pub use skia_bindings::SkImageFilters_Dither as Dither;
 
 use super::runtime_effect::RuntimeShaderBuilder;
@@ -556,6 +568,7 @@ pub fn shader(shader: impl Into<Shader>, crop_rect: impl Into<CropRect>) -> Opti
     shader_with_dither(shader, Dither::No, crop_rect)
 }
 
+/// Same as [`shader()`], but with an explicit `dither` setting.
 pub fn shader_with_dither(
     shader: impl Into<Shader>,
     dither: Dither,
@@ -1137,6 +1150,8 @@ impl ImageFilter {
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
+/// The inputs of [`arithmetic()`] packed into a struct: the four coefficients and whether the
+/// RGB channels are clamped to the calculated alpha.
 pub struct ArithmeticFPInputs {
     pub k: [f32; 4],
     pub enforce_pm_color: bool,
@@ -1152,6 +1167,8 @@ impl From<([f32; 4], bool)> for ArithmeticFPInputs {
 }
 
 impl ArithmeticFPInputs {
+    /// Creates inputs from the four arithmetic coefficients `k0`..`k3` (see [`arithmetic()`])
+    /// and the `enforce_pm_color` setting.
     pub fn new(k0: f32, k1: f32, k2: f32, k3: f32, enforce_pm_color: bool) -> Self {
         Self {
             k: [k0, k1, k2, k3],
@@ -1161,6 +1178,7 @@ impl ArithmeticFPInputs {
 }
 
 impl Picture {
+    /// Returns the picture as an image filter, without consuming the picture.
     pub fn as_image_filter<'a>(
         &self,
         crop_rect: impl Into<Option<&'a Rect>>,
@@ -1168,6 +1186,7 @@ impl Picture {
         self.clone().into_image_filter(crop_rect)
     }
 
+    /// Consumes the picture and returns it as an image filter.
     pub fn into_image_filter<'a>(
         self,
         crop_rect: impl Into<Option<&'a Rect>>,

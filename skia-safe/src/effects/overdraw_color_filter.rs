@@ -4,6 +4,12 @@ use skia_bindings as sb;
 pub const NUM_COLORS: usize = 6;
 
 impl ColorFilter {
+    /// Uses the value in the src alpha channel to set the dst pixel.
+    ///
+    /// - 0 > `colors[0]`
+    /// - 1 > `colors[1]`
+    /// - ...
+    /// - 5 (or larger) > `colors[5]`
     pub fn overdraw(colors: &[Color; NUM_COLORS]) -> ColorFilter {
         new(colors)
     }
