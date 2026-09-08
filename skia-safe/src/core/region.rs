@@ -59,6 +59,9 @@ impl Region {
     /// region and `src` identical by value. Internally, the region and `src` share pointer values.
     /// The underlying rectangle array is copied when modified.
     ///
+    /// Creating a region copy is very efficient and never allocates memory. Regions are always
+    /// copied by value from the interface; the underlying shared pointers are not exposed.
+    ///
     /// - `src` region to copy
     pub fn set(&mut self, src: &Region) -> bool {
         unsafe { sb::C_SkRegion_set(self.native_mut(), src.native()) }
@@ -66,6 +69,9 @@ impl Region {
 
     /// Exchanges the rectangle array of the region and `other`. `swap` internally exchanges
     /// pointers, so it is lightweight and does not allocate memory.
+    ///
+    /// `swap` usage has largely been replaced by assignment. Paths do not copy their content on
+    /// assignment until they are written to, making assignment as efficient as `swap`.
     ///
     /// - `other` region to swap with
     pub fn swap(&mut self, other: &mut Region) {
@@ -76,7 +82,8 @@ impl Region {
     const RECT_RUN_HEAD_PTR: *mut SkRegion_RunHead = ptr::null_mut();
 
     /// Returns true if the region is empty. An empty region has bounds width or height less than
-    /// or equal to zero.
+    /// or equal to zero. The default constructor constructs an empty region; `set_empty` and
+    /// `set_rect` with dimensionless data make the region empty.
     pub fn is_empty(&self) -> bool {
         ptr::eq(self.native().fRunHead, Self::EMPTY_RUN_HEAD_PTR)
     }

@@ -104,8 +104,6 @@ impl fmt::Debug for SurfaceProps {
 }
 
 impl SurfaceProps {
-    /// No flags, unknown pixel geometry, platform-default contrast/gamma.
-    ///
     /// - `flags` surface properties flags
     /// - `pixel_geometry` pixel geometry
     pub fn new(flags: SurfacePropsFlags, pixel_geometry: PixelGeometry) -> SurfaceProps {

@@ -142,7 +142,7 @@ impl ColorInfo {
     }
 
     /// Returns the bit shift converting row bytes to row pixels. Returns zero for
-    /// [`ColorType::Unknown`].
+    /// [`ColorType::Unknown`]. Returns one of: 0, 1, 2, 3, 4; left shift to convert pixels to bytes.
     pub fn shift_per_pixel(&self) -> usize {
         unsafe { self.native().shiftPerPixel().try_into().unwrap() }
     }
@@ -440,12 +440,13 @@ impl ImageInfo {
     }
 
     /// Returns the bit shift converting row bytes to row pixels. Returns zero for
-    /// [`ColorType::Unknown`].
+    /// [`ColorType::Unknown`]. Returns one of: 0, 1, 2, 3; left shift to convert pixels to bytes.
     pub fn shift_per_pixel(&self) -> usize {
         self.color_info().shift_per_pixel()
     }
 
-    /// Returns the minimum number of bytes per row, computed from the pixel width and color type.
+    /// Returns the minimum number of bytes per row, computed from the pixel width and color type,
+    /// which specifies bytes per pixel. The bitmap maximum value for row bytes must fit in 31 bits.
     pub fn min_row_bytes(&self) -> usize {
         usize::try_from(self.width()).unwrap() * self.bytes_per_pixel()
     }
