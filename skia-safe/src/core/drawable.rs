@@ -4,6 +4,11 @@ use skia_bindings::{self as sb, SkDrawable, SkFlattenable, SkRefCntBase};
 
 use crate::{Canvas, Matrix, NativeFlattenable, Picture, Point, Rect, prelude::*};
 
+/// Base-class for objects that draw into [`Canvas`].
+///
+/// The object has a generation ID, which is guaranteed to be unique across all drawables. To allow
+/// for clients of the drawable that may want to cache the results, the drawable must change its
+/// generation ID whenever its internal state changes such that it will draw differently.
 pub type Drawable = RCHandle<SkDrawable>;
 
 impl NativeRefCountedBase for SkDrawable {
@@ -31,6 +36,12 @@ impl fmt::Debug for Drawable {
 }
 
 impl Drawable {
+    /// Draws into the specified content. The drawing sequence will be balanced upon return (i.e.
+    /// the save level on the canvas will match what it was when `draw` was called, and the current
+    /// matrix and clip settings will not be changed).
+    ///
+    /// - `canvas` canvas to draw into
+    /// - `matrix` optional matrix to apply
     pub fn draw(&mut self, canvas: &Canvas, matrix: Option<&Matrix>) {
         unsafe {
             self.native_mut()
@@ -38,6 +49,10 @@ impl Drawable {
         }
     }
 
+    /// Draws into the specified content at the given point.
+    ///
+    /// - `canvas` canvas to draw into
+    /// - `point` point to draw at
     pub fn draw_at(&mut self, canvas: &Canvas, point: impl Into<Point>) {
         let point = point.into();
         unsafe {
@@ -46,6 +61,16 @@ impl Drawable {
         }
     }
 
+    /// Snaps off a [`gpu_draw_handler::GPUDrawHandler`] to represent the state of the drawable at
+    /// the time the snap is called. This is used for executing GPU backend specific draws
+    /// intermixed with normal Skia GPU draws. The GPU API, which will be used for the draw, as well
+    /// as the full matrix, device clip bounds and image info of the target buffer are passed in as
+    /// inputs.
+    ///
+    /// - `api` GPU backend API
+    /// - `matrix` full matrix
+    /// - `clip_bounds` device clip bounds
+    /// - `buffer_info` image info of the target buffer
     #[cfg(feature = "ganesh")]
     pub fn snap_gpu_draw_handler(
         &mut self,
@@ -65,23 +90,37 @@ impl Drawable {
         })
     }
 
+    /// Returns a [`Picture`] with the contents of this drawable.
     pub fn make_picture_snapshot(&mut self) -> Picture {
         Picture::from_ptr(unsafe { sb::C_SkDrawable_makePictureSnapshot(self.native_mut()) })
             .expect("Internal error: SkDrawable::makePictureSnapshot returned null")
     }
 
+    /// Returns a unique value for this instance. If two calls to this return the same value, it is
+    /// presumed that calling the [`Self::draw()`] method will render the same thing as well.
+    ///
+    /// Subclasses that change their state should call [`Self::notify_drawing_changed()`] to ensure
+    /// that a new value will be returned the next time it is called.
     pub fn generation_id(&mut self) -> u32 {
         unsafe { self.native_mut().getGenerationID() }
     }
 
+    /// Returns the (conservative) bounds of what the drawable will draw. If the drawable can change
+    /// what it draws (e.g. animation or in response to some external change), then this must return
+    /// a bounds that is always valid for all possible states.
     pub fn bounds(&mut self) -> Rect {
         Rect::construct(|r| unsafe { sb::C_SkDrawable_getBounds(self.native_mut(), r) })
     }
 
+    /// Returns approximately how many bytes would be freed if this drawable is destroyed. The base
+    /// implementation returns 0 to indicate that this is unknown.
     pub fn approximate_bytes_used(&mut self) -> usize {
         unsafe { self.native_mut().approximateBytesUsed() }
     }
 
+    /// Calling this invalidates the previous generation ID, and causes a new one to be computed the
+    /// next time [`Self::generation_id()`] is called. Typically this is called by the object itself,
+    /// in response to its internal state changing.
     pub fn notify_drawing_changed(&mut self) {
         unsafe { self.native_mut().notifyDrawingChanged() }
     }
