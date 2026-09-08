@@ -1,3 +1,7 @@
+//! Combines multiple text runs into an immutable container. Each text run consists of glyphs,
+//! [`Paint`], and position. Only parts of [`Paint`] related to fonts and text rendering are used by
+//! a run.
+
 use std::{fmt, ptr, slice};
 
 use skia_bindings::{
@@ -40,15 +44,27 @@ impl TextBlob {
         Self::from_str(str, font)
     }
 
+    /// Returns the conservative bounding box. Uses the [`Paint`] associated with each glyph to
+    /// determine glyph bounds, and unions all bounds. The returned bounds may be larger than the
+    /// bounds of all glyphs in runs.
     pub fn bounds(&self) -> &Rect {
         Rect::from_native_ref(&self.native().fBounds)
     }
 
+    /// Returns a non-zero value unique among all text blobs.
     pub fn unique_id(&self) -> u32 {
         self.native().fUniqueID
     }
 
     // TODO: consider to provide an inplace variant.
+    /// Returns the number of intervals that intersect `bounds`. `bounds` describes a pair of lines
+    /// parallel to the text advance. The return count is zero or a multiple of two, and is at most
+    /// twice the number of glyphs in the blob.
+    ///
+    /// Runs within the blob that contain [`RSXform`] are ignored when computing intercepts.
+    ///
+    /// - `bounds` lower and upper line parallel to the advance
+    /// - `paint` optional paint specifying stroking and path effect that affects the result
     pub fn get_intercepts(&self, bounds: [scalar; 2], paint: Option<&Paint>) -> Vec<scalar> {
         unsafe {
             let count = self.native().getIntercepts(
@@ -71,6 +87,17 @@ impl TextBlob {
         Self::from_text(str.as_ref(), font)
     }
 
+    /// Creates a text blob with a single run.
+    ///
+    /// `font` contains attributes used to define the run text.
+    ///
+    /// When the encoding is UTF-8, UTF-16, or UTF-32, this function uses the default
+    /// character-to-glyph mapping from the [`Typeface`] in `font`. It does not perform typeface
+    /// fallback for characters not found in the [`Typeface`]. It does not perform kerning or other
+    /// complex shaping; glyphs are positioned based on their default advances.
+    ///
+    /// - `text` character code points or glyphs drawn
+    /// - `font` text size, typeface, text scale, and so on, used to draw
     pub fn from_text(text: impl EncodedText, font: &Font) -> Option<TextBlob> {
         let (ptr, size, encoding) = text.as_raw();
         TextBlob::from_ptr(unsafe {
@@ -78,6 +105,14 @@ impl TextBlob {
         })
     }
 
+    /// Returns a text blob built from a single run of text with x-positions and a single y value.
+    /// This is equivalent to using [`TextBlobBuilder`] and calling `alloc_run_pos_h`. Returns `None`
+    /// if the text is empty.
+    ///
+    /// - `text` character code points or glyphs drawn (based on encoding)
+    /// - `x_pos` array of x-positions, must contain values for all of the character points
+    /// - `const_y` shared y-position for each character point, to be paired with each `x_pos`
+    /// - `font` font used for this run
     pub fn from_pos_text_h(
         text: impl EncodedText,
         x_pos: &[scalar],
@@ -100,6 +135,12 @@ impl TextBlob {
         })
     }
 
+    /// Returns a text blob built from a single run of text with positions. This is equivalent to
+    /// using [`TextBlobBuilder`] and calling `alloc_run_pos`. Returns `None` if the text is empty.
+    ///
+    /// - `text` character code points or glyphs drawn (based on encoding)
+    /// - `pos` array of positions, must contain values for all of the character points
+    /// - `font` font used for this run
     pub fn from_pos_text(text: impl EncodedText, pos: &[Point], font: &Font) -> Option<TextBlob> {
         assert_eq!(pos.len(), font.count_text(&text));
         let (ptr, size, encoding) = text.as_raw();
