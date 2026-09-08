@@ -113,6 +113,10 @@ impl Region {
         unsafe { self.native().computeRegionComplexity().try_into().unwrap() }
     }
 
+    /// Appends the outline of the region to the path builder. Returns true if the region is not
+    /// empty; otherwise, returns false, and leaves the path unmodified.
+    ///
+    /// - `path` path to append to
     pub fn add_boundary_path(&self, path: &mut PathBuilder) -> bool {
         unsafe { self.native().addBoundaryPath(path.native_mut()) }
     }
@@ -123,20 +127,33 @@ impl Region {
         !path.is_empty()
     }
 
+    /// Returns the boundary of the region as a path, or `None` if the region is empty.
     pub fn boundary_path(&self) -> Option<Path> {
         let mut path = Path::default();
         unsafe { sb::C_SkRegion_getBoundaryPath(self.native(), path.native_mut()) };
         (!path.is_empty()).then_some(path)
     }
 
+    /// Constructs an empty region. The region is set to empty bounds at (0, 0) with zero width and
+    /// height. Always returns false.
     pub fn set_empty(&mut self) -> bool {
         unsafe { self.native_mut().setEmpty() }
     }
 
+    /// Constructs a rectangular region matching the bounds of `rect`. If `rect` is empty,
+    /// constructs an empty region and returns false.
+    ///
+    /// - `rect` bounds of the constructed region
     pub fn set_rect(&mut self, rect: impl AsRef<IRect>) -> bool {
         unsafe { self.native_mut().setRect(rect.as_ref().native()) }
     }
 
+    /// Constructs a region as the union of the rectangles in `rects`. If `rects` is empty,
+    /// constructs an empty region. Returns false if the constructed region is empty.
+    ///
+    /// May be faster than repeated calls to `op`.
+    ///
+    /// - `rects` array of rectangles
     pub fn set_rects(&mut self, rects: &[IRect]) -> bool {
         unsafe {
             sb::C_SkRegion_setRects(
@@ -147,38 +164,75 @@ impl Region {
         }
     }
 
+    /// Sets the region to a copy of `region`. Creating a region copy is very efficient and never
+    /// allocates memory. Regions are always copied by value from the interface; the underlying
+    /// shared pointers are not exposed.
+    ///
+    /// - `region` region to copy by value
     pub fn set_region(&mut self, region: &Region) -> bool {
         unsafe { self.native_mut().setRegion(region.native()) }
     }
 
+    /// Constructs a region to match the outline of `path` within `clip`. Returns false if the
+    /// constructed region is empty.
+    ///
+    /// The constructed region draws the same pixels as `path` through `clip` when anti-aliasing is
+    /// disabled.
+    ///
+    /// - `path` path providing outline
+    /// - `clip` region containing path
     pub fn set_path(&mut self, path: &Path, clip: &Region) -> bool {
         unsafe { self.native_mut().setPath(path.native(), clip.native()) }
     }
 
     // There is also a trait for intersects() below.
 
+    /// Returns true if the region intersects `rect`. Returns false if either `rect` or the region
+    /// is empty, or they do not intersect.
+    ///
+    /// - `rect` rectangle to intersect
     pub fn intersects_rect(&self, rect: impl AsRef<IRect>) -> bool {
         unsafe { self.native().intersects(rect.as_ref().native()) }
     }
 
+    /// Returns true if the region intersects `other`. Returns false if either `other` or the region
+    /// is empty, or they do not intersect.
+    ///
+    /// - `other` region to intersect
     pub fn intersects_region(&self, other: &Region) -> bool {
         unsafe { self.native().intersects1(other.native()) }
     }
 
     // contains() trait below.
 
+    /// Returns true if the point (`point.x`, `point.y`) is inside the region. Returns false if the
+    /// region is empty.
+    ///
+    /// - `point` test point
     pub fn contains_point(&self, point: IPoint) -> bool {
         unsafe { self.native().contains(point.x, point.y) }
     }
 
+    /// Returns true if `rect` is completely inside the region. Returns false if the region or
+    /// `rect` is empty.
+    ///
+    /// - `rect` rectangle to contain
     pub fn contains_rect(&self, rect: impl AsRef<IRect>) -> bool {
         unsafe { self.native().contains1(rect.as_ref().native()) }
     }
 
+    /// Returns true if `other` is completely inside the region. Returns false if the region or
+    /// `other` is empty.
+    ///
+    /// - `other` region to contain
     pub fn contains_region(&self, other: &Region) -> bool {
         unsafe { self.native().contains2(other.native()) }
     }
 
+    /// Returns true if the region is a single rectangle and contains `r`. May return false even
+    /// though the region contains `r`.
+    ///
+    /// - `r` rectangle to contain
     pub fn quick_contains(&self, r: impl AsRef<IRect>) -> bool {
         let r = r.as_ref();
         unsafe { sb::C_SkRegion_quickContains(self.native(), r.native()) }
@@ -186,21 +240,35 @@ impl Region {
 
     // See also the quick_reject() trait below.
 
+    /// Returns true if the region does not intersect `rect`. Returns true if `rect` is empty or the
+    /// region is empty. May return false even though the region does not intersect `rect`.
+    ///
+    /// - `rect` rectangle to intersect
     pub fn quick_reject_rect(&self, rect: impl AsRef<IRect>) -> bool {
         let rect = rect.as_ref();
         self.is_empty() || rect.is_empty() || !IRect::intersects(self.bounds(), rect)
     }
 
+    /// Returns true if the region does not intersect `rgn`. Returns true if `rgn` is empty or the
+    /// region is empty. May return false even though the region does not intersect `rgn`.
+    ///
+    /// - `rgn` region to intersect
     pub fn quick_reject_region(&self, rgn: &Region) -> bool {
         self.is_empty() || rgn.is_empty() || !IRect::intersects(self.bounds(), rgn.bounds())
     }
 
+    /// Offsets the region by the vector (`d.x`, `d.y`). Has no effect if the region is empty.
+    ///
+    /// - `d` offset vector
     pub fn translate(&mut self, d: impl Into<IVector>) {
         let d = d.into();
         let self_ptr = self.native_mut() as *mut _;
         unsafe { self.native().translate(d.x, d.y, self_ptr) }
     }
 
+    /// Returns a copy of the region offset by the vector (`d.x`, `d.y`).
+    ///
+    /// - `d` offset vector
     #[must_use]
     pub fn translated(&self, d: impl Into<IVector>) -> Self {
         let mut r = self.clone();
@@ -208,16 +276,32 @@ impl Region {
         r
     }
 
+    /// Replaces the region with the result of the region `op` `rect`. Returns true if the replaced
+    /// region is not empty.
+    ///
+    /// - `rect` rectangle operand
+    /// - `op` logical operation
     pub fn op_rect(&mut self, rect: impl AsRef<IRect>, op: RegionOp) -> bool {
         let self_ptr = self.native_mut() as *const _;
         unsafe { self.native_mut().op1(self_ptr, rect.as_ref().native(), op) }
     }
 
+    /// Replaces the region with the result of the region `op` `region`. Returns true if the
+    /// replaced region is not empty.
+    ///
+    /// - `region` region operand
+    /// - `op` logical operation
     pub fn op_region(&mut self, region: &Region, op: RegionOp) -> bool {
         let self_ptr = self.native_mut() as *const _;
         unsafe { self.native_mut().op2(self_ptr, region.native(), op) }
     }
 
+    /// Replaces the region with the result of `rect` `op` `region`. Returns true if the replaced
+    /// region is not empty.
+    ///
+    /// - `rect` rectangle operand
+    /// - `region` region operand
+    /// - `op` logical operation
     pub fn op_rect_region(
         &mut self,
         rect: impl AsRef<IRect>,
@@ -230,6 +314,12 @@ impl Region {
         }
     }
 
+    /// Replaces the region with the result of `region` `op` `rect`. Returns true if the replaced
+    /// region is not empty.
+    ///
+    /// - `region` region operand
+    /// - `rect` rectangle operand
+    /// - `op` logical operation
     pub fn op_region_rect(
         &mut self,
         region: &Region,
@@ -242,6 +332,9 @@ impl Region {
         }
     }
 
+    /// Writes the region to `buf`, and returns the number of bytes written.
+    ///
+    /// - `buf` storage for binary data
     pub fn write_to_memory(&self, buf: &mut Vec<u8>) {
         unsafe {
             let size = self.native().writeToMemory(ptr::null_mut());
@@ -251,6 +344,10 @@ impl Region {
         }
     }
 
+    /// Constructs the region from `buf` of size `buf.len()`. Returns the bytes read. The returned
+    /// value will be a multiple of four or zero if the length was too small.
+    ///
+    /// - `buf` storage for binary data
     pub fn read_from_memory(&mut self, buf: &[u8]) -> usize {
         unsafe {
             self.native_mut()
