@@ -10,6 +10,13 @@ use std::ops::{BitAnd, BitOr, Index, IndexMut, Mul};
 // Note: SkColor _is_ a u32, and therefore its components are
 // endian dependent, so we can't expose it as (transmuted) individual
 // argb fields.
+/// 32-bit ARGB color value, unpremultiplied. Color components are always in a known order. This is
+/// different from `SkPMColor`, which has its bytes in a configuration dependent order, to match
+/// the format of BGRA 8888 color type bitmaps. [`Color`] is the type used to specify colors in
+/// [`crate::Paint`] and in gradients.
+///
+/// Color that is premultiplied has the same component values as color that is unpremultiplied if
+/// alpha is 255, fully opaque, although it may have the component values in a different order.
 #[derive(Copy, Clone, PartialEq, Eq, Default, Debug)]
 #[repr(transparent)]
 pub struct Color(SkColor);
@@ -71,46 +78,82 @@ impl Color {
 
     // Don't use the u8cpu type in the arguments here, because we trust the Rust compiler to
     // optimize the storage type.
+    /// Returns a color value from 8-bit component values. Since the color is unpremultiplied, `a`
+    /// may be smaller than the largest of `r`, `g`, and `b`.
+    ///
+    /// - `a` amount of alpha, from fully transparent (0) to fully opaque (255)
+    /// - `r` amount of red, from no red (0) to full red (255)
+    /// - `g` amount of green, from no green (0) to full green (255)
+    /// - `b` amount of blue, from no blue (0) to full blue (255)
     pub const fn from_argb(a: u8, r: u8, g: u8, b: u8) -> Color {
         Self(((a as U8CPU) << 24) | ((r as U8CPU) << 16) | ((g as U8CPU) << 8) | (b as U8CPU))
     }
 
+    /// Returns a color value from 8-bit component values, with alpha set fully opaque to 255.
+    ///
+    /// - `r` amount of red, from no red (0) to full red (255)
+    /// - `g` amount of green, from no green (0) to full green (255)
+    /// - `b` amount of blue, from no blue (0) to full blue (255)
     pub const fn from_rgb(r: u8, g: u8, b: u8) -> Color {
         Self::from_argb(0xff, r, g, b)
     }
 
+    /// Returns the alpha byte from the color value.
     pub fn a(self) -> u8 {
         (self.into_native() >> 24) as _
     }
 
+    /// Returns the red component of the color, from zero to 255.
     pub fn r(self) -> u8 {
         (self.into_native() >> 16) as _
     }
 
+    /// Returns the green component of the color, from zero to 255.
     pub fn g(self) -> u8 {
         (self.into_native() >> 8) as _
     }
 
+    /// Returns the blue component of the color, from zero to 255.
     pub fn b(self) -> u8 {
         self.into_native() as _
     }
 
+    /// Returns an unpremultiplied color with red, blue, and green set from this color, and alpha
+    /// set from `a`. The alpha component of this color is ignored and is replaced by `a` in the
+    /// result.
+    ///
+    /// - `a` alpha: transparent at zero, fully opaque at 255
     #[must_use]
     pub fn with_a(self, a: u8) -> Self {
         Self::from_argb(a, self.r(), self.g(), self.b())
     }
 
+    /// Represents a fully transparent color. May be used to initialize a destination containing a
+    /// mask or a non-rectangular image.
     pub const TRANSPARENT: Self = Self(sb::SK_ColorTRANSPARENT);
+    /// Represents fully opaque black.
     pub const BLACK: Self = Self(sb::SK_ColorBLACK);
+    /// Represents fully opaque dark gray. Note that SVG dark gray is equivalent to `0xFFA9A9A9`.
     pub const DARK_GRAY: Self = Self(sb::SK_ColorDKGRAY);
+    /// Represents fully opaque gray. Note that HTML gray is equivalent to `0xFF808080`.
     pub const GRAY: Self = Self(sb::SK_ColorGRAY);
+    /// Represents fully opaque light gray. HTML silver is equivalent to `0xFFC0C0C0`. Note that
+    /// SVG light gray is equivalent to `0xFFD3D3D3`.
     pub const LIGHT_GRAY: Self = Self(sb::SK_ColorLTGRAY);
+    /// Represents fully opaque white.
     pub const WHITE: Self = Self(sb::SK_ColorWHITE);
+    /// Represents fully opaque red.
     pub const RED: Self = Self(sb::SK_ColorRED);
+    /// Represents fully opaque green. HTML lime is equivalent. Note that HTML green is equivalent
+    /// to `0xFF008000`.
     pub const GREEN: Self = Self(sb::SK_ColorGREEN);
+    /// Represents fully opaque blue.
     pub const BLUE: Self = Self(sb::SK_ColorBLUE);
+    /// Represents fully opaque yellow.
     pub const YELLOW: Self = Self(sb::SK_ColorYELLOW);
+    /// Represents fully opaque cyan. HTML aqua is equivalent.
     pub const CYAN: Self = Self(sb::SK_ColorCYAN);
+    /// Represents fully opaque magenta. HTML fuchsia is equivalent.
     pub const MAGENTA: Self = Self(sb::SK_ColorMAGENTA);
 
     pub fn to_rgb(self) -> RGB {
