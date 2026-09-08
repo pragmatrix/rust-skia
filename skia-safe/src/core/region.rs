@@ -1,3 +1,9 @@
+//! Describes the set of pixels used to clip [`crate::Canvas`]. [`Region`] is compact, efficiently
+//! storing a single integer rectangle, or a run length encoded array of rectangles. [`Region`] may
+//! reduce the current [`crate::Canvas`] clip, or may be drawn as one or more integer rectangles.
+//! The [`Region`] iterator returns the scan lines or rectangles contained by it, optionally
+//! intersecting a bounding rectangle.
+
 use std::{fmt, iter, marker::PhantomData, mem, ptr};
 
 use crate::{Contains, IPoint, IRect, IVector, Path, PathBuilder, QuickReject, prelude::*};
@@ -38,6 +44,7 @@ impl fmt::Debug for Region {
     }
 }
 
+/// The logical operations that can be performed when combining two regions.
 pub use skia_bindings::SkRegion_Op as RegionOp;
 variant_name!(RegionOp::ReverseDifference);
 
