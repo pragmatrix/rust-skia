@@ -1,3 +1,6 @@
+//! Ganesh, Skia's GPU-accelerated drawing backend, and the types and APIs shared
+//! between its backend implementations.
+
 mod backend_semaphore;
 mod backend_surface;
 pub mod context_options;
