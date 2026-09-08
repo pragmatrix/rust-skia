@@ -32,10 +32,6 @@ impl Default for RecorderOptions {
 }
 
 impl RecorderOptions {
-    /// Create new recorder options with the C++ defaults (e.g. a 256 MiB GPU
-    /// budget). Placement-constructed rather than zero-initialized, because
-    /// `RecorderOptions` has a non-trivial constructor and members (an `sk_sp`,
-    /// a `std::optional`, and a non-zero default budget).
     pub fn new() -> Self {
         Self::construct(|options| unsafe { sb::C_RecorderOptions_Construct(options) })
     }
@@ -115,13 +111,6 @@ impl fmt::Debug for Recorder {
 }
 
 impl Recorder {
-    /// Finish recording and create a Recording object
-    ///
-    /// This method finalizes all the draw operations that have been recorded
-    /// and returns a Recording that can be submitted to a Context.
-    ///
-    /// # Returns
-    /// A `Recording` containing the recorded operations, or `None` if recording failed
     pub fn snap(&mut self) -> Option<Recording> {
         Recording::from_ptr(unsafe { sb::C_Recorder_snap(self.native_mut()) })
     }
@@ -157,10 +146,6 @@ impl Recorder {
         }
     }
 
-    /// Get the backend API used by this recorder
-    ///
-    /// # Returns
-    /// The backend API (Vulkan, Metal, etc.)
     pub fn backend(&self) -> BackendApi {
         unsafe { sb::C_Recorder_backend(self.native()) }
     }
