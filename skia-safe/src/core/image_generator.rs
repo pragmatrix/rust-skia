@@ -89,6 +89,9 @@ impl ImageGenerator {
     /// - `supported_data_types` indicates the data type/planar config combinations that are
     ///   supported by the caller. If the generator supports decoding to YUV(A), but not as a type
     ///   in `supported_data_types`, this method returns `None`
+    ///
+    /// The returned value specifies the planar configuration, subsampling, orientation, chroma
+    /// siting, plane color types, and row bytes.
     pub fn query_yuva_info(
         &self,
         supported_data_types: &yuva_pixmap_info::SupportedDataTypes,

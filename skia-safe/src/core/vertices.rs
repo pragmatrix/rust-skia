@@ -305,7 +305,8 @@ impl Builder {
         None
     }
 
-    /// Detaches the built vertices object. After the first call, this always returns `None`.
+    /// Detaches the built vertices object. This consumes the builder, so it can only be called
+    /// once.
     pub fn detach(mut self) -> Vertices {
         Vertices::from_ptr(unsafe { sb::C_SkVertices_Builder_detach(self.native_mut()) }).unwrap()
     }
