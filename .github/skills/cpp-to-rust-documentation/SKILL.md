@@ -14,6 +14,12 @@ When porting documentation from C++ headers:
   `SkPixmap::computeIsOpaque` must be included in full, not reduced to a
   one-line summary). Only drop content that is explicitly excluded by another
   rule (e.g. `example:` fiddle links).
+- Before porting a file, read the full corresponding C++ header and the full
+  Rust file side by side, and port every public method that has a C++ doc
+  comment. Do not rely on memory or on a partial survey: open the header and
+  walk through each method in order, checking that each documented C++ method
+  has a matching Rust doc. When reviewing for omissions, re-read the C++ header
+  again rather than trusting a prior pass.
 - Document parameters using a list entry per parameter, backticking the Rust
   parameter name and following it directly with the description (for example,
   `` - `color` unpremultiplied RGBA ``). Do not add a colon between name and

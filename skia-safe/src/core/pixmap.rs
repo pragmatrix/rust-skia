@@ -221,18 +221,47 @@ impl<'pixels> Pixmap<'pixels> {
         unsafe { self.native().computeIsOpaque() }
     }
 
+    /// Returns the pixel at (`p.x`, `p.y`) as an unpremultiplied color. Returns black with alpha if
+    /// the color type is [`ColorType::Alpha8`].
+    ///
+    /// Input is not validated: out of bounds values of `p` trigger an assert if built with debug
+    /// defined; and returns undefined values or may crash if release is defined. Fails if the color
+    /// type is [`ColorType::Unknown`] or the pixel address is null.
+    ///
+    /// The [`ColorSpace`] in the [`ImageInfo`] is ignored. Some color precision may be lost in the
+    /// conversion to unpremultiplied color; original pixel data may have additional precision.
+    ///
+    /// - `p` pixel position
     pub fn get_color(&self, p: impl Into<IPoint>) -> Color {
         let p = p.into();
         self.assert_pixel_exists(p);
         Color::from_native_c(unsafe { self.native().getColor(p.x, p.y) })
     }
 
+    /// Returns the pixel at (`p.x`, `p.y`) as an unpremultiplied color as a [`Color4f`]. Returns
+    /// black with alpha if the color type is [`ColorType::Alpha8`].
+    ///
+    /// Input is not validated: out of bounds values of `p` trigger an assert if built with debug
+    /// defined; and returns undefined values or may crash if release is defined. Fails if the color
+    /// type is [`ColorType::Unknown`] or the pixel address is null.
+    ///
+    /// The [`ColorSpace`] in the [`ImageInfo`] is ignored. Some color precision may be lost in the
+    /// conversion to unpremultiplied color; original pixel data may have additional precision,
+    /// though this is less likely than for [`Self::get_color()`]. Rounding errors may occur if the
+    /// underlying type has lower precision.
+    ///
+    /// - `p` pixel position
     pub fn get_color_4f(&self, p: impl Into<IPoint>) -> Color4f {
         let p = p.into();
         self.assert_pixel_exists(p);
         Color4f::from_native_c(unsafe { self.native().getColor4f(p.x, p.y) })
     }
 
+    /// Looks up the pixel at (`p.x`, `p.y`) and returns its alpha component, normalized to [0..1].
+    /// This is roughly equivalent to `get_color().a()`, but can be more efficient (and more precise
+    /// if the pixels store more than 8 bits per component).
+    ///
+    /// - `p` pixel position
     pub fn get_alpha_f(&self, p: impl Into<IPoint>) -> f32 {
         let p = p.into();
         self.assert_pixel_exists(p);
@@ -247,6 +276,15 @@ impl<'pixels> Pixmap<'pixels> {
         assert!(p.y >= 0 && p.y < self.height());
     }
 
+    /// Returns the readable pixel address at (`p.x`, `p.y`). Returns null if the pixel ref is null.
+    ///
+    /// Input is not validated: out of bounds values of `p` trigger an assert if built with debug
+    /// defined. Returns null if the color type is [`ColorType::Unknown`].
+    ///
+    /// Performs a lookup of pixel size; for better performance, call one of the typed address
+    /// accessors.
+    ///
+    /// - `p` pixel position
     pub fn addr_at(&self, p: impl Into<IPoint>) -> *const c_void {
         let p = p.into();
         self.assert_pixel_exists(p);
@@ -259,10 +297,17 @@ impl<'pixels> Pixmap<'pixels> {
     // TODO: addr8(), addr16(), addr32(), addr64(), addrF16(),
     //       addr8_at(), addr16_at(), addr32_at(), addr64_at(), addrF16_at()
 
+    /// Returns the writable base pixel address.
     pub fn writable_addr(&self) -> *mut c_void {
         self.addr() as _
     }
 
+    /// Returns the writable pixel address at (`p.x`, `p.y`).
+    ///
+    /// Input is not validated: out of bounds values of `p` trigger an assert if built with debug
+    /// defined. Returns zero if the color type is [`ColorType::Unknown`].
+    ///
+    /// - `p` pixel position
     pub fn writable_addr_at(&self, p: impl Into<IPoint>) -> *mut c_void {
         self.addr_at(p) as _
     }
@@ -273,6 +318,30 @@ impl<'pixels> Pixmap<'pixels> {
     // TODO: writable_addr64
     // TODO: writable_addrF16
 
+    /// Copies a rectangle of pixels to `pixels`. Copy starts at (`src.x`, `src.y`), and does not
+    /// exceed the pixmap (`width()`, `height()`).
+    ///
+    /// `dst_info` specifies width, height, color type, alpha type, and color space of the
+    /// destination. `dst_row_bytes` specifies the gap from one destination row to the next. Returns
+    /// true if pixels are copied. Returns false if `dst_info` address equals null, or `dst_row_bytes`
+    /// is less than `dst_info.min_row_bytes()`.
+    ///
+    /// Pixels are copied only if pixel conversion is possible. If the pixmap color type is
+    /// [`ColorType::Gray8`] or [`ColorType::Alpha8`], `dst_info.color_type()` must match. If the
+    /// pixmap color type is [`ColorType::Gray8`], `dst_info.color_space()` must match. If the pixmap
+    /// alpha type is [`AlphaType::Opaque`], `dst_info.alpha_type()` must match. If the pixmap color
+    /// space is `None`, `dst_info.color_space()` must match. Returns false if pixel conversion is
+    /// not possible.
+    ///
+    /// `src.x` and `src.y` may be negative to copy only the top or left of the source. Returns
+    /// false if the pixmap width() or height() is zero or negative. Returns false if `abs(src.x)`
+    /// is greater than or equal to the pixmap width(), or if `abs(src.y)` is greater than or equal
+    /// to the pixmap height().
+    ///
+    /// - `dst_info` destination width, height, color type, alpha type, color space
+    /// - `pixels` destination pixel storage
+    /// - `dst_row_bytes` destination row length
+    /// - `src` source position
     pub fn read_pixels<P>(
         &self,
         dst_info: &ImageInfo,
