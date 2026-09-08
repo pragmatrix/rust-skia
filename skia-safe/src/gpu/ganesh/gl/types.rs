@@ -1,8 +1,8 @@
 use crate::{gpu, prelude::*};
 use skia_bindings::{self as sb, GrGLFramebufferInfo, GrGLSurfaceInfo, GrGLTextureInfo};
 
-/// The supported GL formats represented as an enum. Actual support by `GrContext` depends on GL
-/// context version and extensions.
+/// The supported GL formats represented as an enum. Actual support by [`crate::gpu::DirectContext`]
+/// depends on GL context version and extensions.
 pub use skia_bindings::GrGLFormat as Format;
 variant_name!(Format::ALPHA8);
 /// Classifies GL contexts by which standard they implement (currently as OpenGL vs. OpenGL ES).
