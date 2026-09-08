@@ -25,7 +25,6 @@ impl Default for ContextOptions {
 }
 
 impl ContextOptions {
-    /// Create new ContextOptions with default settings
     pub fn new() -> Self {
         Self::construct(|options| unsafe { sb::C_ContextOptions_Construct(options) })
     }
