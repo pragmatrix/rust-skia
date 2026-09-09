@@ -1,3 +1,6 @@
+//! Describes a drawing destination: a [`Surface`] manages the pixels or GPU resources that a
+//! [`crate::Canvas`] draws into.
+
 use std::{fmt, ptr};
 
 use skia_bindings::{self as sb, SkRefCntBase, SkSurface};
@@ -8,6 +11,8 @@ use crate::{
 };
 
 pub mod surfaces {
+    //! Factory functions for creating [`crate::Surface`]s, e.g. raster, null, and GPU-backed
+    //! surfaces.
     use skia_bindings::{self as sb};
 
     use crate::{ISize, ImageInfo, Surface, SurfaceProps, prelude::*};
@@ -24,7 +29,7 @@ pub mod surfaces {
     ///
     /// Returns: [`Surface`] if width and height are positive; otherwise, `None`
     ///
-    /// example: <https://fiddle.skia.org/c/@Surface_MakeNull>
+    /// Example (C++): <https://fiddle.skia.org/c/@Surface_MakeNull>
     pub fn null(size: impl Into<ISize>) -> Option<Surface> {
         let size = size.into();
         Surface::from_ptr(unsafe { sb::C_SkSurfaces_Null(size.width, size.height) })
@@ -147,7 +152,7 @@ variant_name!(BackendHandleAccess::FlushWrite);
 /// [`Surface`] is responsible for managing the pixels that a canvas draws into. The pixels can be
 /// allocated either in CPU memory (a raster surface) or on the GPU (a `RenderTarget` surface).
 /// [`Surface`] takes care of allocating a [`Canvas`] that will draw into the surface. Call
-/// `surface_get_canvas()` to use that canvas (but don't delete it, it is owned by the surface).
+/// [`Surface::canvas()`] to use that canvas (but don't delete it, it is owned by the surface).
 /// [`Surface`] always has non-zero dimensions. If there is a request for a new surface, and either
 /// of the requested dimensions are zero, then `None` will be returned.
 pub type Surface = RCHandle<SkSurface>;
@@ -262,7 +267,6 @@ impl Surface {
     ///
     /// Returns: [`Surface`] if width and height are positive; otherwise, `None`
     ///
-    /// example: <https://fiddle.skia.org/c/@Surface_MakeNull>
     #[deprecated(since = "0.64.0", note = "use surfaces::null()")]
     pub fn new_null(size: impl Into<ISize>) -> Option<Self> {
         surfaces::null(size)
@@ -296,7 +300,7 @@ impl Surface {
     ///
     /// Returns: unique content identifier
     ///
-    /// example: <https://fiddle.skia.org/c/@Surface_notifyContentWillChange>
+    /// Example (C++): <https://fiddle.skia.org/c/@Surface_notifyContentWillChange>
     pub fn generation_id(&mut self) -> u32 {
         unsafe { self.native_mut().generationID() }
     }
@@ -304,7 +308,7 @@ impl Surface {
     /// Notifies that [`Surface`] contents will be changed by code outside of Skia.
     /// Subsequent calls to [`Self::generation_id()`] return a different value.
     ///
-    /// example: <https://fiddle.skia.org/c/@Surface_notifyContentWillChange>
+    /// Example (C++): <https://fiddle.skia.org/c/@Surface_notifyContentWillChange>
     pub fn notify_content_will_change(&mut self, mode: ContentChangeMode) -> &mut Self {
         unsafe { self.native_mut().notifyContentWillChange(mode) }
         self
@@ -341,7 +345,7 @@ impl Surface {
 
     // TODO: support variant with TextureReleaseProc and ReleaseContext
 
-    /// If the surface was made via [`Self::from_backend_texture`] then it's backing texture may be
+    /// If the surface was made via [`crate::gpu::ganesh::surface_ganesh::wrap_backend_texture()`] then it's backing texture may be
     /// substituted with a different texture. The contents of the previous backing texture are
     /// copied into the new texture. [`Canvas`] state is preserved. The original sample count is
     /// used. The [`gpu::BackendFormat`] and dimensions of replacement texture must match that of
@@ -356,7 +360,7 @@ impl Surface {
         self.replace_backend_texture_with_mode(backend_texture, origin, ContentChangeMode::Retain)
     }
 
-    /// If the surface was made via [`Self::from_backend_texture()`] then it's backing texture may be
+    /// If the surface was made via [`crate::gpu::ganesh::surface_ganesh::wrap_backend_texture()`] then it's backing texture may be
     /// substituted with a different texture. The contents of the previous backing texture are
     /// copied into the new texture. [`Canvas`] state is preserved. The original sample count is
     /// used. The [`gpu::BackendFormat`] and dimensions of replacement texture must match that of
@@ -388,7 +392,7 @@ impl Surface {
     ///
     /// Returns: drawing [`Canvas`] for [`Surface`]
     ///
-    /// example: <https://fiddle.skia.org/c/@Surface_getCanvas>
+    /// Example (C++): <https://fiddle.skia.org/c/@Surface_getCanvas>
     pub fn canvas(&mut self) -> &Canvas {
         let canvas_ref = unsafe { &*self.native_mut().getCanvas() };
         Canvas::borrow_from_native(canvas_ref)
@@ -410,7 +414,7 @@ impl Surface {
     ///
     /// Returns: compatible [`Surface`] or `None`
     ///
-    /// example: <https://fiddle.skia.org/c/@Surface_makeSurface>
+    /// Example (C++): <https://fiddle.skia.org/c/@Surface_makeSurface>
     pub fn new_surface(&mut self, image_info: &ImageInfo) -> Option<Self> {
         Self::from_ptr(unsafe {
             sb::C_SkSurface_makeSurface(self.native_mut(), image_info.native())
@@ -432,7 +436,7 @@ impl Surface {
     ///
     /// Returns: [`Image`] initialized with [`Surface`] contents
     ///
-    /// example: <https://fiddle.skia.org/c/@Surface_makeImageSnapshot>
+    /// Example (C++): <https://fiddle.skia.org/c/@Surface_makeImageSnapshot>
     pub fn image_snapshot(&mut self) -> Image {
         Image::from_ptr(unsafe {
             sb::C_SkSurface_makeImageSnapshot(self.native_mut(), ptr::null())
@@ -465,7 +469,7 @@ impl Surface {
     /// - If bounds does not intersect the surface, then this returns `None`.
     /// - If bounds == the surface, then this is the same as calling the no-parameter variant.
     ///
-    /// example: <https://fiddle.skia.org/c/@Surface_makeImageSnapshot_2>
+    /// Example (C++): <https://fiddle.skia.org/c/@Surface_makeImageSnapshot_2>
     pub fn image_snapshot_with_bounds(&mut self, bounds: impl AsRef<IRect>) -> Option<Image> {
         Image::from_ptr(unsafe {
             sb::C_SkSurface_makeImageSnapshot(self.native_mut(), bounds.as_ref().native())
@@ -483,7 +487,7 @@ impl Surface {
     /// * `paint` - [`Paint`] containing [`crate::BlendMode`], [`crate::ColorFilter`], [`crate::ImageFilter`],
     ///                and so on; or `None`
     ///
-    /// example: <https://fiddle.skia.org/c/@Surface_draw>
+    /// Example (C++): <https://fiddle.skia.org/c/@Surface_draw>
     pub fn draw(
         &mut self,
         canvas: &Canvas,
@@ -504,6 +508,13 @@ impl Surface {
         }
     }
 
+    /// Copies [`Surface`] pixel address, row bytes, and [`ImageInfo`] to [`Pixmap`], if address
+    /// is available, and returns `Some(Pixmap)`. If pixel address is not available, return `None`
+    /// and leave [`Pixmap`] unchanged.
+    ///
+    /// pixmap contents become invalid on any future change to [`Surface`].
+    ///
+    /// Example (C++): <https://fiddle.skia.org/c/@Surface_peekPixels>
     pub fn peek_pixels(&mut self) -> Option<Pixmap> {
         let mut pm = Pixmap::default();
         unsafe { self.native_mut().peekPixels(pm.native_mut()) }.then_some(pm)
@@ -514,9 +525,10 @@ impl Surface {
     /// Copies [`crate::Rect`] of pixels to dst.
     ///
     /// Source [`crate::Rect`] corners are (`src.x`, `src.y`) and [`Surface`] `(width(), height())`.
-    /// Destination [`crate::Rect`] corners are `(0, 0)` and `(dst.width(), dst.height())`.
+    /// Destination [`crate::Rect`] corners are `(0, 0)` and `(dst.width(), dst.
+    /// height())`.
     /// Copies each readable pixel intersecting both rectangles, without scaling,
-    /// converting to `dst_color_type()` and `dst_alpha_type()` if required.
+    /// converting to [`Pixmap::color_type()`] and [`Pixmap::alpha_type()`] if required.
     ///
     /// Pixels are readable when [`Surface`] is raster, or backed by a Ganesh GPU backend. Graphite
     /// has deprecated this API in favor of the equivalent asynchronous API on
@@ -541,7 +553,7 @@ impl Surface {
     ///
     /// Returns: `true` if pixels were copied
     ///
-    /// example: <https://fiddle.skia.org/c/@Surface_readPixels>    
+    /// Example (C++): <https://fiddle.skia.org/c/@Surface_readPixels>
     pub fn read_pixels_to_pixmap(&mut self, dst: &Pixmap, src: impl Into<IPoint>) -> bool {
         let src = src.into();
         unsafe { self.native_mut().readPixels(dst.native(), src.x, src.y) }
@@ -634,7 +646,7 @@ impl Surface {
     ///
     /// Returns: `true` if pixels were copied
     ///
-    /// example: <https://fiddle.skia.org/c/@Surface_readPixels_3>
+    /// Example (C++): <https://fiddle.skia.org/c/@Surface_readPixels_3>
     pub fn read_pixels_to_bitmap(&mut self, bitmap: &Bitmap, src: impl Into<IPoint>) -> bool {
         let src = src.into();
         unsafe { self.native_mut().readPixels2(bitmap.native(), src.x, src.y) }
@@ -658,7 +670,7 @@ impl Surface {
     /// * `dst.x` - x-axis position relative to [`Surface`] to begin copy; may be negative
     /// * `dst.y` - y-axis position relative to [`Surface`] to begin copy; may be negative
     ///
-    /// example: <https://fiddle.skia.org/c/@Surface_writePixels>
+    /// Example (C++): <https://fiddle.skia.org/c/@Surface_writePixels>
     pub fn write_pixels_from_pixmap(&mut self, src: &Pixmap, dst: impl Into<IPoint>) {
         let dst = dst.into();
         unsafe { self.native_mut().writePixels(src.native(), dst.x, dst.y) }
@@ -677,7 +689,7 @@ impl Surface {
     /// * `dst.x` - x-axis position relative to [`Surface`] to begin copy; may be negative
     /// * `dst.y` - y-axis position relative to [`Surface`] to begin copy; may be negative
     ///
-    /// example: <https://fiddle.skia.org/c/@Surface_writePixels_2>
+    /// Example (C++): <https://fiddle.skia.org/c/@Surface_writePixels_2>
     pub fn write_pixels_from_bitmap(&mut self, bitmap: &Bitmap, dst: impl Into<IPoint>) {
         let dst = dst.into();
         unsafe {

@@ -1,3 +1,6 @@
+//! Vulkan types and helpers shared by the Ganesh and Graphite backends, plus the
+//! Vulkan [`BackendContext`] used to create a Ganesh [`crate::gpu::DirectContext`].
+
 use std::{ops::Deref, ptr};
 
 use skia_bindings as sb;

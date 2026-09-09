@@ -192,11 +192,14 @@ pub trait QuickReject<T> {
 }
 
 pub mod shaders {
+    //! Shader factory functions and [`Shader`] convenience constructors, re-exported from
+    //! [`crate::shader::shaders`].
     pub use super::shader::shaders::*;
     use crate::{ISize, Shader, prelude::*, scalar};
     use skia_bindings as sb;
 
     impl Shader {
+        /// Creates fractal Perlin noise. See [`self::fractal_noise()`] for details.
         pub fn fractal_perlin_noise(
             base_frequency: (scalar, scalar),
             num_octaves: usize,
@@ -206,6 +209,7 @@ pub mod shaders {
             fractal_noise(base_frequency, num_octaves, seed, tile_size)
         }
 
+        /// Creates Perlin turbulence. See [`self::turbulence()`] for details.
         pub fn turbulence_perlin_noise(
             base_frequency: (scalar, scalar),
             num_octaves: usize,
@@ -216,6 +220,18 @@ pub mod shaders {
         }
     }
 
+    /// Creates Perlin noise of the given type (fractal noise or turbulence — see
+    /// [`self::turbulence()`]).
+    /// Both base frequencies (X and Y) have a usual range of (0..1) and must be non-negative.
+    ///
+    /// The number of octaves provided should be fairly small, with a limit of 255 enforced.
+    /// Each octave doubles the frequency, so 10 octaves would produce noise from
+    /// `base_frequency` * 1, * 2, * 4, ..., * 512, which quickly yields insignificantly small
+    /// periods and resembles regular unstructured noise rather than Perlin noise.
+    ///
+    /// If `tile_size` is `Some` and not empty, the tile size parameter will be used to modify
+    /// the frequencies so that the noise will be tileable for the given tile size. If
+    /// `tile_size` is `None` or empty, the frequencies will be used as is without modification.
     pub fn fractal_noise(
         base_frequency: (scalar, scalar),
         num_octaves: usize,
@@ -233,6 +249,8 @@ pub mod shaders {
         })
     }
 
+    /// Creates Perlin turbulence, see [`self::fractal_noise()`] for the parameter
+    /// semantics.
     pub fn turbulence(
         base_frequency: (scalar, scalar),
         num_octaves: usize,

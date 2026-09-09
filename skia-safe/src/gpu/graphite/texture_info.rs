@@ -1,3 +1,7 @@
+//! [`self::TextureInfo`] is a backend-agnostic wrapper around the properties of a texture, sans
+//! dimensions. It is designed this way to be compilable w/o bringing in a specific backend's build
+//! files, and without requiring heap allocations of virtual types.
+
 use std::fmt;
 
 use skia_bindings as sb;

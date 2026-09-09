@@ -1,3 +1,7 @@
+//! GPU support for Skia: the Ganesh ([`crate::gpu::ganesh`]) and Graphite backends,
+//! their backend-specific APIs (D3D, GL, Metal, Vulkan), and the backend-agnostic GPU types
+//! shared between them.
+
 #[cfg(all(feature = "ganesh", feature = "d3d"))]
 pub mod d3d;
 #[cfg(feature = "ganesh")]
@@ -29,11 +33,13 @@ pub use types::*;
 
 #[cfg(all(feature = "ganesh", feature = "metal"))]
 pub mod mtl {
+    //! Metal backend re-exports for the [`crate::gpu::ganesh::mtl`] backend.
     pub use super::ganesh::mtl::{BackendContext, types::*};
 }
 
 #[cfg(feature = "ganesh")]
 pub mod surfaces {
+    //! GPU surface creation functions for the Ganesh backends.
     #[cfg(feature = "metal")]
     pub use super::ganesh::mtl::surface_metal::*;
     pub use super::ganesh::surface_ganesh::*;
@@ -41,6 +47,8 @@ pub mod surfaces {
 
 #[cfg(feature = "ganesh")]
 pub mod backend_formats {
+    //! Helpers for constructing and querying [`crate::gpu::BackendFormat`] across the Ganesh
+    //! backends (D3D, GL, Metal, Vulkan).
     #[cfg(feature = "d3d")]
     pub use super::ganesh::d3d::backend_formats::*;
     #[cfg(feature = "gl")]
@@ -53,6 +61,8 @@ pub mod backend_formats {
 
 #[cfg(feature = "ganesh")]
 pub mod backend_textures {
+    //! Helpers for constructing and querying [`crate::gpu::BackendTexture`] across the Ganesh
+    //! backends (D3D, GL, Metal, Vulkan).
     #[cfg(feature = "d3d")]
     pub use super::ganesh::d3d::backend_textures::*;
     #[cfg(feature = "gl")]
@@ -65,6 +75,8 @@ pub mod backend_textures {
 
 #[cfg(feature = "ganesh")]
 pub mod backend_render_targets {
+    //! Helpers for constructing and querying [`crate::gpu::BackendRenderTarget`] across the Ganesh
+    //! backends (D3D, GL, Metal, Vulkan).
     #[cfg(feature = "d3d")]
     pub use super::ganesh::d3d::backend_render_targets::*;
     #[cfg(feature = "gl")]
@@ -77,6 +89,8 @@ pub mod backend_render_targets {
 
 #[cfg(feature = "ganesh")]
 pub mod backend_semaphores {
+    //! Helpers for constructing and querying [`crate::gpu::BackendSemaphore`] across the Ganesh
+    //! backends (D3D and Vulkan).
     #[cfg(feature = "d3d")]
     pub use super::ganesh::d3d::backend_semaphores::*;
     #[cfg(feature = "vulkan")]
@@ -85,6 +99,8 @@ pub mod backend_semaphores {
 
 #[cfg(feature = "ganesh")]
 pub mod direct_contexts {
+    //! Creates a [`crate::gpu::DirectContext`] for each of the Ganesh backends (D3D, GL, Metal,
+    //! Vulkan).
     #[cfg(feature = "d3d")]
     pub use super::ganesh::d3d::direct_contexts::*;
     #[cfg(feature = "gl")]
@@ -97,6 +113,7 @@ pub mod direct_contexts {
 
 #[cfg(all(feature = "ganesh", feature = "gl"))]
 pub mod interfaces {
+    //! Creates the platform-specific GL [`crate::gpu::gl::Interface`] used to make OpenGL calls.
     #[cfg(feature = "egl")]
     pub use super::ganesh::gl::make_egl_interface::interfaces::*;
     #[cfg(target_os = "ios")]

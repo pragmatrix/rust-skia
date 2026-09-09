@@ -36,6 +36,8 @@ impl BackendContext {
 }
 
 pub mod context_factory {
+    //! Factory functions to create a Graphite [`crate::gpu::graphite::Context`] on the Metal backend.
+
     use skia_bindings as sb;
 
     use super::{BackendContext, Context, ContextOptions};
@@ -64,6 +66,8 @@ pub mod context_factory {
 }
 
 pub mod contexts {
+    //! Free functions to create Graphite contexts on the Metal backend.
+
     use skia_bindings as sb;
 
     use super::BackendContext;

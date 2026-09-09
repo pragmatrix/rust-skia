@@ -39,6 +39,7 @@ pub type BackendMemory = skgpu_VulkanBackendMemory;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
+/// Types for interacting with Vulkan resources created externally to Skia.
 pub struct Alloc {
     pub memory: vk::DeviceMemory,
     pub offset: vk::DeviceSize,

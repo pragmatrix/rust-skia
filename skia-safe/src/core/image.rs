@@ -1,3 +1,6 @@
+//! Describes a two dimensional array of pixels to draw. An [`Image`] is an immutable, thread-safe
+//! container for pixel data.
+
 use crate::{
     AlphaType, Bitmap, ColorSpace, ColorType, Data, EncodedImageFormat, IPoint, IRect, ISize,
     ImageFilter, ImageGenerator, ImageInfo, Matrix, Paint, Picture, Pixmap, Recorder,
@@ -15,6 +18,8 @@ pub use crate::TextureCompressionType as CompressionType;
 pub use images::BitDepth;
 
 pub mod images {
+    //! Factory functions for creating [`crate::Image`]s, e.g. from a [`crate::Bitmap`], compressed
+    //! data, or a [`crate::Picture`].
     use std::{mem, ptr};
 
     use skia_bindings as sb;
@@ -87,7 +92,7 @@ pub mod images {
     ///
     /// Returns: created [`Image`], or `None`
     ///
-    /// example: <https://fiddle.skia.org/c/@Image_DeferredFromEncodedData>
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_DeferredFromEncodedData>
     pub fn deferred_from_encoded_data(
         data: impl Into<Data>,
         alpha_type: impl Into<Option<AlphaType>>,
@@ -210,7 +215,7 @@ pub mod images {
     /// * `subset` - bounds of [`Image`] processed by filter
     /// * `clip_bounds` - expected bounds of filtered [`Image`]
     ///
-    /// Returns filtered SkImage, or `None`:
+    /// Returns filtered [`Image`], or `None`:
     /// * `out_subset` - storage for returned [`Image`] bounds
     /// * `offset` - storage for returned [`Image`] translation Returns: filtered [`Image`], or
     ///   `None`
@@ -267,7 +272,7 @@ native_transmutable!(sb::SkImage_RequiredProperties, RequiredProperties);
 /// storage as needed; for instance, an encoded [`Image`] may decode when drawn.
 ///
 /// [`Image`] width and height are greater than zero. Creating an [`Image`] with zero width
-/// or height returns [`Image`] equal to nullptr.
+/// or height returns [`Image`] equal to `None`.
 ///
 /// [`Image`] may be created from [`Bitmap`], [`Pixmap`], [`crate::Surface`], [`Picture`], encoded streams,
 /// GPU texture, YUV_ColorSpace data, or hardware buffer. Encoded streams supported
@@ -308,7 +313,7 @@ impl Image {
     /// each dimension fits in 29 bits;
     /// [`ColorType`] and [`AlphaType`] are valid, and [`ColorType`] is not [`ColorType::Unknown`];
     /// rowBytes are large enough to hold one row of pixels;
-    /// pixels is not nullptr, and contains enough data for [`Image`].
+    /// pixels is not `None`, and contains enough data for [`Image`].
     ///
     /// - `info`       contains width, height, [`AlphaType`], [`ColorType`], [`ColorSpace`]
     /// - `pixels`     address or pixel storage
@@ -339,7 +344,6 @@ impl Image {
     ///
     /// Returns: created [`Image`], or `None`
     ///
-    /// example: <https://fiddle.skia.org/c/@Image_MakeFromBitmap>
     #[deprecated(since = "0.63.0", note = "use images::raster_from_bitmap()")]
     pub fn from_bitmap(bitmap: &Bitmap) -> Option<Image> {
         images::raster_from_bitmap(bitmap)
@@ -374,7 +378,7 @@ impl Image {
     /// If alphaType is `None`, the image's alpha type will be chosen automatically based on the
     /// image format. Transparent images will default to [`AlphaType::Premul`]. If alphaType contains
     /// [`AlphaType::Premul`] or [`AlphaType::Unpremul`], that alpha type will be used. Forcing opaque
-    /// (passing [`AlphaType::Opaque`]) is not allowed, and will return nullptr.
+    /// (passing [`AlphaType::Opaque`]) is not allowed, and will return `None`.
     ///
     /// This is similar to `decode_to_{raster,texture}`, but this method will attempt to defer the
     /// actual decode, while the `decode_to`... method explicitly decode and allocate the backend
@@ -386,7 +390,7 @@ impl Image {
     ///
     /// Returns: created [`Image`], or `None`
     ///
-    /// example: <https://fiddle.skia.org/c/@Image_MakeFromEncoded>
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_DeferredFromEncodedData>
     pub fn from_encoded_with_alpha_type(
         data: impl Into<Data>,
         alpha_type: impl Into<Option<AlphaType>>,
@@ -546,16 +550,16 @@ impl Image {
         self.image_info().height()
     }
 
-    /// Returns [`ISize`] `{ width(), height() }`.
+    /// Returns [`ISize`] `{ [`Image::width()`], [`Image::height()`] }`.
     ///
-    /// Returns: integral size of `width()` and `height()`
+    /// Returns: integral size of [`Image::width()`] and [`Image::height()`]
     pub fn dimensions(&self) -> ISize {
         self.image_info().dimensions()
     }
 
-    /// Returns [`IRect`] `{ 0, 0, width(), height() }`.
+    /// Returns [`IRect`] `{ 0, 0, [`Image::width()`], [`Image::height()`] }`.
     ///
-    /// Returns: integral rectangle from origin to `width()` and `height()`
+    /// Returns: integral rectangle from origin to [`Image::width()`] and [`Image::height()`]
     pub fn bounds(&self) -> IRect {
         self.image_info().bounds()
     }
@@ -576,7 +580,7 @@ impl Image {
     ///
     /// Returns: [`AlphaType`] in [`Image`]
     ///
-    /// example: <https://fiddle.skia.org/c/@Image_alphaType>
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_alphaType>
     pub fn alpha_type(&self) -> AlphaType {
         unsafe { self.native().alphaType() }
     }
@@ -585,7 +589,7 @@ impl Image {
     ///
     /// Returns: [`ColorType`] of [`Image`]
     ///
-    /// example: <https://fiddle.skia.org/c/@Image_colorType>
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_colorType>
     pub fn color_type(&self) -> ColorType {
         ColorType::from_native_c(unsafe { self.native().colorType() })
     }
@@ -602,7 +606,8 @@ impl Image {
     ///
     /// Returns: [`ColorSpace`] in [`Image`], or `None`, wrapped in a smart pointer
     ///
-    /// example: <https://fiddle.skia.org/c/@Image_refColorSpace>
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_colorSpace>
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_refColorSpace>
     pub fn color_space(&self) -> Option<ColorSpace> {
         ColorSpace::from_unshared_ptr(unsafe { self.native().colorSpace() })
     }
@@ -612,7 +617,7 @@ impl Image {
     ///
     /// Returns: `true` if pixels represent a transparency mask
     ///
-    /// example: <https://fiddle.skia.org/c/@Image_isAlphaOnly>
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_isAlphaOnly>
     pub fn is_alpha_only(&self) -> bool {
         unsafe { self.native().isAlphaOnly() }
     }
@@ -688,7 +693,7 @@ impl Image {
     ///
     /// Returns: `true` if [`Image`] has direct access to pixels
     ///
-    /// example: <https://fiddle.skia.org/c/@Image_peekPixels>
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_peekPixels>
     pub fn peek_pixels(&self) -> Option<Pixmap> {
         let mut pixmap = Pixmap::default();
         unsafe { self.native().peekPixels(pixmap.native_mut()) }.then_some(pixmap)
@@ -699,7 +704,7 @@ impl Image {
     ///
     /// Returns: `true` if [`Image`] is a GPU texture
     ///
-    /// example: <https://fiddle.skia.org/c/@Image_isTextureBacked>
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_isTextureBacked>
     pub fn is_texture_backed(&self) -> bool {
         unsafe { sb::C_SkImage_isTextureBacked(self.native()) }
     }
@@ -711,8 +716,8 @@ impl Image {
     }
 
     /// Returns `true` if [`Image`] can be drawn on either raster surface or GPU surface.
-    /// If recorder is None, tests if SkImage draws on raster surface;
-    /// otherwise, tests if SkImage draws on the associated GPU surface.
+    /// If recorder is `None`, tests if [`Image`] draws on raster surface;
+    /// otherwise, tests if [`Image`] draws on the associated GPU surface.
     ///
     /// [`Image`] backed by GPU texture may become invalid if associated context is
     /// invalid. lazy image may be invalid and may not draw to raster surface or
@@ -722,7 +727,7 @@ impl Image {
     ///
     /// Returns: `true` if [`Image`] can be drawn
     ///
-    /// example: <https://fiddle.skia.org/c/@Image_isValid>
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_isValid>
     pub fn is_valid(&self, recorder: Option<&mut dyn Recorder>) -> bool {
         unsafe {
             sb::C_SkImage_isValid(
@@ -991,7 +996,6 @@ impl Image {
     ///
     /// Returns: encoded [`Image`], or `None`
     ///
-    /// example: <https://fiddle.skia.org/c/@Image_encodeToData>
     #[deprecated(
         since = "0.63.0",
         note = "Support for encoding GPU backed images without a context was removed, use `encode_to_data_with_context` instead"
@@ -1012,7 +1016,7 @@ impl Image {
     ///
     /// Returns: encoded [`Image`], or `None`
     ///
-    /// example: <https://fiddle.skia.org/c/@Image_refEncodedData>
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_refEncodedData>
     pub fn encoded_data(&self) -> Option<Data> {
         Data::from_ptr_const(unsafe { sb::C_SkImage_refEncodedData(self.native()) })
     }
@@ -1112,7 +1116,6 @@ impl Image {
     ///
     /// Returns: raster image, lazy image, or `None`
     ///
-    /// example: <https://fiddle.skia.org/c/@Image_makeNonTextureImage>
     #[deprecated(since = "0.64.0", note = "use make_non_texture_image()")]
     pub fn to_non_texture_image(&self) -> Option<Image> {
         Image::from_ptr(unsafe {
@@ -1128,7 +1131,7 @@ impl Image {
     ///
     /// Returns: raster image, lazy image, or `None`
     ///
-    /// example: <https://fiddle.skia.org/c/@Image_makeNonTextureImage>
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_makeNonTextureImage>
     pub fn make_non_texture_image<'a>(
         &self,
         context: impl Into<Option<&'a mut gpu::DirectContext>>,
@@ -1152,7 +1155,6 @@ impl Image {
     ///
     /// Returns: raster image, or `None`
     ///
-    /// example: <https://fiddle.skia.org/c/@Image_makeRasterImage>
     #[deprecated(since = "0.64.0", note = "use make_raster_image()")]
     pub fn to_raster_image(&self, caching_hint: impl Into<Option<CachingHint>>) -> Option<Image> {
         let caching_hint = caching_hint.into().unwrap_or(CachingHint::Disallow);
@@ -1172,7 +1174,7 @@ impl Image {
     ///
     /// Returns: raster image, or `None`
     ///
-    /// example: <https://fiddle.skia.org/c/@Image_makeRasterImage>
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_makeRasterImage>
     pub fn make_raster_image<'a>(
         &self,
         context: impl Into<Option<&'a mut gpu::DirectContext>>,
@@ -1230,8 +1232,8 @@ impl Image {
     ///
     /// Returns: `true` if [`Image`] is created as needed
     ///
-    /// example: <https://fiddle.skia.org/c/@Image_isLazyGenerated_a>
-    /// example: <https://fiddle.skia.org/c/@Image_isLazyGenerated_b>
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_isLazyGenerated_a>
+    /// Example (C++): <https://fiddle.skia.org/c/@Image_isLazyGenerated_b>
     pub fn is_lazy_generated(&self) -> bool {
         unsafe { sb::C_SkImage_isLazyGenerated(self.native()) }
     }

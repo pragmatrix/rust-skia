@@ -70,7 +70,7 @@ impl SubmitInfo {
     /// Create new submit info with default settings (no CPU sync).
     ///
     /// Every `SubmitInfo` field's zero value equals its C++ default
-    /// (`SyncToCpu::No`, `MarkFrameBoundary::kNo`, `0`, null procs), so
+    /// ([`SyncToCpu::No`], no frame boundary marked, `0`, null procs), so
     /// zero-init is a valid default here.
     pub fn new() -> Self {
         // Every field's zero value equals its C++ default, so a zeroed struct is
@@ -80,7 +80,7 @@ impl SubmitInfo {
     }
 
     /// Submit info whose `fSync` is set so that `Context::submit` blocks until
-    /// the submitted GPU work has completed (`SyncToCpu::Yes` when `sync`).
+    /// the submitted GPU work has completed ([`SyncToCpu::Yes`] when `sync`).
     pub fn with_sync_to_cpu(sync: bool) -> Self {
         let mut info = Self::new();
         info.inner.fSync = if sync { SyncToCpu::Yes } else { SyncToCpu::No };

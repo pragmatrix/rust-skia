@@ -3,6 +3,8 @@ use skia_bindings as sb;
 use super::super::BackendTexture;
 
 pub mod backend_textures {
+    //! Functions to create Graphite [`crate::gpu::graphite::BackendTexture`]s on the Metal backend.
+
     use super::*;
 
     /// # Safety

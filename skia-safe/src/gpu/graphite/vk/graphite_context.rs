@@ -5,6 +5,8 @@ use crate::gpu::vk as gpu_vk;
 use crate::prelude::NativeAccess;
 
 pub mod context_factory {
+    //! Factory functions to create a Graphite [`crate::gpu::graphite::Context`] on the Vulkan backend.
+
     use super::*;
 
     pub fn make_vulkan<'a>(
@@ -33,6 +35,8 @@ pub mod context_factory {
 }
 
 pub mod contexts {
+    //! Free functions to create Graphite contexts on the Vulkan backend.
+
     use super::*;
 
     pub fn make_graphite(
