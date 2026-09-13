@@ -17,8 +17,6 @@ This project provides _up to date_ safe bindings that bridge idiomatic Rust with
 
 The skia-safe API documentation is available on [docs.rs](https://docs.rs/skia-safe).
 
-We (slowly) [add more documentation](https://github.com/rust-skia/rust-skia/issues/446) by converting Skia's Doxygen comments to Rust.
-
 ### Crate
 
 A prerelease crate is available from [crates.io](https://crates.io/crates/skia-safe). To get started, run
@@ -266,6 +264,30 @@ cargo run --example vulkan-window --features "ganesh,vulkan" -- --validate
 ```
 
 To add Vulkan support to your system, the easiest way is to install the [LunarG SDK](https://vulkan.lunarg.com/sdk/home), and enable "System Global Installation" in the installer.
+
+### metal-window
+
+An example application that opens a Metal Window and renders a blue rectangle using Skia's Ganesh backend. It is only supported on macOS.
+
+```bash
+cargo run --example metal-window --features "ganesh,metal"
+```
+
+### metal-window-graphite
+
+The same window example, but rendering with Skia's Graphite backend instead of Ganesh. It is only supported on macOS.
+
+```bash
+cargo run --example metal-window-graphite --features "graphite,metal"
+```
+
+### d3d-window
+
+An example application that opens a Window and renders a rectangle using Direct3D 12 and Skia's Ganesh backend (most of the code is adapted from the [windows-rs Direct3D 12 sample](https://github.com/microsoft/windows-rs/tree/master/crates/samples/windows/direct3d12)). It is only supported on Windows. Use the arrow keys to move the rectangle and `Escape` to quit.
+
+```bash
+cargo run --example d3d-window --features d3d
+```
 
 ### icon
 
