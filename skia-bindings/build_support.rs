@@ -1,5 +1,6 @@
 //! Build support functions for the Rust-Skia library.
 
+pub mod type_bindings;
 pub mod binaries_config;
 #[cfg(feature = "binary-cache")]
 pub mod binary_cache;
@@ -9,3 +10,4 @@ pub mod features;
 pub mod platform;
 pub mod skia;
 pub mod skia_bindgen;
+

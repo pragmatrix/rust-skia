@@ -1,5 +1,7 @@
 //! Full build support for the SkiaBindings library, and bindings.rs file.
+use std::cell::RefCell;
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 
 use bindgen::{CodegenConfig, EnumVariation};
 use cc::Build;
@@ -9,6 +11,7 @@ use crate::build_support::{
     cargo::{self, Target},
     features,
     platform::{self, prelude::feature},
+    type_bindings,
 };
 
 // 20: Since m143
@@ -102,6 +105,8 @@ pub fn generate_bindings(
     target: Target,
     sysroot: Option<&str>,
 ) {
+    let unclassified = Rc::new(RefCell::new(Vec::new()));
+    let matched_entries = Rc::new(RefCell::new(vec![false; type_bindings::entry_count()]));
     let mut builder = bindgen::Builder::default()
         .generate_comments(false)
         .layout_tests(true)
@@ -109,66 +114,31 @@ pub fn generate_bindings(
             non_exhaustive: false,
         })
         .size_t_is_usize(true)
-        .parse_callbacks(Box::new(ParseCallbacks))
+        .parse_callbacks(Box::new(ParseCallbacks {
+            unclassified: unclassified.clone(),
+            matched_entries: matched_entries.clone(),
+        }))
         .allowlist_function("C_.*")
+        .allowlist_recursively(false)
         .constified_enum(".*Mask")
         .constified_enum(".*Flags")
         .constified_enum(".*Bits")
         .constified_enum("SkCanvas_SaveLayerFlagsSet")
         .constified_enum("GrVkAlloc_Flag")
         .constified_enum("GrGLBackendState")
-        // not used:
-        .blocklist_type("SkPathRef_Editor")
+        // SkPathRef_Editor member functions are not used; the type itself
+        // and the remaining masks (private Gr* types, SkUnicode, std::
+        // templates, the Vk* reexports) are governed by the Type Bindings
+        // Table below (ADR 0001).
         .blocklist_function("SkPathRef_Editor_Editor")
-        // private types that pull in inline functions that cannot be linked:
-        // https://github.com/rust-skia/rust-skia/issues/318
-        .raw_line("pub enum GrContext_Base {}")
-        .blocklist_type("GrContext_Base")
-        .blocklist_function("GrContext_Base_.*")
-        .raw_line("pub enum GrImageContext {}")
-        .blocklist_type("GrImageContext")
-        .raw_line("pub enum GrImageContextPriv {}")
-        .blocklist_type("GrImageContextPriv")
-        .raw_line("pub enum GrContextThreadSafeProxy {}")
-        .blocklist_type("GrContextThreadSafeProxy")
-        .blocklist_type("GrContextThreadSafeProxyPriv")
-        .raw_line("pub enum GrContextThreadSafeProxyPriv {}")
-        .blocklist_type("GrRecordingContextPriv")
-        .raw_line("pub enum GrRecordingContextPriv {}")
         .blocklist_function("GrRecordingContext_priv.*")
         .blocklist_function("GrDirectContext_priv.*")
-        .blocklist_type("GrContextPriv")
-        .raw_line("pub enum GrContextPriv {}")
-        .blocklist_function("GrContext_priv.*")
         .blocklist_function("SkContext_priv.*")
         .blocklist_function("SkDeferredDisplayList_priv.*")
-        .raw_line("pub enum SkVerticesPriv {}")
-        .blocklist_type("SkVerticesPriv")
         .blocklist_function("SkVertices_priv.*")
         .blocklist_function("std::bitset_flip.*")
-        // Vulkan reexports that cannot be reached from an extern "C" function.
-        .allowlist_type("VkCommandBuffer")
-        .allowlist_type("VkExtent2D")
-        .allowlist_type("VkImage")
-        .allowlist_type("VkImageTiling")
-        .allowlist_type("VkImageUsageFlags")
-        .allowlist_type("VkOffset2D")
-        .allowlist_type("VkPhysicalDevice")
-        .allowlist_type("VkPhysicalDeviceFeatures")
-        .allowlist_type("VkPhysicalDeviceFeatures2")
-        .allowlist_type("VkQueue")
-        .allowlist_type("VkRect2D")
-        .allowlist_type("VkRenderPass")
-        .allowlist_type("VkSemaphore")
-        .allowlist_type("VkSharingMode").
         // m91: These functions are not actually implemented.
-        blocklist_function("SkCustomTypefaceBuilder_setGlyph[123].*")
-        // m113: `SkUnicode` pulls in an impl block that forwards static functions that may not be
-        // linked into the final executable.
-        .blocklist_type("SkUnicode")
-        .raw_line("pub enum SkUnicode {}")
-
-
+        .blocklist_function("SkCustomTypefaceBuilder_setGlyph[123].*")
         // misc
         .allowlist_var("SK_Color.*")
         .allowlist_var("kAll_GrBackendState")
@@ -191,12 +161,85 @@ pub fn generate_bindings(
         builder = builder.allowlist_function(function)
     }
 
-    for opaque_type in OPAQUE_TYPES {
-        builder = builder.opaque_type(opaque_type)
-    }
+    // OPAQUE_TYPES/BLOCKLISTED_TYPES are superseded by the Type Bindings
+    // Table above. Their entries were migrated into it (see ADR 0001).
 
-    for t in BLOCKLISTED_TYPES {
-        builder = builder.blocklist_type(t);
+    // `std::basic_string` specializations resolve to `std_string` via the
+    // ITEM_RENAMES below. The type is only ever referenced by pointer from
+    // Rust (`interop/string.rs` reads it via `C_string_ptr_size`), so an
+    // opaque stand-in definition suffices; generating the full
+    // `std::basic_string` template would drag in the libc++ internals that
+    // trip bindgen's opaque/phantom-field asserts.
+    builder = builder
+        .raw_line("pub struct std_string(u8, ::core::marker::PhantomData<u8>);");
+
+    // Type Bindings Table (ADR 0001): with `allowlist_recursively(false)`,
+    // only explicitly allowlisted types are generated. `Include` and
+    // `Opaque` entries drive type allowlisting; `Stub` and `Exclude`
+    // entries blocklist (Stubs additionally emit a `raw_line` stand-in).
+    //
+    // SKIA_TABLE_FILTER diagnostic: comma-separated entries; `!<name>`
+    // *skips* the named entry (any action) — used by
+    // build_support/tools/bisect_opaque.py to find table entries whose
+    // generation panics bindgen.
+    let filter: Option<Vec<String>> = std::env::var("SKIA_TABLE_FILTER")
+        .ok()
+        .map(|v| v.split(',').map(str::to_string).collect());
+
+    for entry in type_bindings::entries() {
+        let mut skip = false;
+        if let Some(filter) = &filter {
+            for f in filter {
+                let (negated, pat) = match f.strip_prefix('!') {
+                    Some(rest) => (true, rest),
+                    None => (false, f.as_str()),
+                };
+                let matched = if negated {
+                    !entry.name.contains(pat)
+                } else {
+                    entry.name.contains(pat)
+                };
+                if !matched {
+                    skip = true;
+                    break;
+                }
+            }
+        }
+        if skip {
+            continue;
+        }
+        match entry.action() {
+            type_bindings::TypeAction::Include => builder = builder.allowlist_type(entry.name),
+            type_bindings::TypeAction::Opaque => {
+                builder = builder.allowlist_type(entry.name);
+                builder = builder.opaque_type(entry.name);
+            }
+            type_bindings::TypeAction::Stub => {
+                builder = builder.blocklist_type(entry.name);
+                builder = builder.raw_line(format!(
+                    "pub enum {} {{}}",
+                    entry.name.replace("::", "_").replace(".*", "")
+                ));
+            }
+            type_bindings::TypeAction::StubGeneric => {
+                // Template type: never enters the IR (its argument phantoms
+                // would break the opaque-with-fields assertion); instead a
+                // generic stand-in definition is injected so generated
+                // `extern "C"` signatures referencing it compile. The
+                // definition is a bindgen-shaped generic struct provided
+                // by the table entry.
+                builder = builder.blocklist_type(entry.name);
+                builder = builder.raw_line(entry.definition);
+            }
+            type_bindings::TypeAction::Exclude => builder = builder.blocklist_type(entry.name),
+        }
+        if let Some(pattern) = entry.function_blocklist() {
+            // Scan(Fields) verdict: the type's members are accessed but no
+            // method is called, so blocklist all generated method wrappers
+            // `{Name}_.+`. The hand-written `C_{Name}_*` wrappers carry the
+            // `C_` prefix and cannot match the start-anchored pattern.
+            builder = builder.blocklist_function(pattern);
+        }
     }
 
     let mut cc_build = Build::new();
@@ -306,6 +349,8 @@ pub fn generate_bindings(
         builder = builder.clang_args(bindgen_args);
 
         let bindings = builder.generate().expect("Unable to generate bindings");
+        report_unclassified_types(&unclassified);
+        report_unused_entries(&matched_entries);
         bindings
             .write_to_file(output_directory.join("bindings.rs"))
             .expect("Couldn't write bindings!");
@@ -334,208 +379,20 @@ const ALLOWLISTED_FUNCTIONS: &[&str] = &[
     "SkYUVColorSpaceIsLimitedRange",
 ];
 
-const OPAQUE_TYPES: &[&str] = &[
-    // Types for which the binding generator pulls in stuff that can not be compiled.
-    "SkDeferredDisplayList",
-    "SkDeferredDisplayList_PendingPathsMap",
-    // Types for which a bindgen layout is wrong causing types that contain
-    // fields of them to fail their layout test.
-    // Windows:
-    "std::atomic",
-    "std::function",
-    "std::unique_ptr",
-    "SkTHashMap",
-    // Ubuntu 18 LLVM 6: all types derived from SkWeakRefCnt
-    "SkWeakRefCnt",
-    "GrContext",
-    "GrGLInterface",
-    "GrSurfaceProxy",
-    "Sk2DPathEffect",
-    "SkCornerPathEffect",
-    "SkDataTable",
-    "SkDiscretePathEffect",
-    "SkDrawable",
-    "SkLine2DPathEffect",
-    "SkPath2DPathEffect",
-    "SkPathRef_GenIDChangeListener",
-    "SkPicture",
-    "SkPixelRef",
-    "SkSurface",
-    // Types not needed (for now):
-    "SkDeque",
-    "SkDeque_Iter",
-    "GrGLInterface_Functions",
-    // SkShaper (m77) Trivial*Iterator classes create two vtable pointers.
-    "SkShaper_TrivialBiDiRunIterator",
-    "SkShaper_TrivialFontRunIterator",
-    "SkShaper_TrivialLanguageRunIterator",
-    "SkShaper_TrivialScriptRunIterator",
-    // skparagraph
-    "std::vector",
-    "std::u16string",
-    // skparagraph (m78), (layout fails on macOS and Linux, not sure why, looks like an obscure alignment problem)
-    "skia::textlayout::FontCollection",
-    // skparagraph (m79), std::map is used in LineMetrics
-    "std::map",
-    // Vulkan reexports with the wrong field naming conventions.
-    "VkPhysicalDeviceFeatures",
-    "VkPhysicalDeviceFeatures2",
-    // Since Rust 1.39 beta (TODO: investigate why, and re-test when 1.39 goes stable).
-    "GrContextOptions_PersistentCache",
-    "GrContextOptions_ShaderErrorHandler",
-    "Sk1DPathEffect",
-    "SkBBoxHierarchy", // vtable
-    "SkBBHFactory",
-    "SkBitmap_Allocator",
-    "SkBitmap_HeapAllocator",
-    "SkColorFilter",
-    "SkDeque_F2BIter",
-    "SkDrawable_GpuDrawHandler",
-    "SkFlattenable",
-    "SkFontMgr",
-    "SkFontStyleSet",
-    "SkMaskFilter",
-    "SkPathEffect",
-    "SkPicture_AbortCallback",
-    "SkPixelRef_GenIDChangeListener",
-    "SkRasterHandleAllocator",
-    // m114: Must keep `SkRefCnt`, because otherwise bindgen would add an additional vtable because
-    // of its newly introduced virtual functions.
-    // "SkRefCnt",
-    "SkShader",
-    "SkStream",
-    "SkStreamAsset",
-    "SkStreamMemory",
-    "SkStreamRewindable",
-    "SkStreamSeekable",
-    "SkTypeface_LocalizedStrings",
-    "SkWStream",
-    "GrVkMemoryAllocator",
-    "SkShaper",
-    "SkShaper_BiDiRunIterator",
-    "SkShaper_FontRunIterator",
-    "SkShaper_LanguageRunIterator",
-    "SkShaper_RunHandler",
-    "SkShaper_RunIterator",
-    "SkShaper_ScriptRunIterator",
-    "SkContourMeasure",
-    "SkDocument",
-    // m81: tuples:
-    "SkRuntimeEffect_EffectResult",
-    "SkRuntimeEffect_ByteCodeResult",
-    "SkRuntimeEffect_SpecializeResult",
-    // m81: derives from std::string
-    "SkSL::String",
-    // The following two were replaced by a more generic variant further down (LLVM 21)
-    // "std::basic_string",
-    // "std::basic_string_value_type",
-    // m81: wrong size on macOS and Linux
-    "SkRuntimeEffect",
-    "GrShaderCaps",
-    // more stuff we don't need that was tracked down fixing:
-    // https://github.com/rust-skia/rust-skia/issues/318
-    // referred from SkPath, but not used:
-    "SkPathRef",
-    "SkMutex",
-    // m82: private
-    "SkIDChangeListener",
-    // m86:
-    "GrRecordingContext",
-    "GrDirectContext",
-    // m87:
-    "GrD3DAlloc",
-    "GrD3DMemoryAllocator",
-    // m87, yuva_pixmaps
-    "std::tuple",
-    // Homebrew macOS LLVM 13
-    "std::tuple_.*",
-    // Since 3.1.57 of the emsdk: <https://github.com/rust-skia/rust-skia/issues/975>
-    "std::__2::.*",
-    // clang 18 / XCode 16
-    "std::__1::.*",
-    // m93: private, exposed by Paint::asBlendMode(), fails layout tests.
-    "skstd::optional",
-    // m100
-    "std::optional",
-    // Feature `svg`:
-    "SkSVGProperty",
-    "SkSVGNode",
-    "SkTLazy",             // causes wrong layouts in SkSVGSVG
-    "SkTCopyOnFirstWrite", // causes wrong layouts in SkSVGRenderContext
-    "skresources::ResourceProvider",
-    // m107 (layout failure)
-    "skgpu::VulkanMemoryAllocator",
-    // m109 (ParagraphPainter::SkPaintOrID)
-    "std::variant",
-    // m111 Used in SkTextBlobBuilder
-    "skia_private::AutoTMalloc",
-    // Pulled in by `SkData`.
-    "FILE",
-    // m114: Results in wrongly sized template specializations.
-    "skia_private::THashMap",
-    // m121:
-    "skgpu::MutableTextureState",
-    // emscripten: Uses SkLRUCache (which is blocklisted)
-    "skia::textlayout::ParagraphCache",
-    // Fix bindgen 0.70 layout failures
-    "skgpu::VulkanBackendContext",
-    "GrYUVABackendTextures",
-    // LLVM21
-    "std::basic_string.*",
-    "std::__tree.*",
-    // libstdc++ 10 on Linux (since m143, c++20)
-    "std::strong_ordering",
-    // skottie internal types with layout issues
-    "skottie::internal::TextAnimator",
-    "skottie::internal::TextAnimator_AnimatedProps",
-    "skottie::internal::TextAdapter",
-    "skottie::VectorValue",
-    "skottie::ColorValue",
-    "sksg::PaintNode",
-    "sksg::Color",
-    "sksg::BlurImageFilter",
-    // m147
-    "std::unordered_map.*",
-    // Graphite types that expose std::unordered_set in public fields
-    "skgpu::graphite::Recording",
-];
-
-const BLOCKLISTED_TYPES: &[&str] = &[
-    // modules/skparagraph
-    //   pulls in a std::map<>, which we treat as opaque, but bindgen creates wrong bindings for
-    //   std::_Tree* types
-    "std::_Tree.*",
-    "std::map.*",
-    //   debug builds:
-    "SkLRUCache",
-    "SkLRUCache_Entry",
-    //   not used at all:
-    "std::vector.*",
-    // too much template magic:
-    "SkRuntimeEffect_ConstIterable.*",
-    // Linux LLVM9 c++17
-    "std::_Rb_tree.*",
-    // archlinux
-    "std::__rb_tree.*",
-    // Linux LLVM9 c++17 with SKIA_DEBUG=1
-    "std::__cxx.*",
-    "std::array.*",
-    // m115 unused Linux
-    "std::__uset_hashtable.*",
-    "std::unordered_set.*",
-    // m115 unused Windows
-    "std::_List_unchecked.*",
-    "std::_Hash.*",
-    "std::_List_const.*",
-    "std::list.*",
-    "std::list__Unchecked.*",
-    "std::_List_iterator.*",
-    // <https://github.com/rust-skia/rust-skia/issues/1009> (feature vulkan)
-    "PFN_vkVoidFunction",
-];
+// OPAQUE_TYPES/BLOCKLISTED_TYPES were migrated into the
+// Type Bindings Table (build_support/type_bindings.rs, ADR 0001).
 
 #[derive(Debug)]
-struct ParseCallbacks;
+struct ParseCallbacks {
+    /// Types discovered by bindgen that the Type Bindings Table does not
+    /// classify. Collected during generation and reported (and failed on)
+    /// afterwards so a milestone update shows the complete diff instead of
+    /// one panic per type. Shared with the caller via `Rc`.
+    unclassified: Rc<RefCell<Vec<String>>>,
+    /// Indices of table entries that matched at least one discovered type
+    /// (for the unused-entry report). Shared with the caller via `Rc`.
+    matched_entries: Rc<RefCell<Vec<bool>>>,
+}
 
 impl bindgen::callbacks::ParseCallbacks for ParseCallbacks {
     /// Allows to rename an enum variant, replacing `_original_variant_name`.
@@ -559,6 +416,91 @@ impl bindgen::callbacks::ParseCallbacks for ParseCallbacks {
             .find(|(original, _)| *original == original_item_name.name)
             .map(|(_, replacement)| replacement.to_string())
     }
+
+    /// Opt-in enforcement (ADR 0001): every discovered type must be
+    /// classified in the Type Bindings Table. Types missing from the table fail the build
+    /// here, at the point of discovery, instead of surfacing later as link
+    /// errors or wrong layouts.
+    fn new_item_found(
+        &self,
+        _id: bindgen::callbacks::DiscoveredItemId,
+        item: bindgen::callbacks::DiscoveredItem,
+        _location: Option<&bindgen::callbacks::SourceLocation>,
+    ) {
+        // The table matches C++ names; anonymous types have no original
+        // name and cannot be classified, but also cannot be referenced.
+        let name = match &item {
+            bindgen::callbacks::DiscoveredItem::Struct { original_name, .. }
+            | bindgen::callbacks::DiscoveredItem::Union { original_name, .. } => {
+                original_name.as_deref()
+            }
+            _ => None,
+        };
+        if let Some(name) = name {
+            if let Some(index) = type_bindings::matched_entry_index(name) {
+                self.matched_entries.borrow_mut()[index] = true;
+            } else {
+                self.unclassified.borrow_mut().push(name.into());
+            }
+        }
+    }
+}
+
+/// Reports all types bindgen discovered that are missing from the
+/// Type Bindings Table, and fails the build if there are any (ADR 0001).
+fn report_unclassified_types(unclassified: &Rc<RefCell<Vec<String>>>) {
+    let mut unclassified = unclassified.borrow_mut();
+    if unclassified.is_empty() {
+        return;
+    }
+    unclassified.sort_unstable();
+    unclassified.dedup();
+    panic!(
+        "{} type(s) were discovered by bindgen but are not classified in the \
+         Type Bindings Table (build_support/type_bindings.rs). \
+         See docs/adr/0001-opt-in-binding-generation.md: add an entry with the \
+         appropriate TypeAction for each of them, or exclude them from the closure:\n\
+         {}",
+        unclassified.len(),
+        unclassified.join("\n")
+    );
+}
+
+/// Analytics (ADR 0001): reports table entries that matched no type
+/// discovered by bindgen in this build — candidates for removal, since
+/// their allowlist/blocklist/no-op did nothing. Prints a one-line summary
+/// always, and the full list when `SKIA_TABLE_UNUSED_REPORT=1`.
+fn report_unused_entries(matched_entries: &Rc<RefCell<Vec<bool>>>) {
+    let matched = matched_entries.borrow();
+    let mut unused = Vec::new();
+    for index in 0..matched.len() {
+        if !matched[index] {
+            unused.push(type_bindings::entry_name(index));
+        }
+    }
+    if unused.is_empty() {
+        eprintln!(
+            "Type Bindings Table: all {} entries matched a discovered type.",
+            matched.len()
+        );
+        return;
+    }
+    if std::env::var("SKIA_TABLE_UNUSED_REPORT").as_deref() == Ok("1") {
+        eprintln!(
+            "Type Bindings Table: {} of {} entries matched no discovered \
+             type (candidates for removal):\n{}",
+            unused.len(),
+            matched.len(),
+            unused.join("\n")
+        );
+    } else {
+        eprintln!(
+            "Type Bindings Table: {} of {} entries matched no discovered \
+             type (rerun with SKIA_TABLE_UNUSED_REPORT=1 for the list).",
+            unused.len(),
+            matched.len()
+        );
+    }
 }
 
 type EnumEntry = (&'static str, fn(&str, &str) -> String);
@@ -571,15 +513,11 @@ const ITEM_RENAMES: &[(&str, &str)] = &[
 ];
 
 const ENUM_REWRITES: &[EnumEntry] = &[
-    //
     // codec/
-    //
     ("DocumentStructureType", rewrite::k_xxx),
     ("ZeroInitialized", rewrite::k_xxx_name),
     ("SelectionPolicy", rewrite::k_xxx),
-    //
     // core/ effects/
-    //
     ("SkApplyPerspectiveClip", rewrite::k_xxx),
     ("SkBlendMode", rewrite::k_xxx),
     ("SkBlendModeCoeff", rewrite::k_xxx),
@@ -681,9 +619,7 @@ const ENUM_REWRITES: &[EnumEntry] = &[
     ("Qualifier", rewrite::k_xxx),
     // private type that leaks through SkRuntimeEffect_Variable
     ("GrSLType", rewrite::k_xxx_name),
-    //
     // gpu/
-    //
     ("Origin", rewrite::k_xxx),
     ("GrGLStandard", rewrite::k_xxx_name),
     ("GrGLFormat", rewrite::k_xxx),
@@ -692,24 +628,18 @@ const ENUM_REWRITES: &[EnumEntry] = &[
     ("Mipmapped", rewrite::k_xxx),
     ("Renderable", rewrite::k_xxx),
     ("Protected", rewrite::k_xxx),
-    //
     // DartTypes.h
-    //
     ("Affinity", rewrite::k_xxx),
     ("TextAlign", rewrite::k_xxx),
     ("TextDirection", rewrite::k_xxx_uppercase),
     ("TextBaseline", rewrite::k_xxx),
     ("TextHeightBehavior", rewrite::k_xxx),
     ("DrawOptions", rewrite::k_xxx),
-    //
     // TextStyle.h
-    //
     ("TextDecorationStyle", rewrite::k_xxx),
     ("TextDecorationMode", rewrite::k_xxx),
     ("StyleType", rewrite::k_xxx),
-    //
     // Vk*
-    //
     ("VkChromaLocation", rewrite::vk),
     ("VkFilter", rewrite::vk),
     ("VkFormat", rewrite::vk),
