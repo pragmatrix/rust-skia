@@ -66,17 +66,11 @@ template family is excluded. Known-suspect classes remain:
   types carry manual overrides.
 - The vendored bindgen copy has been removed from the repository; its
   changes are documented as a diff in `docs/bindgen-0.73.2-patches.md`
-  (mangling fix, opaque-with-fields diagnostics, syn/prettyplease pins).
-  Caveat: the syn pin cannot be reproduced through the workspace lockfile
-  alone — this workspace's `skia-svg-macros` requires syn 3, so bindgen
-  0.73.2 resolves to syn 3 and does not compile. Until bindgen 0.73.x+ is
-  released against syn 2 (or upstream fixes #2437), building requires
-  re-applying the documented patch (e.g. via `[patch.crates-io]`).
-- Some remaining `cargo check -p skia-bindings --lib` errors (nested type
-  aliases of generics like `sk_sp_element_type` referring to their parent's
-  template parameters, and `FILE` in hand-written wrappers) are the next
-  items; the vendored bindgen at `patches/bindgen-0.73.2` already carries
-  the `rust_mangle` hyphen fix for `type-parameter-N-M` idents.
+  (mangling fix for `type-parameter-N-M` idents, opaque-with-fields
+  diagnostics, syn/prettyplease pins). Re-applying it (temporarily, e.g.
+  via `[patch.crates-io]`) is required for bindgen-based regeneration of
+  the bindings; the committed table and checked-in build logic do not
+  depend on it.
 
 ## Considered options
 
