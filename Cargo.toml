@@ -7,17 +7,6 @@ members = [
     "skia-org",
     "mk-workflows",
 ]
-# The vendored bindgen is a patched copy of crates.io bindgen 0.73.2 and
-# must not be a workspace member.
-exclude = ["patches/bindgen-0.73.2"]
-
-# Temporary: diagnostic + workaround for bindgen issue
-# https://github.com/rust-lang/rust-bindgen/issues/2437 (anonymous C++
-# template parameter names like `type-parameter-0-0` are not valid Rust
-# idents) and for identifying opaque types with unexpected fields during
-# the opt-in bindings migration (ADR 0001).
-[patch.crates-io]
-bindgen = { path = "patches/bindgen-0.73.2" }
 
 [workspace.package]
 edition = "2024"
