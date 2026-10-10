@@ -7,7 +7,7 @@
 ))]
 
 use std::cell::RefCell;
-use std::ffi::c_void;
+use std::ffi::{CStr, c_void};
 use std::ptr;
 use std::rc::Rc;
 
@@ -84,7 +84,23 @@ impl Vulkan {
     fn new() -> Option<Self> {
         let entry = unsafe { ash::Entry::load() }.ok()?;
         let app_info = vk::ApplicationInfo::default().api_version(vk::API_VERSION_1_1);
-        let instance_info = vk::InstanceCreateInfo::default().application_info(&app_info);
+        // Portability drivers such as MoltenVK are only enumerated when the instance opts in.
+        let portability = has_extension(
+            &unsafe { entry.enumerate_instance_extension_properties(None) }.ok()?,
+            ash::khr::portability_enumeration::NAME,
+        );
+        let (instance_extensions, instance_flags) = if portability {
+            (
+                vec![ash::khr::portability_enumeration::NAME.as_ptr()],
+                vk::InstanceCreateFlags::ENUMERATE_PORTABILITY_KHR,
+            )
+        } else {
+            (Vec::new(), vk::InstanceCreateFlags::empty())
+        };
+        let instance_info = vk::InstanceCreateInfo::default()
+            .application_info(&app_info)
+            .enabled_extension_names(&instance_extensions)
+            .flags(instance_flags);
         let instance = unsafe { entry.create_instance(&instance_info, None) }.ok()?;
 
         let device = unsafe { instance.enumerate_physical_devices() }
@@ -100,8 +116,19 @@ impl Vulkan {
                     let queue_infos = [vk::DeviceQueueCreateInfo::default()
                         .queue_family_index(queue_family_index)
                         .queue_priorities(&[1.0])];
-                    let device_info =
-                        vk::DeviceCreateInfo::default().queue_create_infos(&queue_infos);
+                    // The spec requires enabling VK_KHR_portability_subset wherever it is offered.
+                    let device_extensions = if has_extension(
+                        &unsafe { instance.enumerate_device_extension_properties(physical_device) }
+                            .ok()?,
+                        ash::khr::portability_subset::NAME,
+                    ) {
+                        vec![ash::khr::portability_subset::NAME.as_ptr()]
+                    } else {
+                        Vec::new()
+                    };
+                    let device_info = vk::DeviceCreateInfo::default()
+                        .queue_create_infos(&queue_infos)
+                        .enabled_extension_names(&device_extensions);
                     let device =
                         unsafe { instance.create_device(physical_device, &device_info, None) }
                             .ok()?;
@@ -162,4 +189,10 @@ impl Drop for Vulkan {
             self.instance.destroy_instance(None);
         }
     }
+}
+
+fn has_extension(extensions: &[vk::ExtensionProperties], name: &CStr) -> bool {
+    extensions
+        .iter()
+        .any(|extension| extension.extension_name_as_c_str() == Ok(name))
 }
