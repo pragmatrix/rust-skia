@@ -249,7 +249,7 @@ impl ParagraphStyle {
 
     pub fn max_lines(&self) -> Option<usize> {
         match self.native().fLinesLimit {
-            std::usize::MAX => None,
+            usize::MAX => None,
             lines => Some(lines),
         }
     }

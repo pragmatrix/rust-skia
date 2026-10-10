@@ -1,5 +1,4 @@
 use std::{
-    f32,
     ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Neg, Sub, SubAssign},
     slice,
 };
