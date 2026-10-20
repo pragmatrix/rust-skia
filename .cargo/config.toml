@@ -1,0 +1,4 @@
+# .cargo/config.toml
+[target.wasm32-unknown-emscripten]
+runner = "node"
+
