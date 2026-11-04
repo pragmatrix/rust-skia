@@ -5,6 +5,8 @@ use std::env;
 fn main() {
     cc::Build::new()
         .cpp(true)
+        // The C++ version of `skia-bindings` (`CPP_VERSION` in `build_support/skia_bindgen.rs`).
+        .std("c++20")
         .files(["cpp/core.cpp", "cpp/backend.cpp"])
         .cargo_metadata(false)
         .compile("bindings");

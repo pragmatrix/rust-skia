@@ -9,9 +9,19 @@ uint64_t wgpuBufferGetSize(WGPUBuffer buffer);
 void wgpuBufferRelease(WGPUBuffer buffer);
 }
 namespace wgpu {
+// Owns one reference and is move-only, like the classes of `webgpu_cpp.h`. A copy would release
+// the same reference twice.
 struct Buffer {
     WGPUBuffer h;
-    ~Buffer() { wgpuBufferRelease(h); }
+    explicit Buffer(WGPUBuffer h) : h(h) {}
+    Buffer(const Buffer&) = delete;
+    Buffer& operator=(const Buffer&) = delete;
+    Buffer(Buffer&& other) noexcept : h(other.h) { other.h = nullptr; }
+    ~Buffer() {
+        if (h) {
+            wgpuBufferRelease(h);
+        }
+    }
     uint64_t GetSize() const { return wgpuBufferGetSize(h); }
 };
 struct Device {
