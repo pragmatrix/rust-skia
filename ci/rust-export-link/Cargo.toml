@@ -1,0 +1,19 @@
+# A model of how ADR 0003 links Skia's Dawn backend to the `skia-wgpu` shim. `bindings` stands for
+# `skia-bindings`, whose C++ library calls `wgpu*` functions that it does not define. `shim` stands
+# for `skia-wgpu`, which depends on `bindings` and defines these functions in Rust with
+# `#[no_mangle]`. `safe` and `app` stand for `skia-safe` and an application. `run.sh` builds and
+# runs `app` in every profile and link mode.
+#
+# This is its own workspace, so the rust-skia workspace does not build it.
+[workspace]
+members = ["bindings", "shim", "safe", "app"]
+resolver = "2"
+
+[profile.release-fat]
+inherits = "release"
+lto = "fat"
+
+[profile.release-thin]
+inherits = "release"
+lto = "thin"
+codegen-units = 16

@@ -1,0 +1,14 @@
+[package]
+name = "shim"
+version = "0.1.0"
+edition = "2021"
+links = "shim"
+
+[dependencies]
+bindings = { path = "../bindings" }
+
+[features]
+# References every export from the entry point, in case the linker would not load them otherwise.
+keep = []
+# Leaves out `wgpuBufferGetSize`, so that the link must fail and name it.
+omit-get-size = []

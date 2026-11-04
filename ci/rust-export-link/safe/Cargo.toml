@@ -1,0 +1,12 @@
+[package]
+name = "safe"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bindings = { path = "../bindings" }
+shim = { path = "../shim" }
+
+[features]
+keep = ["shim/keep"]
+omit-get-size = ["shim/omit-get-size"]
