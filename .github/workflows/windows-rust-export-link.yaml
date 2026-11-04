@@ -32,3 +32,15 @@ jobs:
       run: |
         ci\rust-export-link\target\debug\app.exe
         "exit code: 0x{0:X8}" -f $LASTEXITCODE
+
+    # Runs the debug app under the console debugger with full page heap, which stops at the first
+    # invalid heap access, and prints the call stack there.
+    - name: Stack trace of the debug app
+      if: always() && matrix.os == 'windows-2022'
+      shell: pwsh
+      run: |
+        $debuggers = "C:\Program Files (x86)\Windows Kits\10\Debuggers\x64"
+        & "$debuggers\gflags.exe" /p /enable app.exe /full
+        $app = "ci\rust-export-link\target\debug"
+        & "$debuggers\cdb.exe" -g -lines -y $app -c ".lines -e; kP 40; q" "$app\app.exe"
+        exit 0
