@@ -23,11 +23,13 @@ for bundle in 1 0; do
       dir=$profile
       [ $profile = dev ] && dir=debug
       if BUNDLE=$bundle cargo build -q -p app --profile $profile $features >build.log 2>&1; then
-        output=$("${CARGO_TARGET_DIR:-target}/$dir/app$exe")
+        output=$("${CARGO_TARGET_DIR:-target}/$dir/app$exe" 2>run.err)
+        status=$?
         if [ "$output" = "core=7 backend=42" ]; then
           echo "ok      $label"
         else
-          echo "WRONG   $label: $output"
+          echo "WRONG   $label: output '$output', exit status $status"
+          cat run.err
           failures=$((failures + 1))
         fi
       else

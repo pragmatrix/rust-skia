@@ -23,3 +23,12 @@ jobs:
     - name: Link and run
       run: bash ci/rust-export-link/run.sh
       shell: bash
+
+    # Bash shows only the low byte of a Windows exit code. PowerShell shows the full NTSTATUS,
+    # such as 0xC0000005 for an access violation.
+    - name: Full exit code of the debug app
+      if: always()
+      shell: pwsh
+      run: |
+        ci\rust-export-link\target\debug\app.exe
+        "exit code: 0x{0:X8}" -f $LASTEXITCODE
